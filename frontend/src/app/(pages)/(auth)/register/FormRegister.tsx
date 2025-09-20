@@ -6,6 +6,13 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { FiEye, FiEyeOff, FiUser } from 'react-icons/fi';
 
+// Định nghĩa interface cho fields trong validator
+interface ValidatorFields {
+  '#password': {
+    elem: HTMLInputElement;
+  };
+}
+
 export const FormRegister = () => {
   const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
@@ -17,28 +24,28 @@ export const FormRegister = () => {
     validator
       .addField('#username', [
         {
-          rule: 'required',
+          rule: 'required' as const,
           errorMessage: 'Vui lòng nhập tên người dùng!'
         },
         {
-          rule: 'maxLength',
+          rule: 'maxLength' as const,
           value: 200,
           errorMessage: 'Tên người dùng không được vượt quá 200 ký tự!',
         },
       ])
       .addField('#email', [
         {
-          rule: 'required',
+          rule: 'required' as const,
           errorMessage: 'Vui lòng nhập email!',
         },
         {
-          rule: 'email',
+          rule: 'email' as const,
           errorMessage: 'Email không đúng định dạng!',
         },
       ])
       .addField('#password', [
         {
-          rule: 'required',
+          rule: 'required' as const,
           errorMessage: 'Vui lòng nhập mật khẩu!',
         },
         {
@@ -64,23 +71,24 @@ export const FormRegister = () => {
       ])
       .addField('#confirmPassword', [
         {
-          rule: 'required',
+          rule: 'required' as const,
           errorMessage: 'Vui lòng nhập lại mật khẩu!',
         },
         {
-          validator: (value: string, fields: any) => value === fields['#password'].elem.value,
+          validator: (value: string, fields: ValidatorFields) => value === fields['#password'].elem.value,
           errorMessage: 'Mật khẩu nhập lại không khớp!',
         },
       ])
-      .onSuccess((event: any) => {
-        const username = event.target.username.value;
-        const email = event.target.email.value;
-        const password = event.target.password.value;
+      .onSuccess((event: Event) => {
+        const form = event.target as HTMLFormElement;
+        const username = form.username.value;
+        const email = form.email.value;
+        const password = form.password.value;
 
         const dataFinal = {
-          username: username,
-          email: email,
-          password: password
+          username,
+          email,
+          password,
         };
   
         fetch(`${process.env.NEXT_PUBLIC_API_URL}/register`, {
@@ -92,16 +100,16 @@ export const FormRegister = () => {
         })
           .then(res => res.json())
           .then(data => {
-            if(data.code == "error") {
+            if (data.code === "error") {
               alert(data.message);
             }
   
-            if(data.code == "success") {
+            if (data.code === "success") {
               router.push("/login");
             }
           });
       });
-  }, []);
+  }, [router]); // Thêm router vào mảng phụ thuộc
 
   return (
     <div className="w-full max-w-[576px] mx-auto bg-white/90 backdrop-blur-sm border border-gray-200 rounded-lg shadow-xl p-6 animate-in fade-in duration-500">

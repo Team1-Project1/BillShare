@@ -16,17 +16,17 @@ export const FormLogin = () => {
     validator
       .addField('#email', [
         {
-          rule: 'required',
+          rule: 'required' as const,
           errorMessage: 'Vui lòng nhập email!',
         },
         {
-          rule: 'email',
+          rule: 'email' as const,
           errorMessage: 'Email không đúng định dạng!',
         },
       ])
       .addField('#password', [
         {
-          rule: 'required',
+          rule: 'required' as const,
           errorMessage: 'Vui lòng nhập mật khẩu!',
         },
         {
@@ -50,13 +50,14 @@ export const FormLogin = () => {
           errorMessage: 'Mật khẩu phải chứa ít nhất một ký tự đặc biệt!',
         },
       ])
-      .onSuccess((event: any) => {
-        const email = event.target.email.value;
-        const password = event.target.password.value;
+      .onSuccess((event: Event) => {
+        const form = event.target as HTMLFormElement;
+        const email = form.email.value;
+        const password = form.password.value;
 
         const dataFinal = {
-          email: email,
-          password: password
+          email,
+          password,
         };
   
         fetch(`${process.env.NEXT_PUBLIC_API_URL}/login`, {
@@ -69,16 +70,16 @@ export const FormLogin = () => {
         })
           .then(res => res.json())
           .then(data => {
-            if(data.code == "error") {
+            if (data.code === "error") {
               alert(data.message);
             }
   
-            if(data.code == "success") {
+            if (data.code === "success") {
               router.push("/");
             }
           });
       });
-  }, []);
+  }, [router]); // Thêm router vào mảng phụ thuộc
 
   return (
     <div className="w-full max-w-[576px] mx-auto bg-white/90 backdrop-blur-sm border border-gray-200 rounded-lg shadow-xl p-6 animate-in fade-in duration-500">
