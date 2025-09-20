@@ -20,4 +20,6 @@
   ```bash
   npx -v
 
-
+## 3. Cài đặt các gói package.json
+  ```bash
+  npm install --force
