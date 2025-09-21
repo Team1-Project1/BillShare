@@ -5,24 +5,31 @@ spring:
   devtools:
     add-properties: true
   datasource:
-    url: jdbc:postgresql://${DATABASE_URL:localhost:5432/postgres}
-    username: ${DATABASE_USERNAME:dev}
-    password: ${DATABASE_PASSWORD:password}
-    hikari: # Connection poll
+    # Kết nối đến Supabase Session Pooler
+    url: jdbc:postgresql://aws-1-ap-southeast-1.pooler.supabase.com:5432/postgres
+    username: postgres.yulezlspzgdnbxunutqm
+    password: 'Giang@19102004'
+    driver-class-name: org.postgresql.Driver
+    hikari:
       max-lifetime: 300000      # 5 phút
       idle-timeout: 60000       # 1 phút
       validation-timeout: 5000  # 5 giây
       minimum-idle: 5
       maximum-pool-size: 20
   jpa:
-    show-sql: false
+    show-sql: true
     hibernate:
-      ddl-auto: none
+      ddl-auto: none  # ko tạo bảng
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+
 springdoc:
   api-docs:
     enabled: true
   swagger-ui:
     enabled: true
+
 openapi:
   service:
     api-docs: backend-service
