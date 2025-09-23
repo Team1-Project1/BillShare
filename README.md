@@ -23,3 +23,8 @@
 ## 3. Cài đặt các gói package.json
   ```bash
   npm install --force
+  ```
+
+## 4. Chạy chương trình
+  ```bash
+  npm run dev
