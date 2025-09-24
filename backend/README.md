@@ -26,17 +26,7 @@
 ## 3. Build & Run Application
 – Run application bởi mvnw tại folder backend
 ```
-$ ./mvnw spring-boot:run
+ ./mvnw spring-boot:run
 ```
 
-– Run application bởi docker
-```
-$ mvn clean install -P dev
-$ docker build -t backend-service:latest .
-$ docker run -it -p 8080:8080 --name backend-service backend-service:latest
-```
-– chạy lại lần sau bởi docker
-```
-$ docker start -ai backend-service
-```
 
