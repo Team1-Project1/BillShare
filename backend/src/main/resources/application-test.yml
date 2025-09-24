@@ -1,7 +1,7 @@
 spring:
   config:
     activate:
-      on-profile: dev
+      on-profile: test
   devtools:
     add-properties: true
   datasource:
