@@ -2,6 +2,9 @@ package vn.backend.backend.service.Impl;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import vn.backend.backend.controller.request.UserCreateRequest;
 import vn.backend.backend.model.UserEntity;
@@ -14,19 +17,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 @RequiredArgsConstructor
 public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
-    private final PasswordEncoder passwordEncoder ;
-
     @Override
-    public Long addUser(UserCreateRequest request) {
-        log.info("User saving");
-        UserEntity user=UserEntity.builder()
-                .email(request.getEmail())
-                .password(passwordEncoder.encode(request.getPassword()))
-                .phone(request.getPhone())
-                .fullName(request.getFullNname())
-                .build();
-        userRepository.save(user);
-        log.info("user has save , userId={}", user.getUserId());
-        return user.getUserId();
+    public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
+        return userRepository.findByEmail(email)
+                .orElseThrow(() -> new UsernameNotFoundException("Email not found"));
     }
 }
