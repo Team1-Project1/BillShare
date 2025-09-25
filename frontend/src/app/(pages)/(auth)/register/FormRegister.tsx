@@ -5,6 +5,7 @@ import JustValidate from 'just-validate';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { FiEye, FiEyeOff, FiUser } from 'react-icons/fi';
+import { toast } from 'react-toastify';
 
 // Định nghĩa interface cho fields trong validator
 interface ValidatorFields {
@@ -22,7 +23,7 @@ export const FormRegister = () => {
     const validator = new JustValidate("#registerForm");
 
     validator
-      .addField('#username', [
+      .addField('#fullNname', [
         {
           rule: 'required' as const,
           errorMessage: 'Vui lòng nhập tên người dùng!'
@@ -81,17 +82,19 @@ export const FormRegister = () => {
       ])
       .onSuccess((event: Event) => {
         const form = event.target as HTMLFormElement;
-        const username = form.username.value;
+        const fullNname = form.fullNname.value;
+        const phone = form.phone.value;
         const email = form.email.value;
         const password = form.password.value;
 
         const dataFinal = {
-          username,
+          fullNname,
+          phone,
           email,
           password,
         };
   
-        fetch(`${process.env.NEXT_PUBLIC_API_URL}/register`, {
+        fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/register`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -101,10 +104,23 @@ export const FormRegister = () => {
           .then(res => res.json())
           .then(data => {
             if (data.code === "error") {
-              alert(data.message);
+              toast.error(data.message, {
+                position: "top-center",
+                autoClose: 3000, // Tự đóng sau 3 giây
+                hideProgressBar: false,
+                closeOnClick: true,
+                pauseOnHover: true,
+              });
             }
   
             if (data.code === "success") {
+              toast.success("Đăng ký thành công, vui lòng đăng nhập!", {
+                position: "top-center",
+                autoClose: 3000,
+                hideProgressBar: false,
+                closeOnClick: true,
+                pauseOnHover: true,
+              });
               router.push("/login");
             }
           });
@@ -125,18 +141,29 @@ export const FormRegister = () => {
       {/* Form */}
       <form id="registerForm" className="space-y-5">
         <div className="space-y-2">
-          <label htmlFor="username" className="text-sm font-medium text-gray-700">
+          <label htmlFor="fullNname" className="text-sm font-medium text-gray-700">
             Tên người dùng
           </label>
           <input
             type="text"
-            name="username"
-            id="username"
+            name="fullNname"
+            id="fullNname"
             placeholder="Nhập tên người dùng"
             className="h-12 w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-[#5BC5A7] transition-all duration-300"
           />
         </div>
-
+        <div className="space-y-2">
+          <label htmlFor="phone" className="text-sm font-medium text-gray-700">
+            Số điện thoại
+          </label>
+          <input
+            type="text"
+            name="phone"
+            id="phone"
+            placeholder="Nhập số điện thoại"
+            className="h-12 w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-[#5BC5A7] transition-all duration-300"
+          />
+        </div>
         <div className="space-y-2">
           <label htmlFor="email" className="text-sm font-medium text-gray-700">
             Địa chỉ email

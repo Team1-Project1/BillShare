@@ -5,6 +5,7 @@ import JustValidate from 'just-validate';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { FiEye, FiEyeOff, FiUser } from 'react-icons/fi';
+import { toast } from 'react-toastify';
 
 export const FormLogin = () => {
   const router = useRouter();
@@ -45,10 +46,10 @@ export const FormLogin = () => {
           validator: (value: string) => /\d/.test(value),
           errorMessage: 'Mật khẩu phải chứa ít nhất một chữ số!',
         },
-        {
-          validator: (value: string) => /[@$!%*?&]/.test(value),
-          errorMessage: 'Mật khẩu phải chứa ít nhất một ký tự đặc biệt!',
-        },
+        // {
+        //   validator: (value: string) => /[@$!%*?&]/.test(value),
+        //   errorMessage: 'Mật khẩu phải chứa ít nhất một ký tự đặc biệt!',
+        // },
       ])
       .onSuccess((event: Event) => {
         const form = event.target as HTMLFormElement;
@@ -60,21 +61,40 @@ export const FormLogin = () => {
           password,
         };
   
-        fetch(`${process.env.NEXT_PUBLIC_API_URL}/login`, {
+        fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/login`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
           body: JSON.stringify(dataFinal),
-          credentials: "include",
+          // credentials: "include", dùng cookie nếu cần
         })
           .then(res => res.json())
           .then(data => {
             if (data.code === "error") {
-              alert(data.message);
+              toast.error(data.message, {
+                position: "top-center",
+                autoClose: 3000, // Tự đóng sau 3 giây
+                hideProgressBar: false,
+                closeOnClick: true,
+                pauseOnHover: true,
+              });
             }
   
             if (data.code === "success") {
+              toast.success("Đăng nhập thành công!", {
+                position: "top-center",
+                autoClose: 3000,
+                hideProgressBar: false,
+                closeOnClick: true,
+                pauseOnHover: true,
+              });
+              // Lưu token vào localStorage
+              localStorage.setItem("accessToken", data.data.accesstToken);
+              localStorage.setItem("refreshToken", data.data.refreshtToken);
+              localStorage.setItem("userId", data.data.userId);
+              
+              // Chuyển trang về home
               router.push("/");
             }
           });
