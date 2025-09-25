@@ -15,8 +15,10 @@ import org.springframework.security.web.authentication.WebAuthenticationDetailsS
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 import vn.backend.backend.common.TokenType;
+import vn.backend.backend.model.TokenEntity;
 import vn.backend.backend.repository.UserRepository;
 import vn.backend.backend.service.JwtService;
+import vn.backend.backend.service.TokenService;
 import vn.backend.backend.service.UserService;
 
 import java.io.IOException;
@@ -25,6 +27,7 @@ import java.io.IOException;
 public class Prefilter extends OncePerRequestFilter {
     private final UserDetailsService userDetailsService;
     private final JwtService jwtService;
+    private final TokenService tokenService;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
@@ -36,6 +39,11 @@ public class Prefilter extends OncePerRequestFilter {
         final String token = authorization.substring("Bearer ".length());
         final  String email=jwtService.extractEmail(token, TokenType.ACCESS_TOKEN);
         if (StringUtils.isNoneEmpty(email)&& SecurityContextHolder.getContext().getAuthentication() == null) {
+            TokenEntity tokenEntity=tokenService.findByEmail(email);
+            if(tokenEntity==null || !token.equals(tokenEntity.getAccessToken())) {
+                filterChain.doFilter(request, response);
+                return;
+            }
             UserDetails userDetails=userDetailsService.loadUserByUsername(email);
             if (jwtService.isValid(token, userDetails,TokenType.ACCESS_TOKEN)) {
                 SecurityContext context=SecurityContextHolder.createEmptyContext();

@@ -17,10 +17,13 @@ import vn.backend.backend.common.TokenType;
 import vn.backend.backend.controller.request.SignInRequest;
 import vn.backend.backend.controller.request.UserCreateRequest;
 import vn.backend.backend.controller.response.TokenResponse;
+import vn.backend.backend.model.TokenEntity;
 import vn.backend.backend.model.UserEntity;
 import vn.backend.backend.repository.UserRepository;
 import vn.backend.backend.service.AuthenticationService;
 import vn.backend.backend.service.JwtService;
+import vn.backend.backend.service.TokenService;
+
 import java.util.Optional;
 
 import static vn.backend.backend.common.TokenType.REFRESH_TOKEN;
@@ -33,6 +36,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     private final PasswordEncoder passwordEncoder ;
     private final AuthenticationManager authenticationManager ;
     private final JwtService jwtService ;
+    private final TokenService tokenService ;
 
     @Override
     public Long register(UserCreateRequest request) {
@@ -76,7 +80,12 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         var user=userRepository.findByEmail(request.getEmail()).orElseThrow(()->new UsernameNotFoundException("email not found"));
         String accessToken=jwtService.generateAccessToken(user);
         String refreshToken=jwtService.generateRefreshToken(user);
-
+        tokenService.saveToken(TokenEntity.builder().
+                userId(user.getUserId()).
+                email(user.getEmail()).
+                accessToken(accessToken).
+                refreshToken(refreshToken).
+                build());
         return TokenResponse.builder().
                 accesstToken(accessToken).
                 refreshtToken(refreshToken).
@@ -91,16 +100,32 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         }
 
         final String email=jwtService.extractEmail(refreshToken, TokenType.REFRESH_TOKEN);
+        var tokenEntity = tokenService.findByEmail(email);
+        if (!refreshToken.equals(tokenEntity.getRefreshToken())) {
+            throw new BadCredentialsException("Refresh token invalid");
+        }
         Optional<UserEntity> user=userRepository.findByEmail(email);
         if (!jwtService.isValid(refreshToken,user.get(),TokenType.REFRESH_TOKEN)){
             throw new BadCredentialsException("Refresh token invalid");
-
         }
         String accessToken=jwtService.generateAccessToken(user.get());
+        tokenEntity.setAccessToken(accessToken);
+        tokenService.saveToken(tokenEntity);
         return TokenResponse.builder().
                 accesstToken(accessToken).
                 refreshtToken(refreshToken).
                 userId(user.get().getUserId()).
                 build();
+    }
+
+    @Override
+    public String logout(HttpServletRequest request) {
+        String refreshToken=request.getHeader("refresh-token");
+        if (StringUtils.isBlank(refreshToken)) {
+            throw new BadCredentialsException("Refresh token is required");
+        }
+        String email=jwtService.extractEmail(refreshToken, REFRESH_TOKEN);
+        tokenService.deleteToken(email);
+        return "logout successfully";
     }
 }

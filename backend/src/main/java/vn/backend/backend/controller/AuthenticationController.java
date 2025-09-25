@@ -65,4 +65,10 @@ public class AuthenticationController {
         TokenResponse token=authenticationService.refresh(request);
         return ResponseEntity.ok(token);
     }
+    @Operation(summary = "logout account", description = "API to logout account")
+    @PostMapping("/logout")
+    public ResponseEntity<String> logout(HttpServletRequest request) {
+        String result=authenticationService.logout(request);
+        return ResponseEntity.ok(result);
+    }
 }
