@@ -10,4 +10,5 @@ public interface AuthenticationService {
     Long register(UserCreateRequest request);
     TokenResponse authenticated(SignInRequest request);
     TokenResponse refresh(HttpServletRequest request );
+    String logout(HttpServletRequest request );
 }
