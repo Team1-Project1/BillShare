@@ -114,6 +114,10 @@ exports.FormRegister = function () {
                 }
             });
         });
+        // Cleanup: Hủy instance của JustValidate khi component unmount
+        return function () {
+            validator.destroy();
+        };
     }, [router]); // Thêm router vào mảng phụ thuộc
     return (React.createElement("div", { className: "w-full max-w-[576px] mx-auto bg-white/90 backdrop-blur-sm border border-gray-200 rounded-lg shadow-xl p-6 animate-in fade-in duration-500" },
         React.createElement("div", { className: "space-y-2 text-center pb-8" },
