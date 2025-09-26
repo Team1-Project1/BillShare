@@ -125,6 +125,10 @@ export const FormRegister = () => {
             }
           });
       });
+    // Cleanup: Hủy instance của JustValidate khi component unmount
+    return () => {
+      validator.destroy();
+    };
   }, [router]); // Thêm router vào mảng phụ thuộc
 
   return (
