@@ -101,8 +101,24 @@ export const FormRegister = () => {
           },
           body: JSON.stringify(dataFinal),
         })
-          .then(res => res.json())
+          .then(async (res) => {
+            if (res.status === 409) {
+              // Email trùng
+              toast.error("Email đã tồn tại trong hệ thống!", {
+                position: "top-center",
+                autoClose: 3000,
+                hideProgressBar: false,
+                closeOnClick: true,
+                pauseOnHover: true,
+              });
+              return null; // Dừng ở đây
+            }
+
+            // Với các status khác thì parse JSON
+            return res.json();
+          })
           .then(data => {
+            if (!data) return; // Nếu data là null (do lỗi 409), dừng ở đây
             if (data.code === "error") {
               toast.error(data.message, {
                 position: "top-center",
