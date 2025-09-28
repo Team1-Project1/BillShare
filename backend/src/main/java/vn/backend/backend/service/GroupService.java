@@ -12,5 +12,6 @@ public interface GroupService {
     GroupResponse editGroup(GroupEditRequest request, Long groupId);
     List<GroupResponse> getAllGroups();
     GroupDetailResponse getGroupDetailById(Long groupId);
-
+    String deleteGroup(Long groupId,Long userId);
+    String deleteMemberFromGroup(Long groupId,Long userId,Long memberId);
 }

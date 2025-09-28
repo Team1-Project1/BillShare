@@ -58,4 +58,26 @@ public class GroupController {
                 new ApiResponse<>("success",String.format("get detail group %d into database successfull",groupId), group)
         );
     }
+    @Operation(
+            summary = "Delete group by id",
+            description = "API to delete group by ID. Only allowed if user is admin and delete confirmation message if any member has cost."
+    )
+    @PutMapping("/{groupId}/delete-by/{userId}")
+    public ResponseEntity<ApiResponse<String>> deleteGroup(@PathVariable Long groupId,@PathVariable Long userId) {
+        String result = groupService.deleteGroup(groupId,userId);
+        return ResponseEntity.ok(
+                new ApiResponse<>("success",result,null)
+        );
+    }
+    @Operation(
+            summary = "Delete member from group",
+            description = "API to delete members by ID. Only allowed if user is admin and delete and no member with cost can be deleted."
+    )
+    @PutMapping("/{groupId}/{memberId}/delete-by/{userId}")
+    public ResponseEntity<ApiResponse<String>> deleteMemberFromGroup(@PathVariable Long groupId,@PathVariable Long userId,@PathVariable Long memberId) {
+        String result = groupService.deleteMemberFromGroup(groupId,userId,memberId);
+        return ResponseEntity.ok(
+                new ApiResponse<>("success",result,null)
+        );
+    }
 }
