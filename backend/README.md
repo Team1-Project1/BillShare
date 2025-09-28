@@ -19,8 +19,7 @@
 - Postgres
 - Lombok
 - DevTools
-- Docker
-- Docker compose
+
 
 
 ## 3. Build & Run Application

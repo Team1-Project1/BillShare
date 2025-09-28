@@ -23,7 +23,7 @@ public class UserCreateRequest {
     private String password;
 
     @NotBlank
-    private String fullNname;
+    private String fullName;
 
     @NotBlank
     @Pattern(

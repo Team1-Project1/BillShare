@@ -5,28 +5,31 @@ spring:
   devtools:
     add-properties: true
   datasource:
-
     url: jdbc:postgresql://aws-1-ap-southeast-1.pooler.supabase.com:5432/postgres
     username: postgres.yulezlspzgdnbxunutqm
     password: 'Giang@19102004'
     driver-class-name: org.postgresql.Driver
-
-
-    hikari: # Connection poll
-      max-lifetime: 300000      # 5 phút
-      idle-timeout: 60000       # 1 phút
-      validation-timeout: 5000  # 5 giây
+    hikari:
       minimum-idle: 5
       maximum-pool-size: 20
-
-  spring:
-    jpa:
-      show-sql: true
+      idle-timeout: 600000
+      max-lifetime: 1800000
+      connection-timeout: 30000
+      leak-detection-threshold: 20000
+  jpa:
+    show-sql: true
+    hibernate:
+      ddl-auto: none
+    properties:
       hibernate:
-        ddl-auto: none
-      properties:
-        hibernate:
-          dialect: org.hibernate.dialect.PostgreSQLDialect
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+  sendgrid:
+    api-key: ${API_KEY}
+    from-email: nguyenkimgiang489@gmail.com
+    name: BillShare
+    templateConfirmParticipationId: d-5c76fa0599a24120bcb98560667202a0
+    baseUrl: http://localhost:8080/group-member/
+
 
 springdoc:
   api-docs:

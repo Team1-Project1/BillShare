@@ -1,7 +1,9 @@
 package vn.backend.backend.config;
 
+import com.sendgrid.SendGrid;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -29,7 +31,9 @@ import static org.springframework.security.config.http.SessionCreationPolicy.STA
 public class AppConfig {
     private final UserService userService;
     private final Prefilter prefilter; // Filter tự viết để kiểm tra JWT trong request
-    private String[] WHITE_LIST = {"/auth/**"}; // Các API không cần login (ví dụ: đăng ký, đăng nhập)
+    private String[] WHITE_LIST = {"/auth/**","/group-member/**"}; // Các API không cần login (ví dụ: đăng ký, đăng nhập)
+    @Value("${spring.sendgrid.api-key}")
+    private String sendGridApiKey;
 
     // Cấu hình CORS (cho phép FE gọi API từ domain khác)
     @Bean
@@ -99,5 +103,9 @@ public class AppConfig {
     @Bean
     public PasswordEncoder passwordEncoder(){
         return new BCryptPasswordEncoder(); // dùng thuật toán BCrypt để hash mật khẩu
+    }
+    @Bean
+    public SendGrid sendGrid(){
+        return new SendGrid(sendGridApiKey);
     }
 }
