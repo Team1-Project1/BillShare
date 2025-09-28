@@ -44,7 +44,7 @@ openapi:
     title: Backend service
     version: 1.0.0
 jwt:
-  timeOutAccessToken: 1
+  timeOutAccessToken: 5
   timeOutRefreshToken: 1440
   secretKeyAccessToken: jkbJytBJPN9ML9pGNX73yFEpoUbKEgpBbnDe9+vHo8o=
   secretKeyRefreshToken: 6sLRRGxtFgPyxLGFuQFuhPlACKs83VabaQ4sIS1X7Rc=

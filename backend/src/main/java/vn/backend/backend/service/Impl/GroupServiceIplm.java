@@ -20,6 +20,7 @@ import vn.backend.backend.service.GroupService;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -126,4 +127,51 @@ public class GroupServiceIplm implements GroupService {
                 members(members).
                 build();
     }
+    @Transactional
+    @Override
+    public String deleteGroup(Long groupId,Long userId) {
+        UserEntity user= userRepository.findById(userId).orElseThrow(()->new RuntimeException("User not found with id " + userId));
+        GroupEntity group=groupRepository.findById(groupId).orElseThrow(()->new RuntimeException("Group not found with id " + groupId));
+        Optional<GroupMembersEntity> group_member=groupMembersRepository.findById(GroupMembersId.builder().userId(user.getUserId()).groupId(groupId).build());
+        if(group_member.isEmpty() ){
+            throw new RuntimeException("User is not member of group");
+        }
+        if( group_member.get().getRole()!= MemberRole.admin){
+            throw new RuntimeException("User is not admin of group");
+        }
+        //TODO: kiểm tra người dùng trong nhóm có khoản chi nào không, nếu có thì phải thông báo trưcớc khi xóa
+        group.setIsActive(false);
+        groupRepository.save(group);
+        List<GroupMembersEntity> members = groupMembersRepository.findAllById_GroupId(groupId);
+        for (GroupMembersEntity member : members) {
+            member.setIsActive(false);
+        }
+        groupMembersRepository.saveAll(members);
+        return String.format("Delete group id %d successfully",groupId);
+    }
+
+    @Override
+    public String deleteMemberFromGroup(Long groupId, Long userId, Long memberId) {
+        UserEntity user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found with id " + userId));
+        Optional<GroupMembersEntity> group_member=groupMembersRepository.findById(GroupMembersId.builder().userId(user.getUserId()).groupId(groupId).build());
+        if(group_member.isEmpty() || group_member.get().getRole()!= MemberRole.admin){
+            throw new RuntimeException("User is not admin of group");
+        }
+        GroupMembersEntity memberToDelete = groupMembersRepository.findById(
+                GroupMembersId.builder()
+                        .userId(memberId)
+                        .groupId(groupId)
+                        .build()
+        ).orElseThrow(() -> new RuntimeException("Member with id " + memberId + " not found in group " + groupId));
+        if(userId.equals(memberId)){
+            throw new RuntimeException("Admin cannot delete themselves from the group");
+        }
+        // TODO: Kiểm tra thành viên có khoản chi trong group không nếu có thì không được xóa
+        memberToDelete.setIsActive(false);
+        groupMembersRepository.save(memberToDelete);
+
+        return String.format("Delete member id %d from group id %d successfully", memberId, groupId);
+    }
+
 }

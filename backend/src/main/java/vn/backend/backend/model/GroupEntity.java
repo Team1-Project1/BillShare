@@ -31,7 +31,7 @@ public class GroupEntity {
     @Column( name = "created_by",nullable = false)
     private Long createdBy;
 
-    @OneToMany(mappedBy = "group")
+    @OneToMany(mappedBy = "group", cascade = CascadeType.REMOVE, orphanRemoval = true)
     private List<GroupMembersEntity> groupMembers;
 
     @Builder.Default
