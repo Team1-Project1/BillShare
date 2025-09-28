@@ -13,7 +13,4 @@ import vn.backend.backend.service.UserService;
 @RequiredArgsConstructor
 public class UserController {
     private final UserService userService;
-
-
-
 }

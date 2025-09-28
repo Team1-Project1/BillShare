@@ -67,8 +67,13 @@ public class UserEntity implements Serializable, UserDetails {
     private Boolean isActive=true;
 
     @Column(name = "last_login")
-    @Temporal(TemporalType.DATE)
+    @Temporal(TemporalType.TIMESTAMP)
     private Date lastLogin;
+
+    @OneToMany(mappedBy = "member")
+    private List<GroupMembersEntity> groupMembers;
+
+
 
 
     @Override

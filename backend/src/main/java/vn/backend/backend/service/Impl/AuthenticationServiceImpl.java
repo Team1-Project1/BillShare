@@ -45,7 +45,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
                 .email(request.getEmail())
                 .password(passwordEncoder.encode(request.getPassword()))
                 .phone(request.getPhone())
-                .fullName(request.getFullNname())
+                .fullName(request.getFullName())
                 .build();
         userRepository.save(user);
         log.info("user has save , userId={}", user.getUserId());
