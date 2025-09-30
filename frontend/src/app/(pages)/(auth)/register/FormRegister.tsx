@@ -15,7 +15,7 @@ interface ValidatorFields {
 }
 
 export const FormRegister = () => {
-  const router = useRouter();
+  const router = useRouter(); // chuyển hướng trang mà không cần reload
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 

@@ -45,7 +45,7 @@ var link_1 = require("next/link");
 var fi_1 = require("react-icons/fi");
 var react_toastify_1 = require("react-toastify");
 exports.FormRegister = function () {
-    var router = navigation_1.useRouter();
+    var router = navigation_1.useRouter(); // chuyển hướng trang mà không cần reload
     var _a = react_1.useState(false), showPassword = _a[0], setShowPassword = _a[1];
     var _b = react_1.useState(false), showConfirmPassword = _b[0], setShowConfirmPassword = _b[1];
     react_1.useEffect(function () {
