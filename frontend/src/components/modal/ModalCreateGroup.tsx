@@ -1,7 +1,9 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { toast } from "react-toastify";
 import CardMemberSelect from "../card/CardMemberSelect";
+import { fetchWithAuth } from "@/lib/fetchWithAuth";
 
 export default function ModalCreateGroup({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
   const [groupName, setGroupName] = useState("");
@@ -38,9 +40,90 @@ export default function ModalCreateGroup({ isOpen, onClose }: { isOpen: boolean;
     alert("Upload avatar to Cloudinary"); // Logic upload bạn làm sau
   };
 
-  const handleCreate = () => {
-    console.log({ groupName, groupDesc, avatar, selectedMembers });
-    onClose();
+  const handleCreate = async () => {
+    try {
+      const userId = localStorage.getItem("userId"); // Giả định userId lưu trong localStorage
+      if (!userId) {
+        toast.error("Không tìm thấy thông tin người dùng, vui lòng đăng nhập lại!", {
+          position: "top-center",
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+        });
+        return;
+      }
+
+      if (!groupName.trim()) {
+        toast.error("Vui lòng nhập tên nhóm!", {
+          position: "top-center",
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+        });
+        return;
+      }
+
+      const response = await fetchWithAuth(`${process.env.NEXT_PUBLIC_API_URL}/group/create/${userId}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "*/*",
+        },
+        body: JSON.stringify({
+          groupName,
+          description: groupDesc || "Không có mô tả", // Giá trị mặc định nếu không nhập
+          defaultCurrency: "VND", // Giá trị mặc định
+        }),
+      });
+
+      if (!response.ok) {
+        if (response.status === 401 || response.status === 403) {
+          toast.error("Phiên đăng nhập hết hạn, vui lòng đăng nhập lại!", {
+            position: "top-center",
+            autoClose: 3000,
+            hideProgressBar: false,
+            closeOnClick: true,
+            pauseOnHover: true,
+          });
+          return;
+        }
+        throw new Error("Không thể tạo nhóm");
+      }
+
+      const data = await response.json();
+      if (data.code === "error") {
+        toast.error(data.message, {
+          position: "top-center",
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+        });
+        return;
+      }
+
+      if (data.code === "success") {
+        toast.success("Tạo nhóm thành công!", {
+          position: "top-center",
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+        });
+        console.log("Thành viên được chọn:", selectedMembers.map(id => members.find(m => m.id === id)?.name));
+        onClose();
+      }
+    } catch (err) {
+      toast.error("Không thể tạo nhóm!", {
+        position: "top-center",
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+      });
+    }
   };
 
   if (!isOpen) return null;

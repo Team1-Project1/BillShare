@@ -23,7 +23,7 @@ export const FormRegister = () => {
     const validator = new JustValidate("#registerForm");
 
     validator
-      .addField('#fullNname', [
+      .addField('#fullName', [
         {
           rule: 'required' as const,
           errorMessage: 'Vui lòng nhập tên người dùng!'
@@ -82,13 +82,13 @@ export const FormRegister = () => {
       ])
       .onSuccess((event: Event) => {
         const form = event.target as HTMLFormElement;
-        const fullNname = form.fullNname.value;
+        const fullName = form.fullName.value;
         const phone = form.phone.value;
         const email = form.email.value;
         const password = form.password.value;
 
         const dataFinal = {
-          fullNname,
+          fullName,
           phone,
           email,
           password,
@@ -161,13 +161,13 @@ export const FormRegister = () => {
       {/* Form */}
       <form id="registerForm" className="space-y-5">
         <div className="space-y-2">
-          <label htmlFor="fullNname" className="text-sm font-medium text-gray-700">
+          <label htmlFor="fullName" className="text-sm font-medium text-gray-700">
             Tên người dùng
           </label>
           <input
             type="text"
-            name="fullNname"
-            id="fullNname"
+            name="fullName"
+            id="fullName"
             placeholder="Nhập tên người dùng"
             className="h-12 w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-[#5BC5A7] transition-all duration-300"
           />

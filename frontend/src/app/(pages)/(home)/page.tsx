@@ -1,15 +1,15 @@
-"use client"; // Bắt buộc vì dùng useState
+"use client";
 
-import Head from "next/head";
 import { useState } from "react";
+import Head from "next/head";
 import { Section1 } from "./Section1";
 import { Section2 } from "./Section2";
 import { Section3 } from "./Section3";
 import { Section4 } from "./Section4";
 import { Section5 } from "./Section5";
 import { BottomNav } from "@/components/Footer/BottomNav";
-import ModalCreateGroup from "@/components/modal/ModalCreateGroup"; // Adjust path
-import ModalAddFriend from "@/components/modal/ModalAddFriend"; // Adjust path
+import ModalCreateGroup from "@/components/modal/ModalCreateGroup";
+import ModalAddFriend from "@/components/modal/ModalAddFriend";
 
 export default function Home() {
   const [isGroupModalOpen, setIsGroupModalOpen] = useState(false);

@@ -1,16 +1,16 @@
-"use client"; // Bắt buộc vì dùng useState
+"use client";
 "use strict";
 exports.__esModule = true;
-var head_1 = require("next/head");
 var react_1 = require("react");
+var head_1 = require("next/head");
 var Section1_1 = require("./Section1");
 var Section2_1 = require("./Section2");
 var Section3_1 = require("./Section3");
 var Section4_1 = require("./Section4");
 var Section5_1 = require("./Section5");
 var BottomNav_1 = require("@/components/Footer/BottomNav");
-var ModalCreateGroup_1 = require("@/components/modal/ModalCreateGroup"); // Adjust path
-var ModalAddFriend_1 = require("@/components/modal/ModalAddFriend"); // Adjust path
+var ModalCreateGroup_1 = require("@/components/modal/ModalCreateGroup");
+var ModalAddFriend_1 = require("@/components/modal/ModalAddFriend");
 function Home() {
     var _a = react_1.useState(false), isGroupModalOpen = _a[0], setIsGroupModalOpen = _a[1];
     var _b = react_1.useState(false), isFriendModalOpen = _b[0], setIsFriendModalOpen = _b[1];

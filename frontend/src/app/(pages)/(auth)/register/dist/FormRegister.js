@@ -51,7 +51,7 @@ exports.FormRegister = function () {
     react_1.useEffect(function () {
         var validator = new just_validate_1["default"]("#registerForm");
         validator
-            .addField('#fullNname', [
+            .addField('#fullName', [
             {
                 rule: 'required',
                 errorMessage: 'Vui lòng nhập tên người dùng!'
@@ -110,12 +110,12 @@ exports.FormRegister = function () {
         ])
             .onSuccess(function (event) {
             var form = event.target;
-            var fullNname = form.fullNname.value;
+            var fullName = form.fullName.value;
             var phone = form.phone.value;
             var email = form.email.value;
             var password = form.password.value;
             var dataFinal = {
-                fullNname: fullNname,
+                fullName: fullName,
                 phone: phone,
                 email: email,
                 password: password
@@ -181,8 +181,8 @@ exports.FormRegister = function () {
             React.createElement("p", { className: "text-base text-gray-600" }, "Tham gia BillShare \u0111\u1EC3 qu\u1EA3n l\u00FD chi ti\u00EAu d\u1EC5 d\u00E0ng")),
         React.createElement("form", { id: "registerForm", className: "space-y-5" },
             React.createElement("div", { className: "space-y-2" },
-                React.createElement("label", { htmlFor: "fullNname", className: "text-sm font-medium text-gray-700" }, "T\u00EAn ng\u01B0\u1EDDi d\u00F9ng"),
-                React.createElement("input", { type: "text", name: "fullNname", id: "fullNname", placeholder: "Nh\u1EADp t\u00EAn ng\u01B0\u1EDDi d\u00F9ng", className: "h-12 w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-[#5BC5A7] transition-all duration-300" })),
+                React.createElement("label", { htmlFor: "fullName", className: "text-sm font-medium text-gray-700" }, "T\u00EAn ng\u01B0\u1EDDi d\u00F9ng"),
+                React.createElement("input", { type: "text", name: "fullName", id: "fullName", placeholder: "Nh\u1EADp t\u00EAn ng\u01B0\u1EDDi d\u00F9ng", className: "h-12 w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-[#5BC5A7] transition-all duration-300" })),
             React.createElement("div", { className: "space-y-2" },
                 React.createElement("label", { htmlFor: "phone", className: "text-sm font-medium text-gray-700" }, "S\u1ED1 \u0111i\u1EC7n tho\u1EA1i"),
                 React.createElement("input", { type: "text", name: "phone", id: "phone", placeholder: "Nh\u1EADp s\u1ED1 \u0111i\u1EC7n tho\u1EA1i", className: "h-12 w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-[#5BC5A7] transition-all duration-300" })),
