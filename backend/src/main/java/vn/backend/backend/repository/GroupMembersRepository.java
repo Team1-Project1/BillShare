@@ -6,8 +6,10 @@ import vn.backend.backend.model.GroupMembersEntity;
 import vn.backend.backend.model.GroupMembersId;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface GroupMembersRepository extends JpaRepository<GroupMembersEntity, GroupMembersId> {
     List<GroupMembersEntity> findAllById_GroupId(Long groupId);
+    Optional<GroupMembersEntity> findById_GroupIdAndId_UserId(Long groupId, Long userId);
 }
