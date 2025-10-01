@@ -1,20 +1,22 @@
-import type { Metadata } from "next";
+"use client";
 import "./globals.css";
 import { ToastContainer } from 'react-toastify'; // Thêm import react-toastify
 import 'react-toastify/dist/ReactToastify.css'; // Thêm import CSS của react-toastify
+import { useAuthRefresh } from "@/hooks/useAuthRefresh";
 
-export const metadata: Metadata = {
-  title: "BillShare",
-  description: "Trang web hỗ trợ chia hóa đơn",
-};
 
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  useAuthRefresh(); // luôn chạy background refresh
+
   return (
     <html lang="vi" suppressHydrationWarning>
+      <head>
+        <title>BillShare</title>
+      </head>
       <body>
         {children}
         <ToastContainer 
