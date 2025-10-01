@@ -56,6 +56,7 @@ public class AppConfig {
     public SecurityFilterChain securityFilterChain(@NonNull  HttpSecurity http) throws Exception {
         http
                 .csrf(AbstractHttpConfigurer::disable) // tắt CSRF vì dùng JWT
+                .cors(cors -> {})
                 .authorizeHttpRequests(request -> request
                         .requestMatchers(WHITE_LIST).permitAll() // /auth/** ai cũng vào được
                         .anyRequest().authenticated()) // còn lại thì phải login mới được
