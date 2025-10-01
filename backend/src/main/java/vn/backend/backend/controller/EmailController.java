@@ -25,15 +25,9 @@ public class EmailController {
     @GetMapping("/confirm-participation")
     public ResponseEntity<String> mailVerifyCation(@RequestParam Long groupId,
                                                    @RequestParam Long userId,
-                                                   @Valid  @RequestBody ConfirmPaticipationRequest emailTo) {
-        try {
+                                                   @Valid  @RequestBody ConfirmPaticipationRequest emailTo) throws IOException {
             emailService.confirmParticipation(groupId, userId, emailTo);
-            return ResponseEntity.ok("Email sent successfully to " + emailTo);
-        } catch (Exception e) {
-            log.error("Error sending email", e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Failed to send email: " + e.getMessage());
-        }
+            return ResponseEntity.ok("Email sent successfully to " + emailTo.getEmailTo());
     }
 
 }

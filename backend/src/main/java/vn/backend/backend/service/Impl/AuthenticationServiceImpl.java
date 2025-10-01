@@ -87,8 +87,8 @@ public class AuthenticationServiceImpl implements AuthenticationService {
                 refreshToken(refreshToken).
                 build());
         return TokenResponse.builder().
-                accesstToken(accessToken).
-                refreshtToken(refreshToken).
+                accessToken(accessToken).
+                refreshToken(refreshToken).
                 userId(user.getUserId()).
                 build();
     }
@@ -112,8 +112,8 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         tokenEntity.setAccessToken(accessToken);
         tokenService.saveToken(tokenEntity);
         return TokenResponse.builder().
-                accesstToken(accessToken).
-                refreshtToken(refreshToken).
+                accessToken(accessToken).
+                refreshToken(refreshToken).
                 userId(user.get().getUserId()).
                 build();
     }

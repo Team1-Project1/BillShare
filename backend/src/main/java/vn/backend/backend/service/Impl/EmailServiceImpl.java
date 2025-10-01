@@ -11,9 +11,12 @@ import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
+import vn.backend.backend.common.MemberRole;
 import vn.backend.backend.controller.request.ConfirmPaticipationRequest;
 import vn.backend.backend.model.GroupEntity;
+import vn.backend.backend.model.GroupMembersEntity;
 import vn.backend.backend.model.GroupMembersId;
 import vn.backend.backend.model.UserEntity;
 import vn.backend.backend.repository.GroupMembersRepository;
@@ -24,6 +27,7 @@ import vn.backend.backend.service.EmailService;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.NoSuchElementException;
 
 
 @Service
@@ -73,12 +77,18 @@ public class EmailServiceImpl implements EmailService {
     @Override
     public void confirmParticipation(Long groupId, Long userId, ConfirmPaticipationRequest request) throws IOException {
         UserEntity sender = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found with id " + userId));
+                .orElseThrow(() -> new NoSuchElementException("User not found with id " + userId));
         UserEntity receiver = userRepository.findByEmail(request.getEmailTo())
-                .orElseThrow(() -> new RuntimeException("User not found with email " + request.getEmailTo()));
+                .orElseThrow(() -> new NoSuchElementException("User not found with email " + request.getEmailTo()));
         GroupEntity group = groupRepository.findById(groupId)
-                .orElseThrow(() -> new RuntimeException("Group not found with id " + groupId));
+                .orElseThrow(() -> new NoSuchElementException("Group not found with id " + groupId));
+        GroupMembersEntity membership = groupMembersRepository
+                .findById_GroupIdAndId_UserId(groupId, userId)
+                .orElseThrow(() -> new NoSuchElementException("You is not a member of this group"));
 
+        if (!MemberRole.admin.equals(membership.getRole())) {
+            throw new AccessDeniedException("Only admins can confirm participation in this group");
+        }
         boolean alreadyMember = groupMembersRepository.existsById(new GroupMembersId(groupId,receiver.getUserId()));
         if (alreadyMember) {
             throw new IllegalStateException("User " + receiver.getFullName() + " is already a member of group " + group.getGroupName());
