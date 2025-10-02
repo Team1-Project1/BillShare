@@ -27,8 +27,8 @@ export async function fetchWithAuth(url: string, options: RequestInit = {}): Pro
 
     if (refreshRes.ok) {
       const data = await refreshRes.json();
-      const newAccessToken = data.accesstToken;
-      const newRefreshToken = data.refreshtToken;
+      const newAccessToken = data.accessToken;
+      const newRefreshToken = data.refreshToken;
 
       if (newAccessToken && newRefreshToken) {
         localStorage.setItem("accessToken", newAccessToken);

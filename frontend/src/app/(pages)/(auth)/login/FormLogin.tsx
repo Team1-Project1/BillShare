@@ -90,8 +90,8 @@ export const FormLogin = () => {
                 pauseOnHover: true,
               });
               // Lưu token vào localStorage
-              localStorage.setItem("accessToken", data.data.accesstToken);
-              localStorage.setItem("refreshToken", data.data.refreshtToken);
+              localStorage.setItem("accessToken", data.data.accessToken);
+              localStorage.setItem("refreshToken", data.data.refreshToken);
               localStorage.setItem("userId", data.data.userId);
               
               // Chuyển trang về home

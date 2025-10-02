@@ -80,8 +80,8 @@ function fetchWithAuth(url, options) {
                     return [4 /*yield*/, refreshRes.json()];
                 case 3:
                     data = _a.sent();
-                    newAccessToken = data.accesstToken;
-                    newRefreshToken = data.refreshtToken;
+                    newAccessToken = data.accessToken;
+                    newRefreshToken = data.refreshToken;
                     if (!(newAccessToken && newRefreshToken)) return [3 /*break*/, 5];
                     localStorage.setItem("accessToken", newAccessToken);
                     localStorage.setItem("refreshToken", newRefreshToken);

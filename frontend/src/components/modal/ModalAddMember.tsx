@@ -1,12 +1,32 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { FiUsers, FiMail, FiSearch, FiUser } from "react-icons/fi";
+import { toast } from "react-toastify";
+import { FiUsers, FiMail, FiSearch, FiUser, FiSend } from "react-icons/fi";
 import CardMemberSelect from "../card/CardMemberSelect";
+import { fetchWithAuth } from "@/lib/fetchWithAuth";
 
-export default function ModalAddMember({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
+interface ModalAddMemberProps {
+  isOpen: boolean;
+  onClose: () => void;
+  groupId: number;
+  createdBy: number;
+  onInviteSuccess: () => void;
+}
+
+export default function ModalAddMember({
+  isOpen,
+  onClose,
+  groupId,
+  createdBy,
+  onInviteSuccess,
+}: ModalAddMemberProps) {
   const [searchOpen, setSearchOpen] = useState(false);
+  const [inviteOpen, setInviteOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [email, setEmail] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [selectedMembers, setSelectedMembers] = useState<number[]>([]);
   const modalRef = useRef<HTMLDivElement>(null);
 
   // Dữ liệu thành viên mẫu (tái sử dụng CardMemberSelect)
@@ -15,7 +35,6 @@ export default function ModalAddMember({ isOpen, onClose }: { isOpen: boolean; o
     { id: 2, name: "Trần Thị B", email: "b@gmail.com", avatar: "/avatar2.png" },
     { id: 3, name: "Lê Văn C", email: "c@gmail.com", avatar: "/avatar3.png" },
   ];
-  const [selectedMembers, setSelectedMembers] = useState<number[]>([]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -31,10 +50,89 @@ export default function ModalAddMember({ isOpen, onClose }: { isOpen: boolean; o
 
   const handleSearchToggle = () => {
     setSearchOpen(!searchOpen);
+    if (inviteOpen) setInviteOpen(false); // Đóng invite nếu đang mở
   };
 
-  const handleInviteEmail = () => {
-    alert("Gửi lời mời qua email"); // Logic mời email bạn làm sau
+  const handleInviteToggle = () => {
+    setInviteOpen(!inviteOpen);
+    if (searchOpen) setSearchOpen(false); // Đóng search nếu đang mở
+  };
+
+  const handleSendInvite = async () => {
+    const currentUserId = parseInt(localStorage.getItem("userId") || "0", 10);
+    if (currentUserId !== createdBy) {
+      toast.error("Chỉ người tạo nhóm mới có quyền mời!", {
+        position: "top-center",
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+      });
+      return;
+    }
+
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      toast.error("Vui lòng nhập email hợp lệ!", {
+        position: "top-center",
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+      });
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const response = await fetchWithAuth(
+        `${process.env.NEXT_PUBLIC_API_URL}/email/confirm-participation?groupId=${groupId}&userId=${createdBy}`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "*/*",
+          },
+          body: JSON.stringify({ emailTo: email }),
+        }
+      );
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          toast.error("Phiên đăng nhập hết hạn, vui lòng đăng nhập lại!", {
+            position: "top-center",
+            autoClose: 3000,
+            hideProgressBar: false,
+            closeOnClick: true,
+            pauseOnHover: true,
+          });
+          return;
+        }
+        throw new Error("Không thể gửi lời mời");
+      }
+
+      const data = await response.text();
+      toast.success(data, {
+        position: "top-center",
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+      });
+      setEmail(""); // Reset input
+      setInviteOpen(false); // Đóng thanh email
+      onInviteSuccess(); // Reload danh sách thành viên
+    } catch (err) {
+      console.error("Invite error:", err);
+      toast.error("Không thể gửi lời mời!", {
+        position: "top-center",
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleSelectMember = (id: number) => {
@@ -44,7 +142,10 @@ export default function ModalAddMember({ isOpen, onClose }: { isOpen: boolean; o
   };
 
   const handleAddMembers = () => {
-    console.log("Thêm thành viên:", selectedMembers.map(id => members.find(m => m.id === id)?.name));
+    console.log(
+      "Thêm thành viên:",
+      selectedMembers.map((id) => members.find((m) => m.id === id)?.name)
+    );
     onClose();
   };
 
@@ -77,23 +178,52 @@ export default function ModalAddMember({ isOpen, onClose }: { isOpen: boolean; o
           <FiUser className="mr-2" /> Thêm bằng tên người dùng
         </button>
         <div
-          className={`overflow-hidden transition-all duration-300 ease-in-out ${searchOpen ? "max-h-20 opacity-100" : "max-h-0 opacity-0"}`}
+          className={`overflow-hidden transition-all duration-300 ease-in-out ${
+            searchOpen ? "max-h-20 opacity-100" : "max-h-0 opacity-0"
+          }`}
         >
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Tìm kiếm tên người dùng..."
-            className="w-full border border-gray-300 rounded-md p-2 mb-4 focus:border-[#5BC5A7] flex items-center"
+            className="w-full border border-gray-300 rounded-md p-2 mb-4 focus:border-[#5BC5A7]"
             style={{ display: searchOpen ? "block" : "none" }}
+            disabled={isLoading}
           />
         </div>
         <button
-          onClick={handleInviteEmail}
+          onClick={handleInviteToggle}
           className="w-full h-12 bg-[#5BC5A7] text-white rounded-md text-base font-semibold hover:bg-[#4AA88C] transition-colors duration-300 flex items-center justify-center mb-4"
         >
           <FiMail className="mr-2" /> Mời qua email
         </button>
+        <div
+          className={`overflow-hidden transition-all duration-300 ease-in-out ${
+            inviteOpen ? "max-h-20 opacity-100" : "max-h-0 opacity-0"
+          }`}
+        >
+          <div className="flex items-center mb-4">
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="Nhập email..."
+              className="flex-1 border border-gray-300 rounded-md p-2 focus:border-[#5BC5A7]"
+              style={{ display: inviteOpen ? "block" : "none" }}
+              disabled={isLoading}
+            />
+            <button
+              onClick={handleSendInvite}
+              disabled={isLoading}
+              className={`ml-2 bg-[#5BC5A7] text-white rounded-md p-2 hover:bg-[#4AA88C] transition-colors duration-300 flex items-center justify-center ${
+                isLoading ? "opacity-50 cursor-not-allowed" : ""
+              }`}
+            >
+              <FiSend className="text-xl" />
+            </button>
+          </div>
+        </div>
         <div className="mb-4 flex items-center">
           <FiUsers className="text-[#5BC5A7] mr-2" />
           <p className="text-[16px] text-gray-700">Thêm bạn bè vào nhóm</p>
@@ -116,9 +246,6 @@ export default function ModalAddMember({ isOpen, onClose }: { isOpen: boolean; o
         >
           Thêm thành viên
         </button>
-
-        {/* Code thêm nút xóa nhóm ở đây */}
-      
       </div>
     </div>
   );
