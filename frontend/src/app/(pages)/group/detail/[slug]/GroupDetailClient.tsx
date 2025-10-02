@@ -16,9 +16,11 @@ import {
   FiDownload,
   FiEye,
   FiUserPlus,
+  FiEdit,
 } from "react-icons/fi";
 import ModalAddMember from "@/components/modal/ModalAddMember";
 import ModalViewAllMembers from "@/components/modal/ModalViewAllMembers";
+import ModalConfirmDelete from "@/components/modal/ModalConfirmDelete";
 import { fetchWithAuth } from "@/lib/fetchWithAuth";
 
 interface APIMember {
@@ -52,6 +54,7 @@ interface Group {
   costPerPerson: number;
   members: Member[];
   bills: { name: string; date: string; amount: number }[];
+  createdBy: number;
 }
 
 export default function GroupDetailClient({ slug }: { slug: string }) {
@@ -87,96 +90,100 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
       { name: "Hóa đơn ăn uống", date: "2025-09-28", amount: 2000000 },
       { name: "Hóa đơn du lịch", date: "2025-09-25", amount: 3000000 },
     ],
+    createdBy: 0,
   });
   const [loading, setLoading] = useState(true);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isViewAllModalOpen, setIsViewAllModalOpen] = useState(false);
+  const [isConfirmDeleteOpen, setIsConfirmDeleteOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    const fetchGroupDetails = async () => {
-      if (!slug || isNaN(Number(slug))) {
-        console.error("Invalid groupId:", slug);
-        toast.error("ID nhóm không hợp lệ!", { position: "top-center" });
-        setLoading(false);
+  const fetchGroupDetails = async () => {
+    if (!slug || isNaN(Number(slug))) {
+      console.error("Invalid groupId:", slug);
+      toast.error("ID nhóm không hợp lệ!", { position: "top-center" });
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const response = await fetchWithAuth(
+        `${process.env.NEXT_PUBLIC_API_URL}/group/${slug}`,
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "*/*",
+          },
+        }
+      );
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          toast.error("Phiên đăng nhập hết hạn, vui lòng đăng nhập lại!", {
+            position: "top-center",
+          });
+          return;
+        }
+        throw new Error("Không thể tải chi tiết nhóm");
+      }
+
+      const data = await response.json();
+      console.log("API response:", data);
+      if (data.code === "error") {
+        toast.error(data.message, { position: "top-center" });
         return;
       }
 
-      try {
-        const response = await fetchWithAuth(
-          `${process.env.NEXT_PUBLIC_API_URL}/group/${slug}`,
-          {
-            method: "GET",
-            headers: {
-              "Content-Type": "application/json",
-              Accept: "*/*",
+      if (data.code === "success") {
+        const apiGroup = data.data;
+        setGroup({
+          groupId: apiGroup.groupId,
+          name: apiGroup.groupName,
+          description: apiGroup.description || "Không có mô tả",
+          defaultCurrency: apiGroup.defaultCurrency || "VND",
+          avatar:
+            apiGroup.avatarUrl ||
+            "https://res.cloudinary.com/dtpxp9qqf/image/upload/v1750519773/xholultqlsq1bscqj7bv.jpg",
+          memberCount: apiGroup.members.length,
+          totalCost: 5000000,
+          costPerPerson: 1000000,
+          members: apiGroup.members.map((member: APIMember) => ({
+            id: member.userId,
+            name: member.fullName,
+            email: member.email,
+            avatar: member.avatarUrl || undefined,
+            debt: 0,
+            received: 0,
+          })),
+          bills: [
+            {
+              name: "Hóa đơn ăn uống",
+              date: "2025-09-28",
+              amount: 2000000,
             },
-          }
-        );
-
-        if (!response.ok) {
-          if (response.status === 401) {
-            toast.error("Phiên đăng nhập hết hạn, vui lòng đăng nhập lại!", {
-              position: "top-center",
-            });
-            return;
-          }
-          throw new Error("Không thể tải chi tiết nhóm");
-        }
-
-        const data = await response.json();
-        console.log("API response:", data);
-        if (data.code === "error") {
-          toast.error(data.message, { position: "top-center" });
-          return;
-        }
-
-        if (data.code === "success") {
-          const apiGroup = data.data;
-          setGroup({
-            groupId: apiGroup.groupId,
-            name: apiGroup.groupName,
-            description: apiGroup.description || "Không có mô tả",
-            defaultCurrency: apiGroup.defaultCurrency || "VND",
-            avatar:
-              apiGroup.avatarUrl ||
-              "https://res.cloudinary.com/dtpxp9qqf/image/upload/v1750519773/xholultqlsq1bscqj7bv.jpg",
-            memberCount: apiGroup.members.length,
-            totalCost: 5000000,
-            costPerPerson: 1000000,
-            members: apiGroup.members.map((member: APIMember) => ({
-              id: member.userId,
-              name: member.fullName,
-              email: member.email,
-              avatar: member.avatarUrl || undefined,
-              debt: 0,
-              received: 0,
-            })),
-            bills: [
-              {
-                name: "Hóa đơn ăn uống",
-                date: "2025-09-28",
-                amount: 2000000,
-              },
-              {
-                name: "Hóa đơn du lịch",
-                date: "2025-09-25",
-                amount: 3000000,
-              },
-            ],
-          });
-          toast.success("Tải chi tiết nhóm thành công!", {
-            position: "top-center",
-          });
-        }
-        setLoading(false);
-      } catch (err) {
-        console.error("Fetch error:", err);
-        toast.error("Không thể tải chi tiết nhóm!", { position: "top-center" });
-        setLoading(false);
+            {
+              name: "Hóa đơn du lịch",
+              date: "2025-09-25",
+              amount: 3000000,
+            },
+          ],
+          createdBy: apiGroup.createdBy,
+        });
+        toast.success("Tải chi tiết nhóm thành công!", {
+          position: "top-center",
+        });
       }
-    };
+      setLoading(false);
+    } catch (err) {
+      console.error("Fetch error:", err);
+      toast.error("Không thể tải chi tiết nhóm!", { position: "top-center" });
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchGroupDetails();
   }, [slug]);
 
@@ -190,6 +197,15 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  const handleInviteSuccess = () => {
+    fetchGroupDetails(); // Reload danh sách thành viên
+  };
+
+  const handleDeleteGroup = () => {
+    // Để trống cho code API xóa nhóm
+    
+  };
+
   if (loading) return <p className="text-gray-600">Đang tải...</p>;
 
   return (
@@ -202,7 +218,7 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
         className="min-h-screen bg-[radial-gradient(circle_at_right_center,rgba(91,197,167,0.8),rgba(0,0,0,0)_70%)] flex flex-col items-center justify-start p-4 pb-20"
         style={{
           filter:
-            isModalOpen || isViewAllModalOpen
+            isModalOpen || isViewAllModalOpen || isConfirmDeleteOpen
               ? "blur(5px) brightness(0.8)"
               : "none",
           transition: "filter 0.3s",
@@ -219,12 +235,19 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
                   alt="Avatar nhóm"
                   className="w-12 h-12 rounded-full mr-4"
                 />
-                <div>
+                <div className="flex flex-col">
                   <h1 className="text-xl font-bold text-[#5BC5A7]">
                     {group.name}
                   </h1>
                   <p className="text-sm text-gray-600 flex items-center">
                     <FiUsers className="mr-1" /> {group.memberCount} thành viên
+                  </p>
+                  <p
+                    className={`text-md text-gray-600 mt-2 line-clamp-2 ${
+                      group.description === "Không có mô tả" ? "italic" : ""
+                    }`}
+                  >
+                    Mô tả: {group.description}
                   </p>
                 </div>
               </div>
@@ -236,24 +259,30 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
                 />
                 {isMenuOpen && (
                   <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg">
-                    <a
-                      href="#"
-                      className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-[rgba(91,197,167,0.2)]"
+                    <button
+                      onClick={() => {
+                        setIsConfirmDeleteOpen(true);
+                        setIsMenuOpen(false);
+                      }}
+                      className="flex items-center px-4 py-2 text-sm text-red-500 cursor-pointer hover:bg-[rgba(227,76,76,0.2)] w-full text-left"
                     >
                       <FiTrash2 className="mr-2" /> Xóa
-                    </a>
-                    <a
-                      href="#"
-                      className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-[rgba(91,197,167,0.2)]"
-                    >
-                      <FiEdit2 className="mr-2" /> Đổi tên
-                    </a>
+                    </button>
                     <a
                       href="#"
                       className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-[rgba(91,197,167,0.2)]"
                     >
                       <FiImage className="mr-2" /> Đổi ảnh
                     </a>
+                    <button
+                      onClick={() => {
+                        // setIsEditGroupInfoOpen(true);
+                        // setIsMenuOpen(false);
+                      }}
+                      className="flex items-center px-4 py-2 text-sm text-gray-700 cursor-pointer hover:bg-[rgba(91,197,167,0.2)]"
+                    >
+                      <FiEdit className="mr-2" /> Đổi thông tin nhóm
+                    </button>
                     <a
                       href="#"
                       className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-[rgba(91,197,167,0.2)]"
@@ -347,11 +376,19 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
       <ModalAddMember
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
+        groupId={group.groupId}
+        createdBy={group.createdBy}
+        onInviteSuccess={handleInviteSuccess}
       />
       <ModalViewAllMembers
         isOpen={isViewAllModalOpen}
         onClose={() => setIsViewAllModalOpen(false)}
         members={group.members}
+      />
+      <ModalConfirmDelete
+        isOpen={isConfirmDeleteOpen}
+        onClose={() => setIsConfirmDeleteOpen(false)}
+        onConfirm={handleDeleteGroup}
       />
     </>
   );

@@ -17,8 +17,8 @@ export function useAuthRefresh() {
 
         if (res.ok) {
           const data = await res.json();
-          const newAccessToken = data.accesstToken;
-          const newRefreshToken = data.refreshtToken;
+          const newAccessToken = data.accessToken;
+          const newRefreshToken = data.refreshToken;
 
           if (newAccessToken && newRefreshToken) {
             localStorage.setItem("accessToken", newAccessToken);

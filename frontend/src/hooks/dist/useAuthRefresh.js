@@ -63,8 +63,8 @@ function useAuthRefresh() {
                         return [4 /*yield*/, res.json()];
                     case 2:
                         data = _a.sent();
-                        newAccessToken = data.accesstToken;
-                        newRefreshToken = data.refreshtToken;
+                        newAccessToken = data.accessToken;
+                        newRefreshToken = data.refreshToken;
                         if (newAccessToken && newRefreshToken) {
                             localStorage.setItem("accessToken", newAccessToken);
                             localStorage.setItem("refreshToken", newRefreshToken);
