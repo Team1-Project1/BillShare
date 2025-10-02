@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { toast } from "react-toastify";
+import { useRouter } from "next/navigation";
 import { Section1 } from "@/app/(pages)/(home)/Section1";
 import CardBill from "@/components/card/CardBill";
 import CardFriendEnhanced from "@/components/card/CardFriendEnhanced";
@@ -21,6 +22,7 @@ import {
 import ModalAddMember from "@/components/modal/ModalAddMember";
 import ModalViewAllMembers from "@/components/modal/ModalViewAllMembers";
 import ModalConfirmDelete from "@/components/modal/ModalConfirmDelete";
+import ModalEditGroupInfo from "@/components/modal/ModalEditGroupInfo";
 import { fetchWithAuth } from "@/lib/fetchWithAuth";
 
 interface APIMember {
@@ -33,6 +35,7 @@ interface APIMember {
   isActive: boolean;
   role: string;
 }
+
 
 interface Member {
   id: number;
@@ -58,6 +61,10 @@ interface Group {
 }
 
 export default function GroupDetailClient({ slug }: { slug: string }) {
+  const router = useRouter();
+  const userId = Number(localStorage.getItem("userId"));
+  
+
   const [group, setGroup] = useState<Group>({
     groupId: 0,
     name: "Nhóm A",
@@ -97,6 +104,7 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isViewAllModalOpen, setIsViewAllModalOpen] = useState(false);
   const [isConfirmDeleteOpen, setIsConfirmDeleteOpen] = useState(false);
+  const [isEditGroupInfoOpen, setIsEditGroupInfoOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
   const fetchGroupDetails = async () => {
@@ -201,10 +209,37 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
     fetchGroupDetails(); // Reload danh sách thành viên
   };
 
-  const handleDeleteGroup = () => {
-    // Để trống cho code API xóa nhóm
-    
+  const handleDeleteGroup = async () => {
+    try {
+      const response = await fetchWithAuth(
+        `${process.env.NEXT_PUBLIC_API_URL}/group/${group.groupId}/delete-by/${group.createdBy}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "*/*",
+          },
+        }
+      );
+
+      if (response.ok) {
+        toast.success("Xóa nhóm thành công!", { position: "top-center" });
+        setIsConfirmDeleteOpen(false);
+        router.push("/group/list"); 
+      } else {
+        const errorData = await response.json();
+        toast.error(errorData.message || "Không thể xóa nhóm!", { position: "top-center" });
+      }
+    } catch (err) {
+      console.error("Fetch error:", err);
+      toast.error("Không thể xóa nhóm!", { position: "top-center" });
+      setLoading(false);
+    } finally {
+      setLoading(false);
+    } 
   };
+
+  const canShowDelete = userId === group.createdBy; // Chỉ người tạo nhóm mới có quyền xóa nhóm
 
   if (loading) return <p className="text-gray-600">Đang tải...</p>;
 
@@ -259,7 +294,7 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
                 />
                 {isMenuOpen && (
                   <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg">
-                    <button
+                    {canShowDelete && (<button
                       onClick={() => {
                         setIsConfirmDeleteOpen(true);
                         setIsMenuOpen(false);
@@ -267,7 +302,7 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
                       className="flex items-center px-4 py-2 text-sm text-red-500 cursor-pointer hover:bg-[rgba(227,76,76,0.2)] w-full text-left"
                     >
                       <FiTrash2 className="mr-2" /> Xóa
-                    </button>
+                    </button>)}
                     <a
                       href="#"
                       className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-[rgba(91,197,167,0.2)]"
@@ -276,8 +311,8 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
                     </a>
                     <button
                       onClick={() => {
-                        // setIsEditGroupInfoOpen(true);
-                        // setIsMenuOpen(false);
+                        setIsEditGroupInfoOpen(true);
+                        setIsMenuOpen(false);
                       }}
                       className="flex items-center px-4 py-2 text-sm text-gray-700 cursor-pointer hover:bg-[rgba(91,197,167,0.2)]"
                     >
@@ -383,12 +418,20 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
       <ModalViewAllMembers
         isOpen={isViewAllModalOpen}
         onClose={() => setIsViewAllModalOpen(false)}
+        groupId={group.groupId}
         members={group.members}
+        createdBy={group.createdBy}
       />
       <ModalConfirmDelete
         isOpen={isConfirmDeleteOpen}
         onClose={() => setIsConfirmDeleteOpen(false)}
         onConfirm={handleDeleteGroup}
+      />
+      <ModalEditGroupInfo
+        isOpen={isEditGroupInfoOpen}
+        onClose={() => setIsEditGroupInfoOpen(false)}
+        group={group}
+        onUpdateSuccess={fetchGroupDetails}
       />
     </>
   );

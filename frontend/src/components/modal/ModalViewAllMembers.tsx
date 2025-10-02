@@ -1,16 +1,27 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { toast } from "react-toastify";
 import { FiUsers, FiTrash2 } from "react-icons/fi";
 import CardMemberSelect from "../card/CardMemberSelect";
+import { fetchWithAuth } from "@/lib/fetchWithAuth";
+
+interface Member {
+  id: number;
+  name: string;
+  email: string;
+  avatar?: string;
+}
 
 interface ModalViewAllMembersProps {
   isOpen: boolean;
   onClose: () => void;
-  members: { id: number; name: string; email: string; avatar?: string }[];
+  groupId: number;
+  members: Member[];
+  createdBy: number;
 }
 
-export default function ModalViewAllMembers({ isOpen, onClose, members }: ModalViewAllMembersProps) {
+export default function ModalViewAllMembers({ isOpen, onClose, groupId, members, createdBy}: ModalViewAllMembersProps) {
   const modalRef = useRef<HTMLDivElement>(null);
   const [selectedMembers, setSelectedMembers] = useState<number[]>([]);
 
@@ -26,16 +37,62 @@ export default function ModalViewAllMembers({ isOpen, onClose, members }: ModalV
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [isOpen, onClose]);
 
+  const userId = Number(localStorage.getItem("userId"));
+  if (!userId) {
+    toast.error("Không tìm thấy thông tin người dùng, vui lòng đăng nhập lại!", {
+      position: "top-center",
+      autoClose: 3000,
+      hideProgressBar: false,
+      closeOnClick: true,
+      pauseOnHover: true,
+      });
+    return;
+  }
+
   const handleSelectMember = (id: number) => {
+    if (id === userId) {
+      toast.warn("Bạn không thể chọn chính mình để xóa!", { position: "top-center" });
+      return;
+    }
+
     setSelectedMembers((prev) =>
       prev.includes(id) ? prev.filter((m) => m !== id) : [...prev, id]
     );
   };
 
-  const handleDeleteMembers = () => {
-    console.log("Xóa thành viên:", selectedMembers.map(id => members.find(m => m.id === id)?.name));
-    setSelectedMembers([]); // Reset danh sách chọn sau khi xóa
+  const handleDeleteMembers = async () => {
+    try {
+      const response = await fetchWithAuth(
+        `${process.env.NEXT_PUBLIC_API_URL}/group/${groupId}/${selectedMembers}/delete-by/${userId}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "*/*",
+          },
+        }
+      );
+        
+
+      if (response.ok) {
+        toast.success("Xóa thành viên thành công!", { position: "top-center" });
+        setSelectedMembers([]); // Reset danh sách chọn
+        onClose(); // Đóng modal
+        // if (typeof onRefresh === "function") onRefresh(); // Làm mới dữ liệu
+      } else {
+        const errorData = await response.json();
+        toast.error(errorData.message || "Không thể xóa thành viên!", { position: "top-center" });
+      }
+    } catch (err) {
+      toast.error("Lỗi khi xóa thành viên!", { position: "top-center" });
+    }
+    
+    setSelectedMembers([]); 
   };
+
+  
+
+  const canShowDelete = userId === createdBy; // Chỉ người tạo nhóm mới có quyền xóa thành viên
 
   if (!isOpen) return null;
 
@@ -75,12 +132,16 @@ export default function ModalViewAllMembers({ isOpen, onClose, members }: ModalV
             />
           ))}
         </div>
-        <button
+        {canShowDelete &&(
+          <button
           onClick={handleDeleteMembers}
-          className="w-full h-12 bg-red-500 text-white rounded-md text-base font-semibold hover:bg-red-600 transition-colors duration-300 flex items-center justify-center mt-4"
-        >
-          <FiTrash2 className="mr-2" /> Xóa
-        </button>
+          disabled={selectedMembers.length === 0}
+          className={`w-full h-12 bg-red-500 text-white rounded-md text-base font-semibold hover:bg-red-600 transition-colors duration-300 flex items-center justify-center mt-4 ${selectedMembers.length === 0 ? "opacity-50 cursor-not-allowed" : ""}`}
+          >
+            <FiTrash2 className="mr-2" /> Xóa
+          </button>
+        )}
+        
       </div>
     </div>
   );
