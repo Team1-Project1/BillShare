@@ -80,7 +80,7 @@ public class EmailServiceImpl implements EmailService {
                 .orElseThrow(() -> new NoSuchElementException("User not found with id " + userId));
         UserEntity receiver = userRepository.findByEmail(request.getEmailTo())
                 .orElseThrow(() -> new NoSuchElementException("User not found with email " + request.getEmailTo()));
-        GroupEntity group = groupRepository.findById(groupId)
+        GroupEntity group = groupRepository.findByGroupIdAndIsActiveTrue(groupId)
                 .orElseThrow(() -> new NoSuchElementException("Group not found with id " + groupId));
         GroupMembersEntity membership = groupMembersRepository
                 .findById_GroupIdAndId_UserId(groupId, userId)
@@ -89,7 +89,7 @@ public class EmailServiceImpl implements EmailService {
         if (!MemberRole.admin.equals(membership.getRole())) {
             throw new AccessDeniedException("Only admins can confirm participation in this group");
         }
-        boolean alreadyMember = groupMembersRepository.existsById(new GroupMembersId(groupId,receiver.getUserId()));
+        boolean alreadyMember = groupMembersRepository.existsById_GroupIdAndId_UserIdAndIsActiveTrue(groupId,receiver.getUserId());
         if (alreadyMember) {
             throw new IllegalStateException("User " + receiver.getFullName() + " is already a member of group " + group.getGroupName());
         }

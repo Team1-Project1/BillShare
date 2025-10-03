@@ -14,6 +14,7 @@ import vn.backend.backend.controller.request.UserCreateRequest;
 import vn.backend.backend.controller.response.ApiResponse;
 import vn.backend.backend.controller.response.GroupDetailResponse;
 import vn.backend.backend.controller.response.GroupResponse;
+import vn.backend.backend.controller.response.GroupsOfUserResponse;
 import vn.backend.backend.service.GroupService;
 
 import java.util.List;
@@ -42,17 +43,17 @@ public class GroupController {
                 new ApiResponse<>("success", String.format("sửa nhóm id : %d thành công!",groupId), group)
         );
     }
-    @Operation(summary = "get list group", description = "API to get list group into the database")
-    @GetMapping("/list-group")
-    public ResponseEntity<ApiResponse<List<GroupResponse>>> getListGroup() {
-        List<GroupResponse> groups = groupService.getAllGroups();
+    @Operation(summary = "get list group by userId", description = "API to get list group by userId into the database")
+    @GetMapping("/list-group/{userId}")
+    public ResponseEntity<ApiResponse<GroupsOfUserResponse>> getListGroupByUserId(@PathVariable Long userId) {
+        GroupsOfUserResponse groups = groupService.getAllGroupsByUserId(userId);
         return ResponseEntity.ok(
                 new ApiResponse<>("success","get all group into database successfull", groups)
         );
     }
     @Operation(summary = "get detail group by group id", description = "API to get detail group by group id into the database")
     @GetMapping("/{groupId}")
-    public ResponseEntity<ApiResponse<GroupDetailResponse>> getListGroup(@PathVariable Long groupId) {
+    public ResponseEntity<ApiResponse<GroupDetailResponse>> getListGroupByGroupId(@PathVariable Long groupId) {
         GroupDetailResponse group = groupService.getGroupDetailById(groupId);
         return ResponseEntity.ok(
                 new ApiResponse<>("success",String.format("get detail group %d into database successfull",groupId), group)

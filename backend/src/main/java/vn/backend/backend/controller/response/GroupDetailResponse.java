@@ -19,5 +19,6 @@ public class GroupDetailResponse implements Serializable {
     private Date createdAt;
     private Boolean isActive;
     private List<UserDetailResponse> members;
+    private int totalMembers;
 
 }
