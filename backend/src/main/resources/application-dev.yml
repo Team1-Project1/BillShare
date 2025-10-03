@@ -28,7 +28,7 @@ spring:
     from-email: nguyenkimgiang489@gmail.com
     name: BillShare
     templateConfirmParticipationId: d-5c76fa0599a24120bcb98560667202a0
-    baseUrl: http://localhost:8080/group-member/
+    baseUrl: http://localhost:3000/group-member/
 
 
 springdoc:

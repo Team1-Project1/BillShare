@@ -98,8 +98,8 @@ public class EmailServiceImpl implements EmailService {
         templateData.put("senderName", sender.getFullName());
         templateData.put("receiverName", receiver.getFullName());
         templateData.put("groupName", group.getGroupName());
-        templateData.put("confirmationLink", baseUrl + groupId + "/confirm/" + receiver.getUserId());
-        templateData.put("declineLink", baseUrl  + groupId + "/decline/" + receiver.getUserId());
+        templateData.put("confirmationLink", baseUrl + "confirm?groupId=" + groupId + "&userId=" + receiver.getUserId());
+        templateData.put("declineLink", baseUrl + "decline?groupId=" + groupId + "&userId=" + receiver.getUserId());
 
         String subject = "Confirm your participation in group " + group.getGroupName();
 
