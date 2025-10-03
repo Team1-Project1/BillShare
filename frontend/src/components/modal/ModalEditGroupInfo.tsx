@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { toast } from "react-toastify";
 import { fetchWithAuth } from "@/lib/fetchWithAuth";
+import { currencies } from "@/config/currencies";
 
 interface Group {
   groupId: number;
@@ -176,13 +177,18 @@ export default function ModalEditGroupInfo({ isOpen, onClose, group, onUpdateSuc
           />
         </div>
         <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700 mb-1">Tiền tệ </label>
-          <input
-            type="text"
+          <label className="block text-sm font-medium text-gray-700 mb-1">Tiền tệ</label>
+          <select
             value={defaultCurrency}
             onChange={(e) => setDefaultCurrency(e.target.value)}
             className="w-full border border-gray-300 rounded-md p-2 focus:border-[#5BC5A7]"
-          />
+          >
+            {currencies.map((currency) => (
+              <option key={currency.code} value={currency.code}>
+                {currency.code} - {currency.name}
+              </option>
+            ))}
+          </select>
         </div>
         <button
           onClick={handleEdit}
