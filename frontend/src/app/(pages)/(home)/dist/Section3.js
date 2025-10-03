@@ -57,22 +57,37 @@ var fetchWithAuth_1 = require("@/lib/fetchWithAuth");
 exports.Section3 = function (_a) {
     var onOpenModal = _a.onOpenModal;
     var _b = react_1.useState([]), groups = _b[0], setGroups = _b[1];
-    var _c = react_1.useState(true), loading = _c[0], setLoading = _c[1];
+    var _c = react_1.useState(0), totalGroups = _c[0], setTotalGroups = _c[1];
+    var _d = react_1.useState(true), loading = _d[0], setLoading = _d[1];
     react_1.useEffect(function () {
         var fetchGroups = function () { return __awaiter(void 0, void 0, void 0, function () {
-            var response, data, activeGroups, err_1;
+            var userId, response, data, activeGroups, err_1;
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
-                        _a.trys.push([0, 3, , 4]);
-                        return [4 /*yield*/, fetchWithAuth_1.fetchWithAuth(process.env.NEXT_PUBLIC_API_URL + "/group/list-group", {
+                        userId = localStorage.getItem("userId");
+                        if (!userId) {
+                            react_toastify_1.toast.error("Không tìm thấy userId, vui lòng đăng nhập lại!", {
+                                position: "top-center",
+                                autoClose: 3000,
+                                hideProgressBar: false,
+                                closeOnClick: true,
+                                pauseOnHover: true
+                            });
+                            setLoading(false);
+                            return [2 /*return*/];
+                        }
+                        _a.label = 1;
+                    case 1:
+                        _a.trys.push([1, 4, , 5]);
+                        return [4 /*yield*/, fetchWithAuth_1.fetchWithAuth(process.env.NEXT_PUBLIC_API_URL + "/group/list-group/" + userId, {
                                 method: "GET",
                                 headers: {
                                     "Content-Type": "application/json",
                                     "Accept": "*/*"
                                 }
                             })];
-                    case 1:
+                    case 2:
                         response = _a.sent();
                         if (!response.ok) {
                             if (response.status === 401) {
@@ -88,7 +103,7 @@ exports.Section3 = function (_a) {
                             throw new Error("Không thể tải danh sách nhóm");
                         }
                         return [4 /*yield*/, response.json()];
-                    case 2:
+                    case 3:
                         data = _a.sent();
                         console.log("Group list API response:", data); // Debug API response
                         if (data.code === "error") {
@@ -102,10 +117,15 @@ exports.Section3 = function (_a) {
                             return [2 /*return*/];
                         }
                         if (data.code === "success") {
-                            activeGroups = data.data
-                                .filter(function (group) { return group.isActive && group.groupId !== undefined && group.groupId !== null; })
+                            activeGroups = data.data.groups
+                                .filter(function (group) {
+                                return group.isActive &&
+                                    group.groupId !== undefined &&
+                                    group.groupId !== null;
+                            })
                                 .map(function (group) { return (__assign(__assign({}, group), { description: group.description || "Không có mô tả", defaultCurrency: group.defaultCurrency || "VND" })); });
                             setGroups(activeGroups);
+                            setTotalGroups(data.data.totalGroups || 0);
                             react_toastify_1.toast.success("Tải danh sách nhóm thành công!", {
                                 position: "top-center",
                                 autoClose: 3000,
@@ -115,10 +135,10 @@ exports.Section3 = function (_a) {
                             });
                         }
                         setLoading(false);
-                        return [3 /*break*/, 4];
-                    case 3:
+                        return [3 /*break*/, 5];
+                    case 4:
                         err_1 = _a.sent();
-                        console.error("Fetch group list error:", err_1); // Debug error
+                        console.error("Fetch group list error:", err_1);
                         react_toastify_1.toast.error("Không thể tải danh sách nhóm!", {
                             position: "top-center",
                             autoClose: 3000,
@@ -127,8 +147,8 @@ exports.Section3 = function (_a) {
                             pauseOnHover: true
                         });
                         setLoading(false);
-                        return [3 /*break*/, 4];
-                    case 4: return [2 /*return*/];
+                        return [3 /*break*/, 5];
+                    case 5: return [2 /*return*/];
                 }
             });
         }); };
@@ -137,7 +157,11 @@ exports.Section3 = function (_a) {
     if (loading)
         return React.createElement("p", { className: "text-gray-600" }, "\u0110ang t\u1EA3i...");
     return (React.createElement("div", { className: "bg-white/90 backdrop-blur-sm p-4 shadow-md" },
-        React.createElement("h3", { className: "text-lg font-semibold text-gray-900 mb-2" }, "Nh\u00F3m"),
+        React.createElement("div", { className: "flex justify-between items-center mb-2" },
+            React.createElement("h3", { className: "text-lg font-semibold text-gray-900" }, "Nh\u00F3m"),
+            React.createElement("p", { className: "text-sm text-gray-600" },
+                "T\u1ED5ng s\u1ED1 nh\u00F3m: ",
+                totalGroups)),
         React.createElement("div", { className: "space-y-4" }, groups.length === 0 ? (React.createElement("p", { className: "text-gray-600" }, "Ch\u01B0a c\u00F3 nh\u00F3m n\u00E0o.")) : (groups.map(function (group) { return (React.createElement(CardGroup_1["default"], { key: group.groupId, groupId: group.groupId, groupName: group.groupName, description: group.description, defaultCurrency: group.defaultCurrency, memberCount: 0 })); }))),
         React.createElement("button", { onClick: onOpenModal, className: "w-full h-12 bg-[#5BC5A7] text-white rounded-md text-base font-semibold hover:bg-[#4AA88C] transition-colors duration-300 flex items-center justify-center pt-2 mt-4" },
             React.createElement(fi_1.FiUsers, { className: "mr-2" }),

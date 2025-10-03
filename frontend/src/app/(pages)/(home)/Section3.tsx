@@ -20,18 +20,35 @@ interface Group {
 
 export const Section3 = ({ onOpenModal }: Section3Props) => {
   const [groups, setGroups] = useState<Group[]>([]);
+  const [totalGroups, setTotalGroups] = useState<number>(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchGroups = async () => {
-      try {
-        const response = await fetchWithAuth(`${process.env.NEXT_PUBLIC_API_URL}/group/list-group`, {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-            "Accept": "*/*",
-          },
+      const userId = localStorage.getItem("userId");
+      if (!userId) {
+        toast.error("Không tìm thấy userId, vui lòng đăng nhập lại!", {
+          position: "top-center",
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
         });
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const response = await fetchWithAuth(
+          `${process.env.NEXT_PUBLIC_API_URL}/group/list-group/${userId}`,
+          {
+            method: "GET",
+            headers: {
+              "Content-Type": "application/json",
+              "Accept": "*/*",
+            },
+          }
+        );
 
         if (!response.ok) {
           if (response.status === 401) {
@@ -61,14 +78,20 @@ export const Section3 = ({ onOpenModal }: Section3Props) => {
         }
 
         if (data.code === "success") {
-          const activeGroups = data.data
-            .filter((group: Group) => group.isActive && group.groupId !== undefined && group.groupId !== null)
+          const activeGroups = data.data.groups
+            .filter(
+              (group: Group) =>
+                group.isActive &&
+                group.groupId !== undefined &&
+                group.groupId !== null
+            )
             .map((group: Group) => ({
               ...group,
               description: group.description || "Không có mô tả",
               defaultCurrency: group.defaultCurrency || "VND",
             }));
           setGroups(activeGroups);
+          setTotalGroups(data.data.totalGroups || 0);
           toast.success("Tải danh sách nhóm thành công!", {
             position: "top-center",
             autoClose: 3000,
@@ -79,7 +102,7 @@ export const Section3 = ({ onOpenModal }: Section3Props) => {
         }
         setLoading(false);
       } catch (err) {
-        console.error("Fetch group list error:", err); // Debug error
+        console.error("Fetch group list error:", err);
         toast.error("Không thể tải danh sách nhóm!", {
           position: "top-center",
           autoClose: 3000,
@@ -97,7 +120,10 @@ export const Section3 = ({ onOpenModal }: Section3Props) => {
 
   return (
     <div className="bg-white/90 backdrop-blur-sm p-4 shadow-md">
-      <h3 className="text-lg font-semibold text-gray-900 mb-2">Nhóm</h3>
+      <div className="flex justify-between items-center mb-2">
+        <h3 className="text-lg font-semibold text-gray-900">Nhóm</h3>
+        <p className="text-sm text-gray-600">Tổng số nhóm: {totalGroups}</p>
+      </div>
       <div className="space-y-4">
         {groups.length === 0 ? (
           <p className="text-gray-600">Chưa có nhóm nào.</p>

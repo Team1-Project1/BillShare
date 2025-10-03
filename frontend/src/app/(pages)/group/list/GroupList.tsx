@@ -21,18 +21,35 @@ interface Group {
 
 export default function GroupList() {
   const [groups, setGroups] = useState<Group[]>([]);
+  const [totalGroups, setTotalGroups] = useState<number>(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchGroups = async () => {
-      try {
-        const response = await fetchWithAuth(`${process.env.NEXT_PUBLIC_API_URL}/group/list-group`, {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-            "Accept": "*/*",
-          },
+      const userId = localStorage.getItem("userId");
+      if (!userId) {
+        toast.error("Không tìm thấy userId, vui lòng đăng nhập lại!", {
+          position: "top-center",
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
         });
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const response = await fetchWithAuth(
+          `${process.env.NEXT_PUBLIC_API_URL}/group/list-group/${userId}`,
+          {
+            method: "GET",
+            headers: {
+              "Content-Type": "application/json",
+              "Accept": "*/*",
+            },
+          }
+        );
 
         if (!response.ok) {
           if (response.status === 401) {
@@ -62,14 +79,20 @@ export default function GroupList() {
         }
 
         if (data.code === "success") {
-          const activeGroups = data.data
-            .filter((group: Group) => group.isActive && group.groupId !== undefined && group.groupId !== null)
+          const activeGroups = data.data.groups
+            .filter(
+              (group: Group) =>
+                group.isActive &&
+                group.groupId !== undefined &&
+                group.groupId !== null
+            )
             .map((group: Group) => ({
               ...group,
               description: group.description || "Không có mô tả",
               defaultCurrency: group.defaultCurrency || "VND",
             }));
           setGroups(activeGroups);
+          setTotalGroups(data.data.totalGroups || 0);
           toast.success("Tải danh sách nhóm thành công!", {
             position: "top-center",
             autoClose: 3000,
@@ -80,7 +103,7 @@ export default function GroupList() {
         }
         setLoading(false);
       } catch (err) {
-        console.error("Fetch group list error:", err); // Debug error
+        console.error("Fetch group list error:", err);
         toast.error("Không thể tải danh sách nhóm!", {
           position: "top-center",
           autoClose: 3000,
@@ -97,8 +120,16 @@ export default function GroupList() {
   if (loading) return <p className="text-gray-600">Đang tải...</p>;
 
   return (
-    <div className="min-h-screen bg-gray-100 py-6 px-4" style={{ maxWidth: "576px", margin: "0 auto" }}>
-      <h1 className="text-2xl font-bold text-[#5BC5A7] mb-6">Danh sách nhóm</h1>
+    <div
+      className="min-h-screen bg-gray-100 py-6 px-4"
+      style={{ maxWidth: "576px", margin: "0 auto" }}
+    >
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold text-[#5BC5A7]">
+          Danh sách nhóm
+        </h1>
+        <p className="text-sm text-gray-600">Tổng số nhóm: {totalGroups}</p>
+      </div>
       <div className="space-y-4">
         {groups.length === 0 ? (
           <p className="text-gray-600">Chưa có nhóm nào.</p>
