@@ -48,6 +48,7 @@ var react_1 = require("react");
 var react_toastify_1 = require("react-toastify");
 var CardMemberSelect_1 = require("../card/CardMemberSelect");
 var fetchWithAuth_1 = require("@/lib/fetchWithAuth");
+var currencies_1 = require("@/config/currencies");
 function ModalCreateGroup(_a) {
     var _this = this;
     var isOpen = _a.isOpen, onClose = _a.onClose;
@@ -55,6 +56,7 @@ function ModalCreateGroup(_a) {
     var _c = react_1.useState(""), groupDesc = _c[0], setGroupDesc = _c[1];
     var _d = react_1.useState("/placeholder-avatar.png"), avatar = _d[0], setAvatar = _d[1]; // Avatar mặc định
     var _e = react_1.useState([]), selectedMembers = _e[0], setSelectedMembers = _e[1];
+    var _f = react_1.useState("VND"), defaultCurrency = _f[0], setDefaultCurrency = _f[1]; // State cho tiền tệ
     var modalRef = react_1.useRef(null);
     // Dữ liệu thành viên mẫu
     var members = [
@@ -116,7 +118,7 @@ function ModalCreateGroup(_a) {
                             body: JSON.stringify({
                                 groupName: groupName,
                                 description: groupDesc || "Không có mô tả",
-                                defaultCurrency: "VND"
+                                defaultCurrency: defaultCurrency
                             })
                         })];
                 case 1:
@@ -194,6 +196,12 @@ function ModalCreateGroup(_a) {
             React.createElement("div", { className: "mb-4" },
                 React.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-1" }, "Th\u00F4ng tin m\u00F4 t\u1EA3"),
                 React.createElement("textarea", { value: groupDesc, onChange: function (e) { return setGroupDesc(e.target.value); }, className: "w-full border border-gray-300 rounded-md p-2 focus:border-[#5BC5A7] h-24" })),
+            React.createElement("div", { className: "mb-4" },
+                React.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-1" }, "Ti\u1EC1n t\u1EC7 m\u1EB7c \u0111\u1ECBnh"),
+                React.createElement("select", { value: defaultCurrency, onChange: function (e) { return setDefaultCurrency(e.target.value); }, className: "w-full border border-gray-300 rounded-md p-2 focus:border-[#5BC5A7]" }, currencies_1.currencies.map(function (currency) { return (React.createElement("option", { key: currency.code, value: currency.code },
+                    currency.code,
+                    " - ",
+                    currency.name)); }))),
             React.createElement("h3", { className: "text-base font-medium text-gray-700 mb-2" }, "Th\u00EAm th\u00E0nh vi\u00EAn"),
             React.createElement("div", { className: "space-y-3 max-h-48 overflow-y-auto" }, members.map(function (member) { return (React.createElement(CardMemberSelect_1["default"], { key: member.id, avatar: member.avatar, name: member.name, email: member.email, selected: selectedMembers.includes(member.id), onSelect: function () { return handleSelectMember(member.id); } })); })))));
 }

@@ -4,12 +4,14 @@ import { useState, useRef, useEffect } from "react";
 import { toast } from "react-toastify";
 import CardMemberSelect from "../card/CardMemberSelect";
 import { fetchWithAuth } from "@/lib/fetchWithAuth";
+import { currencies } from "@/config/currencies";
 
 export default function ModalCreateGroup({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
   const [groupName, setGroupName] = useState("");
   const [groupDesc, setGroupDesc] = useState("");
   const [avatar, setAvatar] = useState("/placeholder-avatar.png"); // Avatar mặc định
   const [selectedMembers, setSelectedMembers] = useState<number[]>([]);
+  const [defaultCurrency, setDefaultCurrency] = useState("VND"); // State cho tiền tệ
   const modalRef = useRef<HTMLDivElement>(null);
 
   // Dữ liệu thành viên mẫu
@@ -73,8 +75,8 @@ export default function ModalCreateGroup({ isOpen, onClose }: { isOpen: boolean;
         },
         body: JSON.stringify({
           groupName,
-          description: groupDesc || "Không có mô tả", // Giá trị mặc định nếu không nhập
-          defaultCurrency: "VND", // Giá trị mặc định
+          description: groupDesc || "Không có mô tả",
+          defaultCurrency, // Gửi giá trị tiền tệ được chọn
         }),
       });
 
@@ -174,6 +176,20 @@ export default function ModalCreateGroup({ isOpen, onClose }: { isOpen: boolean;
             onChange={(e) => setGroupDesc(e.target.value)}
             className="w-full border border-gray-300 rounded-md p-2 focus:border-[#5BC5A7] h-24"
           />
+        </div>
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-gray-700 mb-1">Tiền tệ mặc định</label>
+          <select
+            value={defaultCurrency}
+            onChange={(e) => setDefaultCurrency(e.target.value)}
+            className="w-full border border-gray-300 rounded-md p-2 focus:border-[#5BC5A7]"
+          >
+            {currencies.map((currency) => (
+              <option key={currency.code} value={currency.code}>
+                {currency.code} - {currency.name}
+              </option>
+            ))}
+          </select>
         </div>
         <h3 className="text-base font-medium text-gray-700 mb-2">Thêm thành viên</h3>
         <div className="space-y-3 max-h-48 overflow-y-auto">
