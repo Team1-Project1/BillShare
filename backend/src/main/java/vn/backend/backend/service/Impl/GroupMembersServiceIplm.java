@@ -12,6 +12,8 @@ import vn.backend.backend.repository.GroupRepository;
 import vn.backend.backend.repository.UserRepository;
 import vn.backend.backend.service.GroupMembersService;
 
+import java.util.Optional;
+
 @Service
 @RequiredArgsConstructor
 public class GroupMembersServiceIplm implements GroupMembersService {
@@ -22,7 +24,20 @@ public class GroupMembersServiceIplm implements GroupMembersService {
     @Override
     public GroupMemberResponse confirm(Long groupId, Long userId) {
         UserEntity user=userRepository.findById(userId).orElseThrow(() -> new RuntimeException("User not found with id " + userId));
-        GroupEntity group=groupRepository.findById(groupId).orElseThrow(() -> new RuntimeException("group not found with id " + groupId));
+        GroupEntity group=groupRepository.findByGroupIdAndIsActiveTrue(groupId).orElseThrow(() -> new RuntimeException("group not found with id " + groupId));
+        if(groupMembersRepository.existsById_GroupIdAndId_UserIdAndIsActiveFalse(groupId,userId)){
+            Optional<GroupMembersEntity> existingMember=groupMembersRepository.findById_GroupIdAndId_UserId(groupId,userId);
+            existingMember.get().setIsActive(true);
+            groupMembersRepository.save(existingMember.get());
+            return GroupMemberResponse.builder().
+                    groupId(existingMember.get().getId().getGroupId()).
+                    userId(existingMember.get().getId().getUserId()).
+                    role(String.valueOf(existingMember.get().getRole())).
+                    joinedAt(existingMember.get().getJoinedAt()).
+                    isActive(existingMember.get().getIsActive()).
+                    build();
+
+        }
         GroupMembersEntity groupMembers=GroupMembersEntity.builder().
                 id(GroupMembersId.builder().groupId(groupId).userId(userId).build()).
                 group(group).

@@ -8,6 +8,7 @@ import vn.backend.backend.controller.request.GroupCreateRequest;
 import vn.backend.backend.controller.request.GroupEditRequest;
 import vn.backend.backend.controller.response.GroupDetailResponse;
 import vn.backend.backend.controller.response.GroupResponse;
+import vn.backend.backend.controller.response.GroupsOfUserResponse;
 import vn.backend.backend.controller.response.UserDetailResponse;
 import vn.backend.backend.model.GroupEntity;
 import vn.backend.backend.model.GroupMembersEntity;
@@ -63,7 +64,8 @@ public class GroupServiceIplm implements GroupService {
 
     @Override
     public GroupResponse editGroup(GroupEditRequest request, Long groupId) {
-        GroupEntity group=groupRepository.findByGroupId(groupId).orElseThrow(()->new RuntimeException("Group not found"));
+        GroupEntity group = groupRepository.findByGroupIdAndIsActiveTrue(groupId)
+                .orElseThrow(() -> new RuntimeException("Active group not found with id " + groupId));
         group.setGroupName(request.getGroupName());
         group.setDescription(request.getDescription());
         group.setDefaultCurrency(request.getDefaultCurrency());
@@ -81,57 +83,61 @@ public class GroupServiceIplm implements GroupService {
     }
 
     @Override
-    public List<GroupResponse> getAllGroups() {
-        List<GroupEntity>groups=groupRepository.findAll();
+    public GroupsOfUserResponse getAllGroupsByUserId(Long userId) {
+        List<GroupMembersEntity>groupMembers=groupMembersRepository.findAllById_UserIdAndIsActiveTrue(userId);
         List<GroupResponse>responses=new ArrayList<>();
-        for(var group:groups){
-            responses.add(GroupResponse.builder().
-                    groupId(group.getGroupId()).
-                    groupName(group.getGroupName()).
-                    description(group.getDescription()).
-                    createdBy(group.getCreatedBy()).
-                    defaultCurrency(group.getDefaultCurrency()).
-                    createdAt(group.getCreatedAt()).
-                    updatedAt(group.getUpdatedAt()).
-                    isActive(group.getIsActive()).
-                    build());
+        for(var groupMember:groupMembers){
+                responses.add(GroupResponse.builder().
+                        groupId(groupMember.getGroup().getGroupId()).
+                        groupName(groupMember.getGroup().getGroupName()).
+                        description(groupMember.getGroup().getDescription()).
+                        createdBy(groupMember.getGroup().getCreatedBy()).
+                        defaultCurrency(groupMember.getGroup().getDefaultCurrency()).
+                        createdAt(groupMember.getGroup().getCreatedAt()).
+                        updatedAt(groupMember.getGroup().getUpdatedAt()).
+                        isActive(groupMember.getGroup().getIsActive()).
+                        build());
         }
-        return responses;
+        return GroupsOfUserResponse.builder()
+                .groups(responses)
+                .totalGroups(responses.size())
+                .build();
     }
 
     @Override
     public GroupDetailResponse getGroupDetailById(Long groupId) {
-        GroupEntity group = groupRepository.findById(groupId)
+        GroupEntity group = groupRepository.findByGroupIdAndIsActiveTrue(groupId)
                 .orElseThrow(() -> new RuntimeException("Group not found with id " + groupId));
-        List<UserDetailResponse>members=group.getGroupMembers().stream().map(member->{
-            UserEntity user=member.getMember();
-            return UserDetailResponse.builder().
-                    userId(user.getUserId()).
-                    email(user.getEmail()).
-                    fullName(user.getFullName()).
-                    phone(user.getPhone()).
-                    joinAt(member.getJoinedAt()).
-                    avatarUrl(user.getAvatarUrl()).
-                    isActive(user.getIsActive()).
-                    role(member.getRole()).
-                    build();
-        }).toList();
-        return GroupDetailResponse.builder().
-                groupId(group.getGroupId()).
-                groupName(group.getGroupName()).
-                description(group.getDescription()).
-                createdBy(group.getCreatedBy()).
-                defaultCurrency(group.getDefaultCurrency()).
-                createdAt(group.getCreatedAt()).
-                isActive(group.getIsActive()).
-                members(members).
-                build();
+        List<UserDetailResponse>members=new ArrayList<>();
+        List<GroupMembersEntity>groupMembers=groupMembersRepository.findAllById_GroupIdAndIsActiveTrue(groupId);
+        for(var groupMember:groupMembers ){
+            members.add(UserDetailResponse.builder()
+                            .userId(groupMember.getMember().getUserId())
+                            .email(groupMember.getMember().getEmail())
+                            .fullName(groupMember.getMember().getFullName())
+                            .phone(groupMember.getMember().getPhone())
+                            .joinAt(groupMember.getJoinedAt())
+                            .avatarUrl(groupMember.getMember().getAvatarUrl())
+                            .role(groupMember.getRole())
+                    .build());
+        }
+        return GroupDetailResponse.builder()
+                .groupId(group.getGroupId())
+                .groupName(group.getGroupName())
+                .description(group.getDescription())
+                .createdBy(group.getCreatedBy())
+                .defaultCurrency(group.getDefaultCurrency())
+                .createdAt(group.getCreatedAt())
+                .isActive(group.getIsActive())
+                .members(members)
+                .totalMembers(members.size())
+                .build();
     }
     @Transactional
     @Override
     public String deleteGroup(Long groupId,Long userId) {
         UserEntity user= userRepository.findById(userId).orElseThrow(()->new RuntimeException("User not found with id " + userId));
-        GroupEntity group=groupRepository.findById(groupId).orElseThrow(()->new RuntimeException("Group not found with id " + groupId));
+        GroupEntity group=groupRepository.findByGroupIdAndIsActiveTrue(groupId).orElseThrow(()->new RuntimeException("Group not found with id " + groupId));
         Optional<GroupMembersEntity> group_member=groupMembersRepository.findById(GroupMembersId.builder().userId(user.getUserId()).groupId(groupId).build());
         if(group_member.isEmpty() ){
             throw new RuntimeException("User is not member of group");

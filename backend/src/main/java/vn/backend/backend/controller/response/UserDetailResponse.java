@@ -18,6 +18,5 @@ public class UserDetailResponse implements Serializable {
     private String phone;
     private Date joinAt;
     private String avatarUrl;
-    private Boolean isActive;
     private MemberRole role;
 }

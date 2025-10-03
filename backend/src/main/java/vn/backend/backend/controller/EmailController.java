@@ -22,7 +22,7 @@ public class EmailController {
     private final EmailService emailService;
 
     @Operation(summary = "confirm participation", description = "API to confirm participation of users in group")
-    @GetMapping("/confirm-participation")
+    @PostMapping("/confirm-participation")
     public ResponseEntity<String> mailVerifyCation(@RequestParam Long groupId,
                                                    @RequestParam Long userId,
                                                    @Valid  @RequestBody ConfirmPaticipationRequest emailTo) throws IOException {

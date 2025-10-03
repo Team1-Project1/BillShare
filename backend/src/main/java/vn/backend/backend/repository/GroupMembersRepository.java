@@ -12,4 +12,8 @@ import java.util.Optional;
 public interface GroupMembersRepository extends JpaRepository<GroupMembersEntity, GroupMembersId> {
     List<GroupMembersEntity> findAllById_GroupId(Long groupId);
     Optional<GroupMembersEntity> findById_GroupIdAndId_UserId(Long groupId, Long userId);
+    Boolean existsById_GroupIdAndId_UserIdAndIsActiveTrue(Long groupId, Long userId);
+    Boolean existsById_GroupIdAndId_UserIdAndIsActiveFalse(Long groupId, Long userId);
+    List<GroupMembersEntity> findAllById_UserIdAndIsActiveTrue(Long userId);
+    List<GroupMembersEntity> findAllById_GroupIdAndIsActiveTrue(Long groupId);
 }

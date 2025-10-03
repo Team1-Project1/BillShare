@@ -9,4 +9,5 @@ import java.util.Optional;
 @Repository
 public interface GroupRepository extends JpaRepository<GroupEntity,Long> {
     Optional<GroupEntity>findByGroupId(Long groupId);
+    Optional<GroupEntity> findByGroupIdAndIsActiveTrue(Long groupId);
 }
