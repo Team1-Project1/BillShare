@@ -60,22 +60,37 @@ exports.metadata = {
 function GroupList() {
     var _this = this;
     var _a = react_1.useState([]), groups = _a[0], setGroups = _a[1];
-    var _b = react_1.useState(true), loading = _b[0], setLoading = _b[1];
+    var _b = react_1.useState(0), totalGroups = _b[0], setTotalGroups = _b[1];
+    var _c = react_1.useState(true), loading = _c[0], setLoading = _c[1];
     react_1.useEffect(function () {
         var fetchGroups = function () { return __awaiter(_this, void 0, void 0, function () {
-            var response, data, activeGroups, err_1;
+            var userId, response, data, activeGroups, err_1;
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
-                        _a.trys.push([0, 3, , 4]);
-                        return [4 /*yield*/, fetchWithAuth_1.fetchWithAuth(process.env.NEXT_PUBLIC_API_URL + "/group/list-group", {
+                        userId = localStorage.getItem("userId");
+                        if (!userId) {
+                            react_toastify_1.toast.error("Không tìm thấy userId, vui lòng đăng nhập lại!", {
+                                position: "top-center",
+                                autoClose: 3000,
+                                hideProgressBar: false,
+                                closeOnClick: true,
+                                pauseOnHover: true
+                            });
+                            setLoading(false);
+                            return [2 /*return*/];
+                        }
+                        _a.label = 1;
+                    case 1:
+                        _a.trys.push([1, 4, , 5]);
+                        return [4 /*yield*/, fetchWithAuth_1.fetchWithAuth(process.env.NEXT_PUBLIC_API_URL + "/group/list-group/" + userId, {
                                 method: "GET",
                                 headers: {
                                     "Content-Type": "application/json",
                                     "Accept": "*/*"
                                 }
                             })];
-                    case 1:
+                    case 2:
                         response = _a.sent();
                         if (!response.ok) {
                             if (response.status === 401) {
@@ -91,7 +106,7 @@ function GroupList() {
                             throw new Error("Không thể tải danh sách nhóm");
                         }
                         return [4 /*yield*/, response.json()];
-                    case 2:
+                    case 3:
                         data = _a.sent();
                         console.log("Group list API response:", data); // Debug API response
                         if (data.code === "error") {
@@ -105,10 +120,15 @@ function GroupList() {
                             return [2 /*return*/];
                         }
                         if (data.code === "success") {
-                            activeGroups = data.data
-                                .filter(function (group) { return group.isActive && group.groupId !== undefined && group.groupId !== null; })
+                            activeGroups = data.data.groups
+                                .filter(function (group) {
+                                return group.isActive &&
+                                    group.groupId !== undefined &&
+                                    group.groupId !== null;
+                            })
                                 .map(function (group) { return (__assign(__assign({}, group), { description: group.description || "Không có mô tả", defaultCurrency: group.defaultCurrency || "VND" })); });
                             setGroups(activeGroups);
+                            setTotalGroups(data.data.totalGroups || 0);
                             react_toastify_1.toast.success("Tải danh sách nhóm thành công!", {
                                 position: "top-center",
                                 autoClose: 3000,
@@ -118,10 +138,10 @@ function GroupList() {
                             });
                         }
                         setLoading(false);
-                        return [3 /*break*/, 4];
-                    case 3:
+                        return [3 /*break*/, 5];
+                    case 4:
                         err_1 = _a.sent();
-                        console.error("Fetch group list error:", err_1); // Debug error
+                        console.error("Fetch group list error:", err_1);
                         react_toastify_1.toast.error("Không thể tải danh sách nhóm!", {
                             position: "top-center",
                             autoClose: 3000,
@@ -130,8 +150,8 @@ function GroupList() {
                             pauseOnHover: true
                         });
                         setLoading(false);
-                        return [3 /*break*/, 4];
-                    case 4: return [2 /*return*/];
+                        return [3 /*break*/, 5];
+                    case 5: return [2 /*return*/];
                 }
             });
         }); };
@@ -140,7 +160,11 @@ function GroupList() {
     if (loading)
         return React.createElement("p", { className: "text-gray-600" }, "\u0110ang t\u1EA3i...");
     return (React.createElement("div", { className: "min-h-screen bg-gray-100 py-6 px-4", style: { maxWidth: "576px", margin: "0 auto" } },
-        React.createElement("h1", { className: "text-2xl font-bold text-[#5BC5A7] mb-6" }, "Danh s\u00E1ch nh\u00F3m"),
+        React.createElement("div", { className: "flex justify-between items-center mb-6" },
+            React.createElement("h1", { className: "text-2xl font-bold text-[#5BC5A7]" }, "Danh s\u00E1ch nh\u00F3m"),
+            React.createElement("p", { className: "text-sm text-gray-600" },
+                "T\u1ED5ng s\u1ED1 nh\u00F3m: ",
+                totalGroups)),
         React.createElement("div", { className: "space-y-4" }, groups.length === 0 ? (React.createElement("p", { className: "text-gray-600" }, "Ch\u01B0a c\u00F3 nh\u00F3m n\u00E0o.")) : (groups.map(function (group) { return (React.createElement(CardGroup_1["default"], { key: group.groupId, groupId: group.groupId, groupName: group.groupName, description: group.description, defaultCurrency: group.defaultCurrency, memberCount: 0 })); })))));
 }
 exports["default"] = GroupList;
