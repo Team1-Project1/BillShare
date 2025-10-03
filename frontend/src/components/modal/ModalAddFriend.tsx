@@ -50,24 +50,7 @@ export default function ModalAddFriend({ isOpen, onClose }: { isOpen: boolean; o
             ✕
           </button>
         </div>
-        <button
-          onClick={handleSearchToggle}
-          className="w-full h-12 bg-[#5BC5A7] text-white rounded-md text-base font-semibold hover:bg-[#4AA88C] transition-colors duration-300 flex items-center justify-center mb-4"
-        >
-          <FiUser className="mr-2" /> Thêm bằng tên người dùng
-        </button>
-        <div
-          className={`overflow-hidden transition-all duration-300 ease-in-out ${searchOpen ? "max-h-20 opacity-100" : "max-h-0 opacity-0"}`}
-        >
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Tìm kiếm tên người dùng..."
-            className="w-full border border-gray-300 rounded-md p-2 mb-4 focus:border-[#5BC5A7] flex items-center"
-            style={{ display: searchOpen ? "block" : "none" }}
-          />
-        </div>
+          
         <button
           onClick={handleInviteEmail}
           className="w-full h-12 bg-[#5BC5A7] text-white rounded-md text-base font-semibold hover:bg-[#4AA88C] transition-colors duration-300 flex items-center justify-center"

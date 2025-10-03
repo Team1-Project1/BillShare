@@ -30,10 +30,8 @@ export default function ModalAddMember({
   const modalRef = useRef<HTMLDivElement>(null);
 
   // Dữ liệu thành viên mẫu (tái sử dụng CardMemberSelect)
-  const members = [
-    { id: 1, name: "Nguyễn Văn A", email: "a@gmail.com", avatar: "/avatar1.png" },
-    { id: 2, name: "Trần Thị B", email: "b@gmail.com", avatar: "/avatar2.png" },
-    { id: 3, name: "Lê Văn C", email: "c@gmail.com", avatar: "/avatar3.png" },
+  const members = [[]
+    // Truyền vào dữ liệu bạn bè khi có.
   ];
 
   useEffect(() => {
@@ -142,12 +140,14 @@ export default function ModalAddMember({
   };
 
   const handleAddMembers = () => {
-    console.log(
-      "Thêm thành viên:",
-      selectedMembers.map((id) => members.find((m) => m.id === id)?.name)
-    );
+  {
+      // console.log(
+      // "Thêm thành viên:",
+      // selectedMembers.map((id) => members.find((m) => m.id === id)?.name)
+      // );
     onClose();
   };
+  }
 
   if (!isOpen) return null;
 
@@ -229,7 +229,8 @@ export default function ModalAddMember({
           <p className="text-[16px] text-gray-700">Thêm bạn bè vào nhóm</p>
         </div>
         <div className="space-y-3 max-h-48 overflow-y-auto">
-          {members.map((member) => (
+          Bạn không có bạn bè.
+          {/* {members.map((member) => (
             <CardMemberSelect
               key={member.id}
               avatar={member.avatar}
@@ -238,7 +239,7 @@ export default function ModalAddMember({
               selected={selectedMembers.includes(member.id)}
               onSelect={() => handleSelectMember(member.id)}
             />
-          ))}
+          ))} */}
         </div>
         <button
           onClick={handleAddMembers}

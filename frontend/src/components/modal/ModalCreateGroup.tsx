@@ -16,8 +16,7 @@ export default function ModalCreateGroup({ isOpen, onClose }: { isOpen: boolean;
 
   // Dữ liệu thành viên mẫu
   const members = [
-    { id: 1, name: "An", email: "annghiav01@gmail.com", avatar: "/avatar1.png" },
-    { id: 2, name: "Trung Pham", email: "trung@gmail.com", avatar: "/avatar2.png" },
+    []
   ];
 
   useEffect(() => {
@@ -114,7 +113,7 @@ export default function ModalCreateGroup({ isOpen, onClose }: { isOpen: boolean;
           closeOnClick: true,
           pauseOnHover: true,
         });
-        console.log("Thành viên được chọn:", selectedMembers.map(id => members.find(m => m.id === id)?.name));
+        // console.log("Thành viên được chọn:", selectedMembers.map(id => members.find(m => m.id === id)?.name));
         onClose();
       }
     } catch (err) {
@@ -193,7 +192,9 @@ export default function ModalCreateGroup({ isOpen, onClose }: { isOpen: boolean;
         </div>
         <h3 className="text-base font-medium text-gray-700 mb-2">Thêm thành viên</h3>
         <div className="space-y-3 max-h-48 overflow-y-auto">
-          {members.map((member) => (
+          Bạn không có bạn bè.
+          {
+          /* {members.map((member) => (
             <CardMemberSelect
               key={member.id}
               avatar={member.avatar}
@@ -202,7 +203,7 @@ export default function ModalCreateGroup({ isOpen, onClose }: { isOpen: boolean;
               selected={selectedMembers.includes(member.id)}
               onSelect={() => handleSelectMember(member.id)}
             />
-          ))}
+          ))} */}
         </div>
       </div>
     </div>

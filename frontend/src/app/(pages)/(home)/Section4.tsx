@@ -10,8 +10,8 @@ export const Section4 = ({ onOpenModal }: Section4Props) => {
     <div className="bg-white/90 backdrop-blur-sm p-4 shadow-md">
       <h3 className="text-lg font-semibold text-gray-900 mb-2">Thêm bạn bè</h3>
       <div className="space-y-4">
-        <CardFriend name="Nguyễn Văn A" status="Online" />
-        <CardFriend name="Trần Thị B" status="Offline" />
+        Bạn không có bạn bè.
+        {/* Loại bỏ dữ liệu mặc định khi làm chức năng friend thêm danh sách friend vào đây */}
       </div>
       <button
         onClick={onOpenModal} // Gọi hàm từ props để mở modal
