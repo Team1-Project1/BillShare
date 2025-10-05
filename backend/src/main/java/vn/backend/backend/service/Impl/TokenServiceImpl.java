@@ -15,7 +15,7 @@ import java.util.Optional;
 @RequiredArgsConstructor
 @Builder
 @Getter
-public class TokenServiceIplm implements TokenService {
+public class TokenServiceImpl implements TokenService {
     private final TokenRepository tokenRepository;
 
 

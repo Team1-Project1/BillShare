@@ -26,7 +26,7 @@ import java.util.Optional;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class GroupServiceIplm implements GroupService {
+public class GroupServiceImpl implements GroupService {
     private final GroupRepository groupRepository;
     private final GroupMembersRepository groupMembersRepository;
     private final UserRepository userRepository;

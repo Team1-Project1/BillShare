@@ -16,7 +16,7 @@ import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
-public class GroupMembersServiceIplm implements GroupMembersService {
+public class GroupMembersServiceImpl implements GroupMembersService {
     private final GroupMembersRepository groupMembersRepository;
     private final UserRepository userRepository;
     private final GroupRepository groupRepository;

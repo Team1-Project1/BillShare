@@ -5,9 +5,9 @@ spring:
   devtools:
     add-properties: true
   datasource:
-    url: jdbc:postgresql://aws-1-ap-southeast-1.pooler.supabase.com:5432/postgres
-    username: postgres.yulezlspzgdnbxunutqm
-    password: 'Giang@19102004'
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
     driver-class-name: org.postgresql.Driver
     hikari:
       minimum-idle: 5
@@ -24,7 +24,7 @@ spring:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
   sendgrid:
-    api-key: ${API_KEY}
+    api-key: ${SENDGRID_API_KEY}
     from-email: nguyenkimgiang489@gmail.com
     name: BillShare
     templateConfirmParticipationId: d-5c76fa0599a24120bcb98560667202a0
@@ -46,6 +46,5 @@ openapi:
 jwt:
   timeOutAccessToken: 5
   timeOutRefreshToken: 1440
-  secretKeyAccessToken: jkbJytBJPN9ML9pGNX73yFEpoUbKEgpBbnDe9+vHo8o=
-  secretKeyRefreshToken: 6sLRRGxtFgPyxLGFuQFuhPlACKs83VabaQ4sIS1X7Rc=
-
+  secretKeyAccessToken: ${JWT_SECRET_ACCESS}
+  secretKeyRefreshToken: ${JWT_SECRET_REFRESH}
