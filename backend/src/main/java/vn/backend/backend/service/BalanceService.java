@@ -1,0 +1,12 @@
+package vn.backend.backend.service;
+
+import vn.backend.backend.model.BalanceEntity;
+import java.math.BigDecimal;
+import java.util.List;
+
+public interface BalanceService {
+    BalanceEntity createBalance(Long groupId, Long userId1, Long userId2, BigDecimal amount);
+    BalanceEntity updateBalance(Long balanceId, BigDecimal newAmount);
+    List<BalanceEntity> getBalancesByGroupId(Long groupId);
+    BalanceEntity getBalanceBetweenUsers(Long groupId, Long userId1, Long userId2);
+}
