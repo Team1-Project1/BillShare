@@ -8,7 +8,8 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 public class BackendApplication {
 
 	public static void main(String[] args) {
-		Dotenv dotenv = Dotenv.load();
+		Dotenv dotenv = Dotenv.load();// get env from .env file
+        //set env to system property if not exist
 		dotenv.entries().forEach(entry -> {
 			if (System.getProperty(entry.getKey()) == null) {
 				System.setProperty(entry.getKey(), entry.getValue());

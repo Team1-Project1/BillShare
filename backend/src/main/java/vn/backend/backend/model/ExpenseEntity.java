@@ -4,8 +4,11 @@ import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import java.math.BigDecimal;
 import java.util.Date;
+import vn.backend.backend.common.SplitMethod;
 
 @Getter
 @Setter
@@ -51,8 +54,11 @@ public class ExpenseEntity {
     @JoinColumn(name = "payer_id")
     private UserEntity payer;
 
+    @Builder.Default
+    @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     @Column(name = "split_method")
-    private String splitMethod;
+    private SplitMethod splitMethod=SplitMethod.equal;
 
     @Column(name = "created_at", nullable = false)
     @CreationTimestamp
