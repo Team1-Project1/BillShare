@@ -9,6 +9,7 @@ import vn.backend.backend.controller.response.GroupsOfUserResponse;
 import java.util.List;
 
 public interface GroupService {
+    
     GroupResponse createGroup(GroupCreateRequest request, Long userId);
     GroupResponse editGroup(GroupEditRequest request, Long groupId);
     GroupsOfUserResponse getAllGroupsByUserId(Long userId);
