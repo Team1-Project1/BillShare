@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";
 import { Section1 } from "@/app/(pages)/(home)/Section1";
-import CardBill from "@/components/card/CardBill";
+import CardExpense from "@/components/card/CardExpense";
 import CardFriendEnhanced from "@/components/card/CardFriendEnhanced";
 import { BottomNav } from "@/components/Footer/BottomNav";
 import Head from "next/head";
@@ -23,7 +23,10 @@ import ModalAddMember from "@/components/modal/ModalAddMember";
 import ModalViewAllMembers from "@/components/modal/ModalViewAllMembers";
 import ModalConfirmDelete from "@/components/modal/ModalConfirmDelete";
 import ModalEditGroupInfo from "@/components/modal/ModalEditGroupInfo";
+import ModalViewAllExpense from "@/components/modal/ModalViewAllExpense";
 import { fetchWithAuth } from "@/lib/fetchWithAuth";
+import { useAuthRefresh } from "@/hooks/useAuthRefresh";
+
 
 interface APIMember {
   userId: number;
@@ -46,6 +49,14 @@ interface Member {
   received: number;
 }
 
+interface Expense {
+  expenseId: number;
+  groupId: number
+  name: string;
+  date: string;
+  amount: number;
+}
+
 interface Group {
   groupId: number;
   name: string;
@@ -56,13 +67,14 @@ interface Group {
   totalCost: number;
   costPerPerson: number;
   members: Member[];
-  bills: { name: string; date: string; amount: number }[];
+  expenses: Expense[];
   createdBy: number;
 }
 
 export default function GroupDetailClient({ slug }: { slug: string }) {
   const router = useRouter();
-  const userId = Number(localStorage.getItem("userId"));
+  const { userId } = useAuthRefresh();
+
   
 
   const [group, setGroup] = useState<Group>({
@@ -75,36 +87,19 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
     memberCount: 5,
     totalCost: 5000000,
     costPerPerson: 1000000,
-    members: [
-      {
-        id: 1,
-        name: "Thành viên 1",
-        email: "member1@example.com",
-        avatar: undefined,
-        debt: 0,
-        received: 0,
-      },
-      {
-        id: 2,
-        name: "Thành viên 2",
-        email: "member2@example.com",
-        avatar: undefined,
-        debt: 0,
-        received: 0,
-      },
-    ],
-    bills: [
-      { name: "Hóa đơn ăn uống", date: "2025-09-28", amount: 2000000 },
-      { name: "Hóa đơn du lịch", date: "2025-09-25", amount: 3000000 },
-    ],
+    members: [],
+    expenses: [],
     createdBy: 0,
   });
   const [loading, setLoading] = useState(true);
+  const [expensesLoading, setExpensesLoading] = useState(true);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isViewAllModalOpen, setIsViewAllModalOpen] = useState(false);
   const [isConfirmDeleteOpen, setIsConfirmDeleteOpen] = useState(false);
   const [isEditGroupInfoOpen, setIsEditGroupInfoOpen] = useState(false);
+  const [isViewAllExpensesOpen, setIsViewAllExpensesOpen] = useState(false);
+  const canShowDelete = userId === group.createdBy; // Chỉ người tạo nhóm mới có quyền xóa nhóm
   const menuRef = useRef<HTMLDivElement>(null);
 
   const fetchGroupDetails = async () => {
@@ -165,18 +160,7 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
             debt: 0,
             received: 0,
           })),
-          bills: [
-            {
-              name: "Hóa đơn ăn uống",
-              date: "2025-09-28",
-              amount: 2000000,
-            },
-            {
-              name: "Hóa đơn du lịch",
-              date: "2025-09-25",
-              amount: 3000000,
-            },
-          ],
+          expenses: [],
           createdBy: apiGroup.createdBy,
         });
         toast.success("Tải chi tiết nhóm thành công!", {
@@ -191,8 +175,77 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
     }
   };
 
+  const fetchExpenses = async () => {
+    if (!slug || isNaN(Number(slug))) {
+      console.error("Invalid groupId:", slug);
+      toast.error("ID nhóm không hợp lệ!", { position: "top-center" });
+      setLoading(false);
+      return;
+    }
+
+    setExpensesLoading(true);
+
+    try {
+      const response = await fetchWithAuth(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/groups/${slug}/expenses`,
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "*/*",
+          },
+        }
+      );
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          toast.error("Phiên đăng nhập hết hạn, vui lòng đăng nhập lại!", {
+            position: "top-center",
+          });
+          return;
+        }
+        throw new Error("Không thể tải các khoản chi");
+      }
+
+      const data = await response.json();
+      console.log("API response:", data);
+      if (data.code === "error") {
+        toast.error(data.message, { position: "top-center" });
+        return;
+      }
+
+      if (data.code === "success" && Array.isArray(data.data)) {
+        const mappedExpenses: Expense[] = data.data.map((item: any) => ({
+          expenseId: item.expenseId,
+          groupId: item.groupId,
+          name: item.expenseName,
+          date: item.expenseDate,
+          amount: item.totalAmount,
+        }));
+
+        
+        setGroup((prev) => ({ ...prev, expenses: mappedExpenses }));
+
+        toast.success("Tải các chi tiêu thành công!", {
+          position: "top-center",
+        });
+      }
+      setLoading(false);
+    } catch (err) {
+      console.error("Fetch error:", err);
+      toast.error("Không thể tải các chi tiêu!", { position: "top-center" });
+      setLoading(false);
+    } finally {
+      setExpensesLoading(false);
+    }
+  };
+
   useEffect(() => {
-    fetchGroupDetails();
+    const loadData = async () => {
+      await fetchGroupDetails();
+      await fetchExpenses();
+    };
+    loadData();
   }, [slug]);
 
   useEffect(() => {
@@ -225,7 +278,7 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
       if (response.ok) {
         toast.success("Xóa nhóm thành công!", { position: "top-center" });
         setIsConfirmDeleteOpen(false);
-        router.push("/group/list"); 
+        router.push("/group/list");
       } else {
         const errorData = await response.json();
         toast.error(errorData.message || "Không thể xóa nhóm!", { position: "top-center" });
@@ -236,10 +289,12 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
       setLoading(false);
     } finally {
       setLoading(false);
-    } 
+    }
   };
 
-  const canShowDelete = userId === group.createdBy; // Chỉ người tạo nhóm mới có quyền xóa nhóm
+
+
+
 
   if (loading) return <p className="text-gray-600">Đang tải...</p>;
 
@@ -278,9 +333,8 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
                     <FiUsers className="mr-1" /> {group.memberCount} thành viên
                   </p>
                   <p
-                    className={`text-md text-gray-600 mt-2 line-clamp-2 ${
-                      group.description === "Không có mô tả" ? "italic" : ""
-                    }`}
+                    className={`text-md text-gray-600 mt-2 line-clamp-2 ${group.description === "Không có mô tả" ? "italic" : ""
+                      }`}
                   >
                     Mô tả: {group.description}
                   </p>
@@ -381,26 +435,40 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
               </button>
             </div>
 
-            {/* Bills */}
+            {/* Expenses */}
             <div className="mt-6 mb-8">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-lg font-semibold text-[#5BC5A7] flex items-center">
-                  <FiEye className="mr-2" /> Hóa đơn gần đây
+                  <FiEye className="mr-2" /> Khoản chi gần đây
                 </h2>
-                <a href="#" className="text-sm text-[#5BC5A7] hover:underline">
+                <a
+                  href="#"
+                  onClick={() => setIsViewAllExpensesOpen(true)}
+                  className="text-sm text-[#5BC5A7] hover:underline"
+                >
                   Xem tất cả
                 </a>
               </div>
-              <div className="space-y-4">
-                {group.bills.map((bill, index) => (
-                  <CardBill
-                    key={index}
-                    name={bill.name}
-                    date={bill.date}
-                    amount={bill.amount}
-                  />
-                ))}
+              {
+                expensesLoading ? (
+                  <p className="text-gray-600 italic animate-pulse">Đang tải khoản chi...</p>
+                ) : (
+                  <div className="space-y-4">
+                  {group.expenses.length > 0 ? (group.expenses.map((expense, index) => (
+                    <CardExpense
+                      key={index}
+                      expenseId={expense.expenseId}
+                      groupId={expense.groupId}
+                      name={expense.name}
+                      date={expense.date}
+                      amount={expense.amount}
+                    />
+                  ))) : (<p className="text-gray-600 italic">Chưa có khoản chi nào.</p>)
+                  }
               </div>
+                )
+              }
+              
             </div>
           </div>
         </div>
@@ -432,6 +500,12 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
         onClose={() => setIsEditGroupInfoOpen(false)}
         group={group}
         onUpdateSuccess={fetchGroupDetails}
+      />
+      <ModalViewAllExpense
+        isOpen={isViewAllExpensesOpen}
+        onClose={() => setIsViewAllExpensesOpen(false)}
+        expenses={group.expenses}
+        groupId={group.groupId}
       />
     </>
   );
