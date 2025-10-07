@@ -9,10 +9,13 @@ import vn.backend.backend.repository.*;
 import vn.backend.backend.service.ExpenseService;
 import vn.backend.backend.service.ExpenseParticipantService;
 import vn.backend.backend.service.BalanceService;
+import vn.backend.backend.service.TransactionService;
 import vn.backend.backend.controller.request.CreateExpenseRequest;
 import vn.backend.backend.controller.response.ExpenseDetailResponse;
 import vn.backend.backend.controller.response.ExpenseParticipantResponse;
 import vn.backend.backend.common.SplitMethod;
+import vn.backend.backend.common.ActionType;
+import vn.backend.backend.common.EntityType;
 import java.util.ArrayList;
 
 import java.math.BigDecimal;
@@ -29,6 +32,7 @@ public class ExpenseServiceImpl implements ExpenseService {
     private final ExpenseParticipantService expenseParticipantService;
     private final BalanceService balanceService;
     private final GroupMembersRepository groupMemberRepository;
+    private final TransactionService transactionService;
 
     @Override
     @Transactional
@@ -103,8 +107,16 @@ public class ExpenseServiceImpl implements ExpenseService {
         }
 
         // 3. Cập nhật balance và tạo transactions
+        // Cập nhật số dư cho tất cả người tham gia
         balanceService.updateBalancesForExpense(savedExpense, participants);
-
+        // Tạo transaction cho hành động tạo chi phí
+        transactionService.createTransaction(
+                groupId,
+                createdByUserId,
+                ActionType.create,
+                EntityType.expense,
+                savedExpense.getExpenseId()
+        );
         // 4. Return response trực tiếp
         return ExpenseDetailResponse.builder()
                 .expenseId(savedExpense.getExpenseId())

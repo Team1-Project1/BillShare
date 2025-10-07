@@ -18,6 +18,9 @@ import vn.backend.backend.repository.GroupMembersRepository;
 import vn.backend.backend.repository.GroupRepository;
 import vn.backend.backend.repository.UserRepository;
 import vn.backend.backend.service.GroupService;
+import vn.backend.backend.service.TransactionService;
+import vn.backend.backend.common.ActionType;
+import vn.backend.backend.common.EntityType;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -30,6 +33,7 @@ public class GroupServiceImpl implements GroupService {
     private final GroupRepository groupRepository;
     private final GroupMembersRepository groupMembersRepository;
     private final UserRepository userRepository;
+    private final TransactionService transactionService;
     @Override
     @Transactional
     public GroupResponse createGroup(GroupCreateRequest request, Long userId) {
@@ -50,6 +54,14 @@ public class GroupServiceImpl implements GroupService {
                 group(group).
                 member(user).
                 build());
+        //Tạo transaction cho việc tạo nhóm
+        transactionService.createTransaction(
+                group.getGroupId(),
+                userId,
+                ActionType.create,
+                EntityType.group,
+                group.getGroupId()
+        );
         return GroupResponse.builder().
                 groupId(group.getGroupId()).
                 groupName(group.getGroupName()).

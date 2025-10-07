@@ -2,7 +2,11 @@ package vn.backend.backend.model;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.annotations.CreationTimestamp;
+import vn.backend.backend.common.ActionType;
+import vn.backend.backend.common.EntityType;
+import org.hibernate.type.SqlTypes;
 import java.util.Date;
 
 @Getter
@@ -26,11 +30,15 @@ public class TransactionEntity {
     @JoinColumn(name = "user_id")
     private UserEntity user;
 
+    @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     @Column(name = "action_type", nullable = false)
-    private String actionType;
+    private ActionType actionType;
 
+    @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     @Column(name = "entity_type", nullable = false)
-    private String entityType;
+    private EntityType entityType;
 
     @Column(name = "entity_id", nullable = false)
     private Long entityId;
