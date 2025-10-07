@@ -10,6 +10,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 import vn.backend.backend.common.TokenType;
 import vn.backend.backend.service.JwtService;
+import vn.backend.backend.model.UserEntity;
 
 import java.security.Key;
 import java.util.Date;
@@ -43,6 +44,11 @@ public class JwtServiceImpl implements JwtService {
     // - expiration: thời điểm hết hạn
     // - signWith : kí token = key
     private String generateTokenString(Map<String, Object> claims,UserDetails userDetails) {
+        //them userid
+        if (userDetails instanceof UserEntity user) {
+            claims.put("userId", user.getUserId());
+        }
+
         return Jwts.builder().
                 setClaims(claims).
                 setSubject(userDetails.getUsername()).
@@ -108,6 +114,14 @@ public class JwtServiceImpl implements JwtService {
     private Boolean isTokenExpired(String token,TokenType type) {
         return extractExpiration(token,type).before(new Date());
     }
+
+    //hàm mới để lấy userId
+    @Override
+    public Long extractUserId(String token, TokenType type) {
+        Claims claims = extractAllClaim(token, type);
+        return claims.get("userId", Long.class);
+    }
+
 
 
 

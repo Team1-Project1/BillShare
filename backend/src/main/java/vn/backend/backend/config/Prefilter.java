@@ -45,13 +45,19 @@ public class Prefilter extends OncePerRequestFilter {
                 return;
             }
             UserDetails userDetails=userDetailsService.loadUserByUsername(email);
-            if (jwtService.isValid(token, userDetails,TokenType.ACCESS_TOKEN)) {
-                SecurityContext context=SecurityContextHolder.createEmptyContext();
-                UsernamePasswordAuthenticationToken authentication=new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
+            if (jwtService.isValid(token, userDetails, TokenType.ACCESS_TOKEN)) {
+                //  Lấy userId từ token và gắn vào request
+                Long userId = jwtService.extractUserId(token, TokenType.ACCESS_TOKEN);
+                request.setAttribute("userId", userId);
+
+                SecurityContext context = SecurityContextHolder.createEmptyContext();
+                UsernamePasswordAuthenticationToken authentication =
+                        new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
                 authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                 context.setAuthentication(authentication);
                 SecurityContextHolder.setContext(context);
             }
+
         }
         filterChain.doFilter(request, response);
     }
