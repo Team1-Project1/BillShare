@@ -43,4 +43,6 @@ public class TransactionController {
     private boolean isUserInGroup(Long userId, Long groupId) {
         return groupMembersRepository.existsById_GroupIdAndId_UserIdAndIsActiveTrue(groupId, userId);
     }
+
+
 }

@@ -88,6 +88,23 @@ public class BalanceServiceImpl implements BalanceService {
         }
     }
 
+    // In BalanceServiceImpl.java
+    @Override
+    @Transactional
+    public void updateBalancesAfterExpenseDeletion(Long groupId, Long payerId, List<ExpenseParticipantEntity> participants) {
+
+        for (ExpenseParticipantEntity participant : participants) {
+            Long participantUserId = participant.getUser().getUserId();
+            BigDecimal shareAmount = participant.getShareAmount();
+
+            if (!participantUserId.equals(payerId)) {
+                // Reverse the balance update: subtract shareAmount trừ ngược lại
+                updateOrCreateBalance(groupId, participantUserId, payerId, shareAmount.negate());
+            }
+        }
+    }
+
+
     private void createNewBalance(Long groupId, Long smallerId, Long largerId, Long debtorId, BigDecimal amount) {
         BalanceEntity newBalance = new BalanceEntity();
         newBalance.setGroup(groupRepository.getReferenceById(groupId));

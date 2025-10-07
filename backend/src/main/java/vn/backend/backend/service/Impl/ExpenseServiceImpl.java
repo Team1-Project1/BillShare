@@ -165,9 +165,39 @@ public class ExpenseServiceImpl implements ExpenseService {
     }
 
     @Override
-    public void deleteExpense(Long expenseId) {
+    @Transactional
+    public void deleteExpense(Long expenseId, Long requestingUserId, Long groupId) {
+        // 1. Find expense
+        ExpenseEntity expense = expenseRepository.findByExpenseId(expenseId)
+                .orElseThrow(() -> new RuntimeException("Expense not found"));
+        Long payerId = expense.getPayer().getUserId();
+        // 2. Validate creator
+        if (!expense.getCreatedBy().getUserId().equals(requestingUserId)) {
+            throw new RuntimeException("Only the creator can delete this expense");
+        }
+
+        // 3. Get participants before delete (lưu data cần thiết)
+        List<ExpenseParticipantEntity> participants = expenseParticipantService.getParticipantsByExpenseId(expenseId);
+        // Có thể extract data từ expense nếu cần, ví dụ: double totalAmount = expense.getAmount();
+
+        // 4. Update balances – Truyền data extract, không truyền expense
+        balanceService.updateBalancesAfterExpenseDeletion(groupId, payerId, participants);  // Thay đổi signature
+
+        // 5.delete participant
+        expenseParticipantService.removeAllParticipantsByExpenseId(expenseId);
+        // 6. Delete expense
         expenseRepository.deleteById(expenseId);
+
+        // 7. Create transaction – Chỉ dùng ID
+        transactionService.createTransaction(
+                groupId,
+                requestingUserId,
+                ActionType.delete,
+                EntityType.expense,
+                expenseId
+        );
     }
+
 
     @Override
     public List<ExpenseEntity> getExpensesByGroupId(Long groupId) {

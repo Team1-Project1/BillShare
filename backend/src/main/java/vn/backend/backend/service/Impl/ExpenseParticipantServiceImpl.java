@@ -34,8 +34,8 @@ public class ExpenseParticipantServiceImpl implements ExpenseParticipantService 
     }
 
     @Override
-    public void removeParticipant(Long participantId) {
-        participantRepository.deleteById(participantId);
+    public void removeAllParticipantsByExpenseId(Long expenseId) {
+        participantRepository.deleteAllByExpenseExpenseId(expenseId);
     }
 
     @Override

@@ -10,5 +10,6 @@ import java.util.List;
 public interface ExpenseParticipantRepository extends JpaRepository<ExpenseParticipantEntity, Long> {
     List<ExpenseParticipantEntity> findAllByExpenseExpenseId(Long expenseId);
     List<ExpenseParticipantEntity> findAllByUserUserId(Long userId);
+    void deleteAllByExpenseExpenseId(Long expenseId);
 }
 
