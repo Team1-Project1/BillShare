@@ -13,7 +13,7 @@ public interface ExpenseService {
     ExpenseEntity updateExpense(Long expenseId, String expenseName, BigDecimal amount,
                                 String currency, Long categoryId, Date expenseDate,
                                 String description, SplitMethod splitMethod);
-    void deleteExpense(Long expenseId);
+    void deleteExpense(Long expenseId, Long requestingUserId, Long groupId);
     List<ExpenseEntity> getExpensesByGroupId(Long groupId);
     List<ExpenseEntity> getExpensesByPayerId(Long payerId);
 }

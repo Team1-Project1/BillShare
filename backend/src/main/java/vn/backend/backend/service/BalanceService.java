@@ -10,6 +10,7 @@ public interface BalanceService {
     BalanceEntity createBalance(Long groupId, Long userId1, Long userId2, BigDecimal amount);
     BalanceEntity updateBalance(Long balanceId, BigDecimal newAmount);
     void updateBalancesForExpense(ExpenseEntity expense, List<ExpenseParticipantEntity> participants);
+    void updateBalancesAfterExpenseDeletion(Long groupId, Long payerID, List<ExpenseParticipantEntity> participants);
     List<BalanceEntity> getBalancesByGroupId(Long groupId);
     BalanceEntity getBalanceBetweenUsers(Long groupId, Long userId1, Long userId2);
 }

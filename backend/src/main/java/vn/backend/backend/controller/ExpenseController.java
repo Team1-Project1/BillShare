@@ -38,6 +38,18 @@ public class ExpenseController {
                 .body(new ApiResponse<>("success", "Chi tiêu đã được tạo thành công!", expense));
     }
 
+    @Operation(summary = "Delete expense", description = "API to delete an expense from a group")
+    @DeleteMapping("/{expenseId}")
+    public ResponseEntity<ApiResponse<String>> deleteExpense(
+            @PathVariable Long groupId,
+            @PathVariable Long expenseId,
+            @RequestHeader("userId") Long userId) {
+
+        expenseService.deleteExpense(expenseId, userId, groupId);
+        return ResponseEntity.ok(new ApiResponse<>("success", "Expense deleted successfully", null));
+    }
+
+
 //    @Operation(summary = "Get list of expenses by group", description = "API to get all expenses in a specific group")
 //    @GetMapping
 //    public ResponseEntity<ApiResponse<List<ExpenseResponse>>> getGroupExpenses(
@@ -80,17 +92,5 @@ public class ExpenseController {
 //        );
 //    }
 //
-//    @Operation(summary = "Delete expense", description = "API to delete an expense from a group")
-//    @DeleteMapping("/{expenseId}")
-//    public ResponseEntity<ApiResponse<String>> deleteExpense(
-//            @PathVariable Long groupId,
-//            @PathVariable Long expenseId,
-//            @RequestHeader("userId") Long userId) {
-//
-//        String result = expenseService.deleteExpense(groupId, expenseId, userId);
-//
-//        return ResponseEntity.ok(
-//                new ApiResponse<>("success", result, null)
-//        );
-//    }
+
 }
