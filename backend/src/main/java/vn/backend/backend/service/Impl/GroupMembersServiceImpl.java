@@ -11,6 +11,9 @@ import vn.backend.backend.repository.GroupMembersRepository;
 import vn.backend.backend.repository.GroupRepository;
 import vn.backend.backend.repository.UserRepository;
 import vn.backend.backend.service.GroupMembersService;
+import vn.backend.backend.service.TransactionService;
+import vn.backend.backend.common.ActionType;
+import vn.backend.backend.common.EntityType;
 
 import java.util.Optional;
 
@@ -20,6 +23,7 @@ public class GroupMembersServiceImpl implements GroupMembersService {
     private final GroupMembersRepository groupMembersRepository;
     private final UserRepository userRepository;
     private final GroupRepository groupRepository;
+    private final TransactionService transactionService;
 
     @Override
     public GroupMemberResponse confirm(Long groupId, Long userId) {
@@ -44,6 +48,14 @@ public class GroupMembersServiceImpl implements GroupMembersService {
                 member(user).
                 build();
         groupMembersRepository.save(groupMembers);
+        //Tạo transaction cho việc thành viên vào nhóm
+        transactionService.createTransaction(
+                groupId,
+                userId,
+                ActionType.join,
+                EntityType.group,
+                groupId
+        );
         return GroupMemberResponse.builder().
                 groupId(groupMembers.getId().getGroupId()).
                 userId(groupMembers.getId().getUserId()).
@@ -62,6 +74,15 @@ public class GroupMembersServiceImpl implements GroupMembersService {
     @Override
     public boolean existsByGroupIdAndUserId(Long groupId, Long userId) {
         // Check if an active group member record exists with the given groupId and userId
+
+        //tạo transaction cho việc rời nhóm
+        transactionService.createTransaction(
+                groupId,
+                userId,
+                ActionType.leave,
+                EntityType.group,
+                groupId
+        );
         return groupMembersRepository.existsById_GroupIdAndId_UserIdAndIsActiveTrue(groupId, userId);
     }
 
