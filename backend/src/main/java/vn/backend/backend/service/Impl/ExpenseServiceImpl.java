@@ -12,6 +12,7 @@ import vn.backend.backend.service.BalanceService;
 import vn.backend.backend.service.TransactionService;
 import vn.backend.backend.controller.request.CreateExpenseRequest;
 import vn.backend.backend.controller.response.ExpenseDetailResponse;
+import vn.backend.backend.controller.response.ExpenseResponse;
 import vn.backend.backend.controller.response.ExpenseParticipantResponse;
 import vn.backend.backend.common.SplitMethod;
 import vn.backend.backend.common.ActionType;
@@ -200,9 +201,88 @@ public class ExpenseServiceImpl implements ExpenseService {
 
 
     @Override
-    public List<ExpenseEntity> getExpensesByGroupId(Long groupId) {
-        return expenseRepository.findAllByGroupGroupId(groupId);
+    public List<ExpenseResponse> getExpensesByGroupId(Long groupId,Long userId ) {
+        //Verify user is in group
+        if (!isUserInGroup(userId, groupId)) {
+            throw new RuntimeException("Không phải là thành viên của nhóm");
+        }
+        // Verify group exists
+        groupRepository.findByGroupId(groupId)
+                .orElseThrow(() -> new RuntimeException("Group not found with ID: " + groupId));
+
+        List<ExpenseEntity> expenses = expenseRepository.findAllByGroupGroupId(groupId);
+
+        return expenses.stream()
+                .map(expense -> ExpenseResponse.builder()
+                        .expenseId(expense.getExpenseId())
+                        .groupId(expense.getGroup().getGroupId())
+                        .groupName(expense.getGroup().getGroupName())
+                        .expenseName(expense.getExpenseName())
+                        .totalAmount(expense.getTotalAmount())
+                        .currency(expense.getCurrency())
+                        .categoryId(expense.getCategory().getCategoryId())
+                        .categoryName(expense.getCategory().getCategoryName())
+                        .expenseDate(expense.getExpenseDate())
+                        .description(expense.getDescription())
+                        .createdByUserId(expense.getCreatedBy().getUserId())
+                        .createdByUserName(expense.getCreatedBy().getFullName())
+                        .payerUserId(expense.getPayer().getUserId())
+                        .payerUserName(expense.getPayer().getFullName())
+                        .splitMethod(expense.getSplitMethod())
+                        .createdAt(expense.getCreatedAt())
+                        .updatedAt(expense.getUpdatedAt())
+                        .build())
+                .toList();
     }
+
+    @Override
+    public ExpenseDetailResponse getExpenseDetail(Long expenseId, Long userId, Long groupId) {
+        //Verify user is in group
+        if (!isUserInGroup(userId, groupId)) {
+            throw new RuntimeException("Không phải là thành viên của nhóm");
+        }
+
+        ExpenseEntity expense = expenseRepository.findByExpenseId(expenseId)
+                .orElseThrow(() -> new RuntimeException("Expense not found with ID: " + expenseId));
+
+        List<ExpenseParticipantEntity> participants = expenseParticipantService.getParticipantsByExpenseId(expenseId);
+
+        List<ExpenseParticipantResponse> participantResponses = participants.stream()
+                .map(participant -> ExpenseParticipantResponse.builder()
+                        .participantId(participant.getParticipantId())
+                        .expenseId(participant.getExpense().getExpenseId())
+                        .expenseName(participant.getExpense().getExpenseName())
+                        .userId(participant.getUser().getUserId())
+                        .userName(participant.getUser().getFullName())
+                        .userEmail(participant.getUser().getEmail())
+                        .shareAmount(participant.getShareAmount())
+                        .currency(participant.getExpense().getCurrency())
+                        .build())
+                .toList();
+
+        return ExpenseDetailResponse.builder()
+                .expenseId(expense.getExpenseId())
+                .groupId(expense.getGroup().getGroupId())
+                .groupName(expense.getGroup().getGroupName())
+                .expenseName(expense.getExpenseName())
+                .totalAmount(expense.getTotalAmount())
+                .currency(expense.getCurrency())
+                .categoryId(expense.getCategory().getCategoryId())
+                .categoryName(expense.getCategory().getCategoryName())
+                .expenseDate(expense.getExpenseDate())
+                .description(expense.getDescription())
+                .createdByUserId(expense.getCreatedBy().getUserId())
+                .createdByUserName(expense.getCreatedBy().getFullName())
+                .payerUserId(expense.getPayer().getUserId())
+                .payerUserName(expense.getPayer().getFullName())
+                .splitMethod(expense.getSplitMethod())
+                .createdAt(expense.getCreatedAt())
+                .updatedAt(expense.getUpdatedAt())
+                .participants(participantResponses)
+                .totalParticipants(participantResponses.size())
+                .build();
+    }
+
 
     @Override
     public List<ExpenseEntity> getExpensesByPayerId(Long payerId) {

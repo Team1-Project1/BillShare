@@ -3,6 +3,7 @@ package vn.backend.backend.service;
 import vn.backend.backend.model.ExpenseEntity;
 import vn.backend.backend.controller.request.CreateExpenseRequest;
 import vn.backend.backend.controller.response.ExpenseDetailResponse;
+import vn.backend.backend.controller.response.ExpenseResponse;
 import vn.backend.backend.common.SplitMethod;
 import java.math.BigDecimal;
 import java.util.Date;
@@ -14,7 +15,8 @@ public interface ExpenseService {
                                 String currency, Long categoryId, Date expenseDate,
                                 String description, SplitMethod splitMethod);
     void deleteExpense(Long expenseId, Long requestingUserId, Long groupId);
-    List<ExpenseEntity> getExpensesByGroupId(Long groupId);
+    List<ExpenseResponse> getExpensesByGroupId(Long groupId, Long userId);
+    ExpenseDetailResponse getExpenseDetail(Long expenseId, Long userId, Long groupId);
     List<ExpenseEntity> getExpensesByPayerId(Long payerId);
 }
 
