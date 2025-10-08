@@ -9,3 +9,38 @@
   font-family: "Pixelify Sans", sans-serif;
 }
 
+.react-datepicker {
+  font-family: inherit;
+  border: 1px solid #e5e7eb !important;
+  border-radius: 0.5rem;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+.react-datepicker__header {
+  background-color: #5BC5A7 !important;
+  border-bottom: none !important;
+  color: white;
+}
+
+.react-datepicker__current-month {
+  color: white !important;
+  font-weight: 600;
+}
+
+.react-datepicker__day--selected,
+.react-datepicker__day--keyboard-selected {
+  background-color: #5BC5A7 !important;
+  color: white !important;
+}
+
+.react-datepicker__day--today {
+  font-weight: bold;
+  border: 1px solid #5BC5A7;
+}
+
+/* 🌫 Làm mờ ngày ngoài tháng hiện tại */
+.react-datepicker__day--outside-month {
+  color: #9ca3af !important; /* text-gray-400 */
+  opacity: 0.5;
+  pointer-events: none;
+}
