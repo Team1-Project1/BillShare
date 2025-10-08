@@ -24,6 +24,7 @@ import ModalViewAllMembers from "@/components/modal/ModalViewAllMembers";
 import ModalConfirmDelete from "@/components/modal/ModalConfirmDelete";
 import ModalEditGroupInfo from "@/components/modal/ModalEditGroupInfo";
 import ModalViewAllExpense from "@/components/modal/ModalViewAllExpense";
+import ModalAddExpense from "@/components/modal/ModalAddExpense";
 import { fetchWithAuth } from "@/lib/fetchWithAuth";
 import { useAuthRefresh } from "@/hooks/useAuthRefresh";
 
@@ -99,6 +100,7 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
   const [isConfirmDeleteOpen, setIsConfirmDeleteOpen] = useState(false);
   const [isEditGroupInfoOpen, setIsEditGroupInfoOpen] = useState(false);
   const [isViewAllExpensesOpen, setIsViewAllExpensesOpen] = useState(false);
+  const [isAddExpenseModalOpen, setIsAddExpenseModalOpen] = useState(false);
   const canShowDelete = userId === group.createdBy; // Chỉ người tạo nhóm mới có quyền xóa nhóm
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -468,7 +470,12 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
               </div>
                 )
               }
-              
+              <button
+                onClick={() => setIsAddExpenseModalOpen(true)}
+                className="w-full h-12 bg-[#5BC5A7] text-white rounded-md text-base font-semibold hover:bg-[#4AA88C] transition-colors duration-300 flex items-center justify-center pt-2 mt-4"
+              >
+                <FiEdit2 className="mr-2" /> Thêm chi tiêu
+              </button>
             </div>
           </div>
         </div>
@@ -506,6 +513,14 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
         onClose={() => setIsViewAllExpensesOpen(false)}
         expenses={group.expenses}
         groupId={group.groupId}
+      />
+      <ModalAddExpense
+        isOpen={isAddExpenseModalOpen}
+        onClose={() => setIsAddExpenseModalOpen(false)}
+        onSuccess={fetchExpenses}
+        userId={Number(userId)}
+        groupId={group.groupId}
+        members={group.members}
       />
     </>
   );
