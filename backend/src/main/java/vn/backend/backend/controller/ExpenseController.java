@@ -10,6 +10,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import vn.backend.backend.controller.request.CreateExpenseRequest;
+import vn.backend.backend.controller.request.UpdateExpenseRequest;
 import vn.backend.backend.controller.response.ApiResponse;
 import vn.backend.backend.controller.response.ExpenseDetailResponse;
 import vn.backend.backend.controller.response.ExpenseResponse;
@@ -79,21 +80,21 @@ public class ExpenseController {
         );
     }
 
-//
-//    @Operation(summary = "Update expense", description = "API to update an existing expense in a group")
-//    @PutMapping("/{expenseId}")
-//    public ResponseEntity<ApiResponse<ExpenseDetailResponse>> updateExpense(
-//            @PathVariable Long groupId,
-//            @PathVariable Long expenseId,
-//            @Valid @RequestBody UpdateExpenseRequest request,
-//            @RequestHeader("userId") Long userId) {
-//
-//        ExpenseDetailResponse expense = expenseService.updateExpense(groupId, expenseId, request, userId);
-//
-//        return ResponseEntity.ok(
-//                new ApiResponse<>("success", String.format("Cập nhật chi tiêu %d thành công!", expenseId), expense)
-//        );
-//    }
-//
+
+    @Operation(summary = "Update expense", description = "API to update an existing expense in a group")
+    @PutMapping("/{expenseId}")
+    public ResponseEntity<ApiResponse<ExpenseDetailResponse>> updateExpense(
+            @PathVariable Long expenseId,
+            @PathVariable Long groupId,
+            @Valid @RequestBody UpdateExpenseRequest request,
+            @RequestHeader("userId") Long userId) {
+
+        ExpenseDetailResponse expense = expenseService.updateExpenseByExpenseId(expenseId,userId,groupId, request);
+
+        return ResponseEntity.ok(
+                new ApiResponse<>("success", String.format("Cập nhật chi tiêu %d thành công!", expenseId), expense)
+        );
+    }
+
 
 }

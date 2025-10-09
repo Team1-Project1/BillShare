@@ -68,3 +68,5 @@ public class ExpenseEntity {
     @UpdateTimestamp
     private Date updatedAt;
 }
+
+

@@ -13,4 +13,5 @@ public interface BalanceService {
     void updateBalancesAfterExpenseDeletion(Long groupId, Long payerID, List<ExpenseParticipantEntity> participants);
     List<BalanceEntity> getBalancesByGroupId(Long groupId);
     BalanceEntity getBalanceBetweenUsers(Long groupId, Long userId1, Long userId2);
+    void rollBackBalance(ExpenseEntity expense,Long oldPayerId,List<ExpenseParticipantEntity>oldParticipants);
 }

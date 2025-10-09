@@ -1,10 +1,14 @@
 package vn.backend.backend.service.Impl;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import vn.backend.backend.controller.request.UpdateExpenseRequest;
 import vn.backend.backend.model.ExpenseEntity;
 import vn.backend.backend.model.ExpenseParticipantEntity;
+import vn.backend.backend.model.GroupMembersEntity;
+import vn.backend.backend.model.UserEntity;
 import vn.backend.backend.repository.*;
 import vn.backend.backend.service.ExpenseService;
 import vn.backend.backend.service.ExpenseParticipantService;
@@ -22,7 +26,8 @@ import java.util.ArrayList;
 import java.math.BigDecimal;
 import java.util.Date;
 import java.util.List;
-
+import java.util.NoSuchElementException;
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ExpenseServiceImpl implements ExpenseService {
@@ -34,6 +39,8 @@ public class ExpenseServiceImpl implements ExpenseService {
     private final BalanceService balanceService;
     private final GroupMembersRepository groupMemberRepository;
     private final TransactionService transactionService;
+    private final GroupMembersRepository groupMembersRepository;
+    private final ExpenseParticipantRepository expenseParticipantRepository;
 
     @Override
     @Transactional
@@ -288,4 +295,111 @@ public class ExpenseServiceImpl implements ExpenseService {
     public List<ExpenseEntity> getExpensesByPayerId(Long payerId) {
         return expenseRepository.findAllByPayerUserId(payerId);
     }
+    @Transactional
+    @Override
+    public ExpenseDetailResponse updateExpenseByExpenseId(Long expenseId, Long userId,Long groupId,UpdateExpenseRequest request) {
+        ExpenseEntity expense=expenseRepository.findByExpenseId(expenseId).orElseThrow(()->new NoSuchElementException("Expense not found with ID: " + expenseId));
+        if(!expense.getCreatedBy().getUserId().equals(userId)){
+            throw new RuntimeException("Only the creator can update this expense");
+        }
+        UserEntity payer=userRepository.findById(request.getPayerId()).orElseThrow(()->new NoSuchElementException("User not found with ID: " + request.getPayerId()));
+        boolean groupMember=groupMembersRepository.existsById_GroupIdAndId_UserIdAndIsActiveTrue(expense.getGroup().getGroupId(),request.getPayerId());
+        if (!groupMember){
+            throw new RuntimeException("The payer is not a member of the group");
+        }
+        for(var participant:request.getParticipants()){
+            Boolean isMember=groupMemberRepository.existsById_GroupIdAndId_UserIdAndIsActiveTrue(expense.getGroup().getGroupId(),participant.getUserId());
+            if(!isMember){
+                throw new RuntimeException("Participant with ID " + participant.getUserId() +
+                        " is not a member of the group");
+            }
+        }
+        BigDecimal totalShareAmount = BigDecimal.ZERO; // tổng số tiền đã chia
+        for (var participant : request.getParticipants()) {
+            totalShareAmount = totalShareAmount.add(participant.getShareAmount());
+        }
+        if(totalShareAmount.compareTo(request.getTotalAmount()) != 0){
+            throw new RuntimeException("The total share amount of participants does not equal to the total expense amount");
+        }
+        long oldPayerId=expense.getPayer().getUserId();
+        List<ExpenseParticipantEntity>oldParticipants=expenseParticipantRepository.findAllByExpenseExpenseId(expenseId);
+
+        expense.setPayer(payer);
+        expense.setExpenseName(request.getExpenseName());
+        expense.setTotalAmount(request.getTotalAmount());
+        expense.setCurrency(request.getCurrency());
+        expense.setCategory(categoryRepository.findById(request.getCategoryId()).orElseThrow(()->new NoSuchElementException("Category not found with ID: " + request.getCategoryId())));
+        expense.setExpenseDate(request.getExpenseDate());
+        expense.setDescription(request.getDescription());
+        expense.setSplitMethod(request.getSplitMethod());
+        ExpenseEntity updatedExpense = expenseRepository.save(expense);
+
+
+        expenseParticipantRepository.deleteAllByExpenseExpenseId(expenseId);
+        expenseParticipantRepository.flush();
+        boolean deleted = expenseParticipantRepository
+                .findAllByExpenseExpenseId(expenseId)
+                .isEmpty();
+        if(deleted){
+            log.info("da xoa het");
+        }
+        else {
+            log.info("Chua xoa het");
+        }
+
+
+        List<ExpenseParticipantEntity> newParticipants = new ArrayList<>();
+        List<ExpenseParticipantResponse> participantResponses = new ArrayList<>();
+
+        for(var participant:request.getParticipants()){
+            ExpenseParticipantEntity participantEntity = expenseParticipantService.addParticipant(
+                    updatedExpense.getExpenseId(),
+                    participant.getUserId(),
+                    participant.getShareAmount()
+            );
+            newParticipants.add(participantEntity);
+            ExpenseParticipantResponse participantResponse = ExpenseParticipantResponse.builder()
+                    .participantId(participantEntity.getParticipantId())
+                    .expenseId(participantEntity.getExpense().getExpenseId())
+                    .expenseName(participantEntity.getExpense().getExpenseName())
+                    .userId(participantEntity.getUser().getUserId())
+                    .userName(participantEntity.getUser().getFullName())
+                    .userEmail(participantEntity.getUser().getEmail())
+                    .shareAmount(participantEntity.getShareAmount())
+                    .currency(participantEntity.getExpense().getCurrency())
+                    .build();
+            participantResponses.add(participantResponse);
+        }
+        balanceService.rollBackBalance(expense,oldPayerId,oldParticipants);
+        balanceService.updateBalancesForExpense(expense,newParticipants);
+        transactionService.createTransaction(
+                expense.getGroup().getGroupId(),
+                userId,
+                ActionType.update,
+                EntityType.expense,
+                expenseId
+        );
+        return ExpenseDetailResponse.builder()
+                .expenseId(updatedExpense.getExpenseId())
+                .groupId(updatedExpense.getGroup().getGroupId())
+                .groupName(updatedExpense.getGroup().getGroupName())
+                .expenseName(updatedExpense.getExpenseName())
+                .totalAmount(updatedExpense.getTotalAmount())
+                .currency(updatedExpense.getCurrency())
+                .categoryId(updatedExpense.getCategory().getCategoryId())
+                .categoryName(updatedExpense.getCategory().getCategoryName())
+                .expenseDate(updatedExpense.getExpenseDate())
+                .description(updatedExpense.getDescription())
+                .createdByUserId(updatedExpense.getCreatedBy().getUserId())
+                .createdByUserName(updatedExpense.getCreatedBy().getFullName())
+                .payerUserId(updatedExpense.getPayer().getUserId())
+                .payerUserName(updatedExpense.getPayer().getFullName())
+                .splitMethod(updatedExpense.getSplitMethod())
+                .createdAt(updatedExpense.getCreatedAt())
+                .updatedAt(updatedExpense.getUpdatedAt())
+                .participants(participantResponses)
+                .totalParticipants(participantResponses.size())
+                .build();
+    }
+
 }
