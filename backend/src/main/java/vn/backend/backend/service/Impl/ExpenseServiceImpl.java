@@ -77,7 +77,7 @@ public class ExpenseServiceImpl implements ExpenseService {
                 .group(group)
                 .expenseName(request.getExpenseName())
                 .totalAmount(request.getTotalAmount())
-                .currency(request.getCurrency())
+                .currency(group.getDefaultCurrency())
                 .category(categoryRepository.findById(request.getCategoryId()).orElseThrow())
                 .expenseDate(request.getExpenseDate())
                 .description(request.getDescription())
@@ -327,7 +327,6 @@ public class ExpenseServiceImpl implements ExpenseService {
         expense.setPayer(payer);
         expense.setExpenseName(request.getExpenseName());
         expense.setTotalAmount(request.getTotalAmount());
-        expense.setCurrency(request.getCurrency());
         expense.setCategory(categoryRepository.findById(request.getCategoryId()).orElseThrow(()->new NoSuchElementException("Category not found with ID: " + request.getCategoryId())));
         expense.setExpenseDate(request.getExpenseDate());
         expense.setDescription(request.getDescription());
