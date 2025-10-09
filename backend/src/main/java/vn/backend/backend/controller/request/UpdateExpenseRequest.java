@@ -14,7 +14,7 @@ import java.util.List;
 public class UpdateExpenseRequest {
     private String expenseName;
     private BigDecimal totalAmount;
-    private String currency;
+//    private String currency;
     private Long categoryId;
     private Date expenseDate;
     private String description;
