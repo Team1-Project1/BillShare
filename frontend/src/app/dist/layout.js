@@ -13,6 +13,6 @@ function RootLayout(_a) {
             React.createElement("title", null, "BillShare")),
         React.createElement("body", null,
             children,
-            React.createElement(react_toastify_1.ToastContainer, { position: "top-right", autoClose: 3000, hideProgressBar: false, closeOnClick: true, pauseOnHover: true }))));
+            React.createElement(react_toastify_1.ToastContainer, { position: "top-right", autoClose: 2000, hideProgressBar: false, closeOnClick: true, pauseOnHover: true }))));
 }
 exports["default"] = RootLayout;

@@ -231,7 +231,7 @@ export default function ModalAddExpense({
       {/* Modal */}
       <div
         ref={modalRef}
-        className="relative bg-white rounded-lg w-full max-w-[500px] shadow-xl border border-gray-200 z-10 flex flex-col max-h-[90vh]"
+        className="relative bg-white w-full max-w-[500px] shadow-xl border border-gray-200 z-10 flex flex-col max-h-[90vh]"
       >
         {/* Header */}
         <div className="p-4 border-b border-gray-200 flex justify-between items-center sticky top-0 bg-white z-20">
