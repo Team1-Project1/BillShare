@@ -7,6 +7,7 @@ import vn.backend.backend.model.BalanceEntity;
 import vn.backend.backend.model.ExpenseEntity;
 import vn.backend.backend.model.ExpenseParticipantEntity;
 import vn.backend.backend.repository.BalanceRepository;
+import vn.backend.backend.repository.ExpenseParticipantRepository;
 import vn.backend.backend.repository.GroupRepository;
 import vn.backend.backend.repository.UserRepository;
 import vn.backend.backend.service.BalanceService;
@@ -21,6 +22,7 @@ public class BalanceServiceImpl implements BalanceService {
     private final BalanceRepository balanceRepository;
     private final GroupRepository groupRepository;
     private final UserRepository userRepository;
+    private final ExpenseParticipantRepository expenseParticipantRepository;
 
     @Override
     public BalanceEntity createBalance(Long groupId, Long userId1, Long userId2, BigDecimal amount) {
@@ -68,6 +70,30 @@ public class BalanceServiceImpl implements BalanceService {
         } else {
             // Tạo balance mới
             createNewBalance(groupId, smallerId, largerId, userId1, amount);
+        }
+    }
+    @Override
+    public void rollBackBalance(ExpenseEntity expense,Long oldPayerId,List<ExpenseParticipantEntity>oldParticipants) {
+        Long groupId=expense.getGroup().getGroupId();
+        for(var participant:oldParticipants) {
+            if (participant.getUser().getUserId().equals(oldPayerId)) {
+                continue;
+            }
+            Long participantUserId = participant.getUser().getUserId();
+            BigDecimal shareAmount = participant.getShareAmount();
+            Long smallerId = Math.min(participantUserId, oldPayerId);
+            Long largerId = Math.max(participantUserId, oldPayerId);
+            BalanceEntity balance = balanceRepository
+                    .findByGroupGroupIdAndUser1UserIdAndUser2UserId(groupId, smallerId, largerId)
+                    .orElseThrow(() -> new IllegalStateException("Balance record không tồn tại giữa user " + participantUserId
+                            + " và payer " + oldPayerId + " trong nhóm " + groupId));
+            if (balance.getUser1().getUserId().equals(participantUserId)) {
+                balance.setBalance(balance.getBalance().subtract(shareAmount));
+                balanceRepository.save(balance);
+            } else {
+                balance.setBalance(balance.getBalance().add(shareAmount));
+                balanceRepository.save(balance);
+            }
         }
     }
 

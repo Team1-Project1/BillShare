@@ -1,5 +1,6 @@
 package vn.backend.backend.service;
 
+import vn.backend.backend.controller.request.UpdateExpenseRequest;
 import vn.backend.backend.model.ExpenseEntity;
 import vn.backend.backend.controller.request.CreateExpenseRequest;
 import vn.backend.backend.controller.response.ExpenseDetailResponse;
@@ -18,5 +19,6 @@ public interface ExpenseService {
     List<ExpenseResponse> getExpensesByGroupId(Long groupId, Long userId);
     ExpenseDetailResponse getExpenseDetail(Long expenseId, Long userId, Long groupId);
     List<ExpenseEntity> getExpensesByPayerId(Long payerId);
+    ExpenseDetailResponse updateExpenseByExpenseId(Long expenseId,Long userId, Long groupId,UpdateExpenseRequest request);
 }
 
