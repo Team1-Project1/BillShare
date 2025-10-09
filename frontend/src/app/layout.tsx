@@ -21,7 +21,7 @@ export default function RootLayout({
         {children}
         <ToastContainer 
           position="top-right"
-          autoClose={3000} // Tự động đóng sau 3 giây
+          autoClose={2000} // Tự động đóng sau 2 giây
           hideProgressBar={false}
           closeOnClick
           pauseOnHover

@@ -1,12 +1,14 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { FiClipboard } from "react-icons/fi";
-import CardExpense from "../card/CardExpense"; 
+import { FiClipboard, FiTrash2 } from "react-icons/fi";
+import CardExpense from "../card/CardExpense";
+import { fetchWithAuth } from "@/lib/fetchWithAuth";
+import { toast } from "react-toastify";
 
 interface Expense {
   expenseId: number;
-  groupId: number
+  groupId: number;
   name: string;
   date: string;
   amount: number;
@@ -17,7 +19,8 @@ interface ModalViewAllExpensesProps {
   onClose: () => void;
   expenses: Expense[];
   groupId: number;
-  canDelete?: boolean;
+  userId: number;
+  onDeleteSuccess: () => void;
 }
 
 export default function ModalViewAllExpenses({
@@ -25,13 +28,106 @@ export default function ModalViewAllExpenses({
   onClose,
   expenses,
   groupId,
-  canDelete = true,
+  userId,
+  onDeleteSuccess,
 }: ModalViewAllExpensesProps) {
   const modalRef = useRef<HTMLDivElement>(null);
+  const [selectedExpenses, setSelectedExpenses] = useState<number[]>([]);
 
-  const handleDeleteExpense = async (expenseId: number, groupId: number) => {
-    // Logic to delete expense
+  // Xử lý chọn/hủy chọn khoản chi
+  const handleSelectExpense = (expenseId: number) => {
+    setSelectedExpenses((prev) =>
+      prev.includes(expenseId)
+        ? prev.filter((id) => id !== expenseId)
+        : [...prev, expenseId]
+    );
   };
+
+  // Xử lý xóa nhiều khoản chi
+  const handleDeleteExpenses = async () => {
+    if (selectedExpenses.length === 0) {
+      toast.warn("Vui lòng chọn ít nhất một khoản chi để xóa!", {
+        position: "top-center",
+        autoClose: 2000,
+      });
+      return;
+    }
+
+    try {
+      // Kiểm tra quyền xóa trước
+      const canDeletePromises = selectedExpenses.map(async (expenseId) => {
+        const detailResponse = await fetchWithAuth(
+          `${process.env.NEXT_PUBLIC_API_URL}/api/groups/${groupId}/expenses/${expenseId}`,
+          {
+            method: "GET",
+            headers: {
+              "Content-Type": "application/json",
+              Accept: "*/*",
+            },
+          }
+        );
+
+        if (!detailResponse.ok) {
+          throw new Error(`Không thể lấy chi tiết khoản chi ID ${expenseId}`);
+        }
+
+        const detailData = await detailResponse.json();
+        if (detailData.code !== "success") {
+          throw new Error(detailData.message);
+        }
+
+        return detailData.data.createdByUserId === userId;
+      });
+
+      const canDeleteResults = await Promise.all(canDeletePromises);
+      if (!canDeleteResults.every((canDelete) => canDelete)) {
+        toast.error("Bạn không có quyền xóa một số khoản chi đã chọn!", {
+          position: "top-center",
+          autoClose: 2000,
+        });
+        return;
+      }
+
+      // Xóa từng khoản chi
+      const deletePromises = selectedExpenses.map(async (expenseId) => {
+        const response = await fetchWithAuth(
+          `${process.env.NEXT_PUBLIC_API_URL}/api/groups/${groupId}/expenses/${expenseId}`,
+          {
+            method: "DELETE",
+            headers: {
+              "Content-Type": "application/json",
+              Accept: "*/*",
+              userId: userId.toString(),
+            },
+          }
+        );
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(
+            errorData.message || `Không thể xóa khoản chi ID ${expenseId}`
+          );
+        }
+      });
+
+      await Promise.all(deletePromises);
+
+      toast.success(`Đã xóa ${selectedExpenses.length} khoản chi thành công!`, {
+        position: "top-center",
+        autoClose: 2000,
+      });
+      setSelectedExpenses([]);
+      onDeleteSuccess();
+      onClose();
+    } catch (err) {
+      console.error("Delete error:", err);
+      toast.error("Có lỗi xảy ra khi xóa các khoản chi!", {
+        position: "top-center",
+        autoClose: 2000,
+      });
+    }
+  };
+
   // Đóng modal khi click ra ngoài
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -49,11 +145,11 @@ export default function ModalViewAllExpenses({
 
   return (
     <div className="fixed inset-0 flex items-center justify-center z-50">
-        <div
-            className="absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity duration-300"
-            onClick={onClose}
-        ></div>
-      
+      <div
+        className="absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity duration-300"
+        onClick={onClose}
+      ></div>
+
       <div
         ref={modalRef}
         className="bg-white/90 backdrop-blur-md rounded-lg p-4 w-full max-w-[500px] shadow-xl border border-gray-200"
@@ -78,7 +174,8 @@ export default function ModalViewAllExpenses({
         <div className="mb-4 flex items-center">
           <FiClipboard className="text-[#5BC5A7] mr-2" />
           <p className="text-[16px] text-gray-700">
-            Danh sách tất cả khoản chi trong nhóm
+            Danh sách tất cả khoản chi trong nhóm ({selectedExpenses.length} đã
+            chọn)
           </p>
         </div>
 
@@ -92,8 +189,12 @@ export default function ModalViewAllExpenses({
                 name={expense.name}
                 date={expense.date}
                 amount={expense.amount}
-                showDelete={canDelete}
-                onDelete={handleDeleteExpense}
+                userId={userId}
+                isSelected={selectedExpenses.includes(expense.expenseId)}
+                onSelect={() => handleSelectExpense(expense.expenseId)}
+                showDeleteOptions={true}
+                onDeleteSuccess={onDeleteSuccess}
+                onClose={onClose}
               />
             ))}
           </div>
@@ -102,6 +203,16 @@ export default function ModalViewAllExpenses({
             Nhóm này chưa có khoản chi nào.
           </p>
         )}
+
+        <button
+          onClick={handleDeleteExpenses}
+          disabled={selectedExpenses.length === 0}
+          className={`w-full h-12 bg-red-500 text-white rounded-md text-base font-semibold hover:bg-red-600 transition-colors duration-300 flex items-center justify-center mt-4 ${
+            selectedExpenses.length === 0 ? "opacity-50 cursor-not-allowed" : ""
+          }`}
+        >
+          <FiTrash2 className="mr-2" /> Xóa {selectedExpenses.length} khoản chi
+        </button>
       </div>
     </div>
   );
