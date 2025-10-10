@@ -3,8 +3,10 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "react-toastify";
-import { FiTrash2, FiFileText } from "react-icons/fi";
+import { FiTrash2 } from "react-icons/fi";
 import { fetchWithAuth } from "@/lib/fetchWithAuth";
+import ModalEditExpense from "@/components/modal/ModalEditExpense";
+import { categories } from "@/config/categories";
 
 interface Participant {
   participantId: number;
@@ -23,14 +25,24 @@ interface ExpenseDetail {
   totalAmount: number;
   currency: string;
   categoryName: string;
+  categoryId: number;
   expenseDate: string;
   description: string;
   createdByUserName: string;
   payerUserName: string;
+  payerUserId: number;
   splitMethod: string;
   participants: Participant[];
   totalParticipants: number;
   createdByUserId: number;
+}
+
+interface Member {
+  id: number;
+  name: string;
+  email: string;
+  avatar?: string;
+  debt: number;
 }
 
 interface CardExpenseProps {
@@ -39,12 +51,15 @@ interface CardExpenseProps {
   name: string;
   date: string;
   amount: number;
+  currency: string;
   userId: number;
   isSelected?: boolean;
   onSelect?: () => void;
   showDeleteOptions?: boolean;
   onDeleteSuccess?: () => void;
+  onEditSuccess?: () => void;
   onClose?: () => void;
+  members?: Member[];
 }
 
 export default function CardExpense({
@@ -53,17 +68,22 @@ export default function CardExpense({
   name,
   date,
   amount,
+  currency,
   userId,
   isSelected = false,
   onSelect,
   showDeleteOptions = false,
   onDeleteSuccess,
+  onEditSuccess,
   onClose,
+  members = [],
 }: CardExpenseProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [expenseDetail, setExpenseDetail] = useState<ExpenseDetail | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [canDelete, setCanDelete] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [hasFetched, setHasFetched] = useState(false);
 
   const fetchExpenseDetail = async () => {
     setIsLoading(true);
@@ -94,9 +114,11 @@ export default function CardExpense({
       if (data.code === "success") {
         setExpenseDetail(data.data);
         setCanDelete(data.data.createdByUserId === userId);
+        setHasFetched(true);
       } else {
         toast.error(data.message, { position: "top-center", autoClose: 2000 });
         setCanDelete(false);
+        setHasFetched(true);
       }
     } catch (err) {
       console.error("Fetch error:", err);
@@ -105,16 +127,17 @@ export default function CardExpense({
         autoClose: 2000,
       });
       setCanDelete(false);
+      setHasFetched(true);
     } finally {
       setIsLoading(false);
     }
   };
 
   useEffect(() => {
-    if (showDeleteOptions || isOpen) {
+    if (!hasFetched && (showDeleteOptions || isOpen)) {
       fetchExpenseDetail();
     }
-  }, [expenseId, groupId, userId, showDeleteOptions, isOpen]);
+  }, [expenseId, groupId, userId, showDeleteOptions, isOpen, hasFetched]);
 
   const handleToggle = () => {
     setIsOpen(!isOpen);
@@ -134,7 +157,6 @@ export default function CardExpense({
 
   const handleDivClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (showDeleteOptions) {
-      // Chỉ chọn khi showDeleteOptions là true
       if (
         !(e.target instanceof HTMLInputElement) &&
         !(e.target instanceof HTMLButtonElement) &&
@@ -149,7 +171,6 @@ export default function CardExpense({
         });
       }
     } else {
-      // Nếu không ở chế độ xóa, chỉ mở/đóng chi tiết
       handleToggle();
     }
   };
@@ -199,6 +220,10 @@ export default function CardExpense({
     }
   };
 
+  // Lấy biểu tượng từ categories dựa trên categoryId
+  const category = categories.find((cat) => cat.category_id === expenseDetail?.categoryId);
+  const categoryIcon = category ? category.icon : "📝";
+
   return (
     <div className="mb-2">
       <div
@@ -218,7 +243,9 @@ export default function CardExpense({
             />
           )}
           <div className="bg-[#5BC5A7]/10 p-2 rounded-full">
-            <FiFileText className="text-[#5BC5A7]" size={18} />
+            <span className="text-[#5BC5A7]" style={{ fontSize: "18px" }}>
+              {categoryIcon}
+            </span>
           </div>
           <div>
             <h4 className="text-sm font-medium text-gray-900">{name}</h4>
@@ -229,7 +256,7 @@ export default function CardExpense({
         </div>
         <div className="flex items-center space-x-2">
           <span className="text-sm font-semibold text-[#5BC5A7]">
-            {amount.toLocaleString()} VND
+            {amount.toLocaleString()} {currency}
           </span>
           {showDeleteOptions && canDelete && (
             <button
@@ -257,7 +284,15 @@ export default function CardExpense({
                 Đang tải chi tiết...
               </p>
             ) : expenseDetail ? (
-              <div className="space-y-3">
+              <div className="space-y-3 relative">
+                {canDelete && (
+                  <button
+                    onClick={() => setIsEditModalOpen(true)}
+                    className="absolute top-0 right-0 p-2 bg-[#5BC5A7] text-white rounded-md hover:bg-[#4AA88C] flex items-center"
+                  >
+                    Sửa khoản chi
+                  </button>
+                )}
                 <div>
                   <h5 className="text-sm font-semibold text-[#5BC5A7]">
                     Tên khoản chi
@@ -305,6 +340,8 @@ export default function CardExpense({
                   <p className="text-sm text-gray-700">
                     {expenseDetail.splitMethod === "equal"
                       ? "Chia đều"
+                      : expenseDetail.splitMethod === "percentage"
+                      ? "Chia theo %"
                       : "Tùy chỉnh"}
                   </p>
                 </div>
@@ -316,8 +353,7 @@ export default function CardExpense({
                     {expenseDetail.participants.map((participant) => (
                       <li key={participant.participantId}>
                         {participant.userName}:{" "}
-                        {participant.shareAmount.toLocaleString()}{" "}
-                        {participant.currency}
+                        {participant.shareAmount.toLocaleString()} {currency}
                       </li>
                     ))}
                   </ul>
@@ -349,6 +385,23 @@ export default function CardExpense({
           </motion.div>
         )}
       </AnimatePresence>
+
+      {isEditModalOpen && expenseDetail && (
+        <ModalEditExpense
+          isOpen={isEditModalOpen}
+          onClose={() => setIsEditModalOpen(false)}
+          onSuccess={() => {
+            setHasFetched(false); // Đặt lại để làm mới dữ liệu sau khi chỉnh sửa
+            fetchExpenseDetail();
+            if (onEditSuccess) onEditSuccess();
+          }}
+          expenseDetail={expenseDetail}
+          groupId={groupId}
+          userId={userId}
+          members={members}
+          currency={currency}
+        />
+      )}
     </div>
   );
 }

@@ -40,12 +40,17 @@ exports.useAuthRefresh = void 0;
 var react_1 = require("react");
 function useAuthRefresh() {
     var _this = this;
+    var _a = react_1.useState(null), userId = _a[0], setUserId = _a[1];
     react_1.useEffect(function () {
+        var storedUserId = localStorage.getItem("userId");
+        if (storedUserId) {
+            setUserId(Number(storedUserId));
+        }
         var refreshToken = localStorage.getItem("refreshToken");
         if (!refreshToken)
             return;
         var refresh = function () { return __awaiter(_this, void 0, void 0, function () {
-            var res, data, newAccessToken, newRefreshToken, err_1;
+            var res, data, newAccessToken, newRefreshToken, newUserId, err_1;
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
@@ -65,14 +70,20 @@ function useAuthRefresh() {
                         data = _a.sent();
                         newAccessToken = data.accessToken;
                         newRefreshToken = data.refreshToken;
+                        newUserId = data.userId || null;
                         if (newAccessToken && newRefreshToken) {
                             localStorage.setItem("accessToken", newAccessToken);
                             localStorage.setItem("refreshToken", newRefreshToken);
+                            if (newUserId) {
+                                localStorage.setItem("userId", String(newUserId));
+                                setUserId(newUserId);
+                            }
                         }
                         return [3 /*break*/, 4];
                     case 3:
                         localStorage.removeItem("accessToken");
                         localStorage.removeItem("refreshToken");
+                        localStorage.removeItem("userId");
                         window.location.href = "/login";
                         _a.label = 4;
                     case 4: return [3 /*break*/, 6];
@@ -88,5 +99,6 @@ function useAuthRefresh() {
         var interval = setInterval(refresh, 4 * 60 * 1000);
         return function () { return clearInterval(interval); };
     }, []);
+    return { userId: userId };
 }
 exports.useAuthRefresh = useAuthRefresh;

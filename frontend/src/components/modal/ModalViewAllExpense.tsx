@@ -12,6 +12,15 @@ interface Expense {
   name: string;
   date: string;
   amount: number;
+  currency: string;
+}
+
+interface Member {
+  id: number;
+  name: string;
+  email: string;
+  avatar?: string;
+  debt: number;
 }
 
 interface ModalViewAllExpensesProps {
@@ -20,7 +29,10 @@ interface ModalViewAllExpensesProps {
   expenses: Expense[];
   groupId: number;
   userId: number;
+  currency: string;
+  members: Member[];
   onDeleteSuccess: () => void;
+  onEditSuccess: () => void;
 }
 
 export default function ModalViewAllExpenses({
@@ -29,12 +41,14 @@ export default function ModalViewAllExpenses({
   expenses,
   groupId,
   userId,
+  currency,
+  members,
   onDeleteSuccess,
+  onEditSuccess,
 }: ModalViewAllExpensesProps) {
   const modalRef = useRef<HTMLDivElement>(null);
   const [selectedExpenses, setSelectedExpenses] = useState<number[]>([]);
 
-  // Xử lý chọn/hủy chọn khoản chi
   const handleSelectExpense = (expenseId: number) => {
     setSelectedExpenses((prev) =>
       prev.includes(expenseId)
@@ -43,7 +57,6 @@ export default function ModalViewAllExpenses({
     );
   };
 
-  // Xử lý xóa nhiều khoản chi
   const handleDeleteExpenses = async () => {
     if (selectedExpenses.length === 0) {
       toast.warn("Vui lòng chọn ít nhất một khoản chi để xóa!", {
@@ -54,7 +67,6 @@ export default function ModalViewAllExpenses({
     }
 
     try {
-      // Kiểm tra quyền xóa trước
       const canDeletePromises = selectedExpenses.map(async (expenseId) => {
         const detailResponse = await fetchWithAuth(
           `${process.env.NEXT_PUBLIC_API_URL}/api/groups/${groupId}/expenses/${expenseId}`,
@@ -88,7 +100,6 @@ export default function ModalViewAllExpenses({
         return;
       }
 
-      // Xóa từng khoản chi
       const deletePromises = selectedExpenses.map(async (expenseId) => {
         const response = await fetchWithAuth(
           `${process.env.NEXT_PUBLIC_API_URL}/api/groups/${groupId}/expenses/${expenseId}`,
@@ -128,7 +139,6 @@ export default function ModalViewAllExpenses({
     }
   };
 
-  // Đóng modal khi click ra ngoài
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (modalRef.current && !modalRef.current.contains(event.target as Node)) {
@@ -179,9 +189,9 @@ export default function ModalViewAllExpenses({
           </p>
         </div>
 
-        {expenses.length > 0 ? (
-          <div className="space-y-3 max-h-72 overflow-y-auto">
-            {expenses.map((expense) => (
+        <div className="space-y-3 max-h-72 overflow-y-auto">
+          {expenses.length > 0 ? (
+            expenses.map((expense) => (
               <CardExpense
                 key={expense.expenseId}
                 expenseId={expense.expenseId}
@@ -189,20 +199,23 @@ export default function ModalViewAllExpenses({
                 name={expense.name}
                 date={expense.date}
                 amount={expense.amount}
+                currency={currency}
                 userId={userId}
                 isSelected={selectedExpenses.includes(expense.expenseId)}
                 onSelect={() => handleSelectExpense(expense.expenseId)}
                 showDeleteOptions={true}
                 onDeleteSuccess={onDeleteSuccess}
+                onEditSuccess={onEditSuccess}
                 onClose={onClose}
+                members={members}
               />
-            ))}
-          </div>
-        ) : (
-          <p className="text-gray-600 italic text-center">
-            Nhóm này chưa có khoản chi nào.
-          </p>
-        )}
+            ))
+          ) : (
+            <p className="text-gray-600 italic text-center">
+              Nhóm này chưa có khoản chi nào.
+            </p>
+          )}
+        </div>
 
         <button
           onClick={handleDeleteExpenses}

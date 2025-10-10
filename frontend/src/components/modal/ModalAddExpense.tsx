@@ -1,9 +1,9 @@
+
 "use client";
 
 import { useState, useRef, useEffect } from "react";
 import { toast } from "react-toastify";
 import { fetchWithAuth } from "@/lib/fetchWithAuth";
-import { currencies } from "@/config/currencies";
 import { categories } from "@/config/categories";
 import CardMemberSelect from "../card/CardMemberSelect";
 import {
@@ -15,7 +15,7 @@ import {
 } from "react-icons/fi";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
-import { fi, vi } from "date-fns/locale";
+import { vi } from "date-fns/locale";
 import { set } from "date-fns";
 
 interface Member {
@@ -54,7 +54,6 @@ export default function ModalAddExpense({
   const modalRef = useRef<HTMLDivElement>(null);
   const [expenseName, setExpenseName] = useState("");
   const [totalAmount, setTotalAmount] = useState<number>(0);
-  const [currency, setCurrency] = useState("VND");
   const [categoryId, setCategoryId] = useState<number>(1);
   const [expenseDate, setExpenseDate] = useState<Date | null>(new Date());
   const [description, setDescription] = useState("");
@@ -78,18 +77,17 @@ export default function ModalAddExpense({
 
   useEffect(() => {
     if (!isOpen) {
-    // Reset toàn bộ form khi modal đóng
-        setExpenseName("");
-        setTotalAmount(0);
-        setCurrency("VND");
-        setCategoryId(1);
-        setExpenseDate(new Date());
-        setDescription("");
-        setPayerId("");
-        setSelectedParticipants([]);
-        setSplitMethod({  apiValue: "equal", displayName: "equal" });
-        setParticipantShares({});
-        setLoading(false);
+      // Reset toàn bộ form khi modal đóng
+      setExpenseName("");
+      setTotalAmount(0);
+      setCategoryId(1);
+      setExpenseDate(new Date());
+      setDescription("");
+      setPayerId("");
+      setSelectedParticipants([]);
+      setSplitMethod({ apiValue: "equal", displayName: "equal" });
+      setParticipantShares({});
+      setLoading(false);
     }
   }, [isOpen]);
 
@@ -128,74 +126,70 @@ export default function ModalAddExpense({
     let participants: Participant[] = [];
 
     if (selectedParticipants.length === 1) {
-        participants = [{ userId: selectedParticipants[0], shareAmount: totalAmount }];
-    }
+      participants = [{ userId: selectedParticipants[0], shareAmount: totalAmount }];
+    } else if (selectedParticipants.length === 0) {
+      const allMemberIds = members.map((m) => m.id);
+      const share = totalAmount / allMemberIds.length;
+      participants = allMemberIds.map((id) => ({ userId: id, shareAmount: share }));
+    } else if (selectedParticipants.length >= 2) {
+      if (splitMethod.displayName === "equal") {
+        const share = totalAmount / selectedParticipants.length;
+        participants = selectedParticipants.map((id) => ({
+          userId: id,
+          shareAmount: share,
+        }));
+      } else if (splitMethod.displayName === "percent") {
+        let totalPercent = 0;
+        participants = selectedParticipants.map((id) => {
+          const percent = participantShares[id] || 0;
+          totalPercent += percent;
+          return { userId: id, shareAmount: (percent / 100) * totalAmount };
+        });
 
-    else if (selectedParticipants.length === 0) {
-        const allMemberIds = members.map((m) => m.id);
-        const share = totalAmount / allMemberIds.length;
-        participants = allMemberIds.map((id) => ({ userId: id, shareAmount: share }));
-    }
-
-    else if (selectedParticipants.length >= 2) {
-        if (splitMethod.displayName === "equal") {
-            const share = totalAmount / selectedParticipants.length;
-            participants = selectedParticipants.map((id) => ({
-                userId: id,
-                shareAmount: share,
-            }));
-        } else if (splitMethod.displayName === "percent") {
-            let totalPercent = 0;
-            participants = selectedParticipants.map((id) => {
-                const percent = participantShares[id] || 0;
-                totalPercent += percent;
-                return { userId: id, shareAmount: (percent / 100) * totalAmount };
-            });
-
-            if (totalPercent !== 100) {
-                toast.error("Tổng phần trăm phải bằng 100%", { position: "top-center" });
-                return;
-            }   
-        } else if (splitMethod.displayName === "custom") {
-            let totalCustom = 0;
-            participants = selectedParticipants.map((id) => {
-                const amount = participantShares[id] || 0;
-                totalCustom += amount;
-                return { userId: id, shareAmount: amount };
-            });
-
-            if (totalCustom !== totalAmount) {
-                toast.error("Tổng số tiền chia không khớp với tổng chi tiêu!", { position: "top-center" });
-                return;
-            }
+        if (totalPercent !== 100) {
+          toast.error("Tổng phần trăm phải bằng 100%", { position: "top-center" });
+          return;
         }
-        
-    }     
-  
+      } else if (splitMethod.displayName === "custom") {
+        let totalCustom = 0;
+        participants = selectedParticipants.map((id) => {
+          const amount = participantShares[id] || 0;
+          totalCustom += amount;
+          return { userId: id, shareAmount: amount };
+        });
+
+        if (totalCustom !== totalAmount) {
+          toast.error("Tổng số tiền chia không khớp với tổng chi tiêu!", {
+            position: "top-center",
+          });
+          return;
+        }
+      }
+    }
 
     try {
       setLoading(true);
-      
       const res = await fetchWithAuth(
         `${process.env.NEXT_PUBLIC_API_URL}/api/groups/${groupId}/expenses`,
         {
           method: "POST",
           headers: {
-          "Content-Type": "application/json",
-          "Accept": "*/*",
-          "userId": userId.toString(),
-        },
+            "Content-Type": "application/json",
+            "Accept": "*/*",
+            "userId": userId.toString(),
+          },
           body: JSON.stringify({
             groupId,
             expenseName,
             totalAmount,
-            currency,
             categoryId,
-            expenseDate: expenseDate ? set(expenseDate, { hours: 0, minutes: 0, seconds: 0, milliseconds: 0 }).toISOString() : null,
-            description: description,
+            expenseDate: expenseDate
+              ? set(expenseDate, { hours: 0, minutes: 0, seconds: 0, milliseconds: 0 }).toISOString()
+              : null,
+            description,
             payerId,
             splitMethod: splitMethod.apiValue,
-            participants: participants,
+            participants,
           }),
         }
       );
@@ -203,9 +197,7 @@ export default function ModalAddExpense({
       const data = await res.json();
       if (res.ok && data.code === "success") {
         toast.success("Thêm khoản chi thành công!", { position: "top-center" });
-        
-        if(onSuccess) onSuccess();
-
+        if (onSuccess) onSuccess();
         onClose();
       } else {
         toast.error(data.message || "Không thể thêm khoản chi!", {
@@ -281,24 +273,6 @@ export default function ModalAddExpense({
                     [appearance:textfield]"
               />
             </div>
-          </div>
-
-          {/* Currency */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Đơn vị tiền tệ
-            </label>
-            <select
-              value={currency}
-              onChange={(e) => setCurrency(e.target.value)}
-              className="w-full border border-gray-300 rounded-md p-2 focus:border-[#5BC5A7]"
-            >
-              {currencies.map((currency) => (
-                <option key={currency.code} value={currency.code}>
-                  {currency.code} - {currency.name}
-                </option>
-              ))}
-            </select>
           </div>
 
           {/* Category */}
@@ -377,7 +351,7 @@ export default function ModalAddExpense({
             <h3 className="text-sm font-medium text-gray-700 mb-2 flex items-center">
               Người chia tiền
             </h3>
-            <div className="space-y-2 rounded-md border border-gray-200 p-2 bg-white/70">   
+            <div className="space-y-2 rounded-md border border-gray-200 p-2 bg-white/70">
               {members.map((member) => (
                 <CardMemberSelect
                   key={member.id}
@@ -394,60 +368,62 @@ export default function ModalAddExpense({
                 *Chưa chọn ai, hóa đơn sẽ mặc định chia đều cho tất cả thành viên.
               </p>
             )}
-            </div>
+          </div>
 
           {/* Split Method - Chỉ hiện nếu chọn >=2 người chia tiền */}
           {selectedParticipants.length >= 2 && (
             <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
                 Cách chia tiền
-            </label>
-            <select
+              </label>
+              <select
                 value={splitMethod.displayName}
-                onChange={(e) => setSplitMethod(e.target.value === "equal" ? { apiValue: "equal", displayName: "equal" } 
-                                                  : e.target.value === "percent" 
-                                                  ? { apiValue: "custom", displayName: "percent" } 
-                                                  : { apiValue: "custom", displayName: "custom" })}
+                onChange={(e) =>
+                  setSplitMethod(
+                    e.target.value === "equal"
+                      ? { apiValue: "equal", displayName: "equal" }
+                      : e.target.value === "percent"
+                      ? { apiValue: "custom", displayName: "percent" }
+                      : { apiValue: "custom", displayName: "custom" }
+                  )
+                }
                 className="w-full border border-gray-300 rounded-md p-2 focus:border-[#5BC5A7]"
-            >
+              >
                 <option value="equal">Chia đều</option>
                 <option value="percent">Chia theo phần trăm</option>
                 <option value="custom">Tùy chỉnh</option>
-            </select>
-            
-          
-            
-             {/* Hiển thị form chia tiền tùy chỉnh */}
-          {(splitMethod.displayName === "percent" || splitMethod.displayName === "custom") && (
-            <div className="mt-3 space-y-3 border border-gray-200 rounded-md p-3 bg-gray-50">
-            <h4 className="text-sm font-medium text-gray-700 mb-2">
-                Nhập {splitMethod.displayName === "percent" ? "phần trăm" : "số tiền"} cho từng người:
-            </h4>
+              </select>
 
-            {selectedParticipants.map((id) => {
-                const member = members.find((m) => m.id === id);
-                if (!member) return null;
-                return (
-                    <div key={id} className="flex items-center justify-between border-b border-gray-100 pb-2">
-                    <span className="text-gray-800">{member.name}</span>
-                    <input
-                        type="number"
-                        value={participantShares[id] ?? ""}
-                        onChange={(e) =>
+              {/* Hiển thị form chia tiền tùy chỉnh */}
+              {(splitMethod.displayName === "percent" || splitMethod.displayName === "custom") && (
+                <div className="mt-3 space-y-3 border border-gray-200 rounded-md p-3 bg-gray-50">
+                  <h4 className="text-sm font-medium text-gray-700 mb-2">
+                    Nhập {splitMethod.displayName === "percent" ? "phần trăm" : "số tiền"} cho từng người:
+                  </h4>
+                  {selectedParticipants.map((id) => {
+                    const member = members.find((m) => m.id === id);
+                    if (!member) return null;
+                    return (
+                      <div key={id} className="flex items-center justify-between border-b border-gray-100 pb-2">
+                        <span className="text-gray-800">{member.name}</span>
+                        <input
+                          type="number"
+                          value={participantShares[id] ?? ""}
+                          onChange={(e) =>
                             setParticipantShares((prev) => ({
-                                ...prev,
-                                [id]: Number(e.target.value),
+                              ...prev,
+                              [id]: Number(e.target.value),
                             }))
-                        }
-                        placeholder={splitMethod.displayName === "percent" ? "% chia" : "Số tiền"}
-                        className="w-28 border border-gray-300 rounded-md p-1 text-right text-gray-700 outline-none"
-                    />
-                    </div>
-                );
-            })}
+                          }
+                          placeholder={splitMethod.displayName === "percent" ? "% chia" : "Số tiền"}
+                          className="w-28 border border-gray-300 rounded-md p-1 text-right text-gray-700 outline-none"
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
-          )}
-          </div>
           )}
         </form>
 

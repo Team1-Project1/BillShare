@@ -51,10 +51,9 @@ var fetchWithAuth_1 = require("@/lib/fetchWithAuth");
 var react_toastify_1 = require("react-toastify");
 function ModalViewAllExpenses(_a) {
     var _this = this;
-    var isOpen = _a.isOpen, onClose = _a.onClose, expenses = _a.expenses, groupId = _a.groupId, userId = _a.userId, onDeleteSuccess = _a.onDeleteSuccess;
+    var isOpen = _a.isOpen, onClose = _a.onClose, expenses = _a.expenses, groupId = _a.groupId, userId = _a.userId, currency = _a.currency, members = _a.members, onDeleteSuccess = _a.onDeleteSuccess, onEditSuccess = _a.onEditSuccess;
     var modalRef = react_1.useRef(null);
     var _b = react_1.useState([]), selectedExpenses = _b[0], setSelectedExpenses = _b[1];
-    // Xử lý chọn/hủy chọn khoản chi
     var handleSelectExpense = function (expenseId) {
         setSelectedExpenses(function (prev) {
             return prev.includes(expenseId)
@@ -62,7 +61,6 @@ function ModalViewAllExpenses(_a) {
                 : __spreadArrays(prev, [expenseId]);
         });
     };
-    // Xử lý xóa nhiều khoản chi
     var handleDeleteExpenses = function () { return __awaiter(_this, void 0, void 0, function () {
         var canDeletePromises, canDeleteResults, deletePromises, err_1;
         var _this = this;
@@ -161,7 +159,6 @@ function ModalViewAllExpenses(_a) {
             }
         });
     }); };
-    // Đóng modal khi click ra ngoài
     react_1.useEffect(function () {
         var handleClickOutside = function (event) {
             if (modalRef.current && !modalRef.current.contains(event.target)) {
@@ -191,7 +188,7 @@ function ModalViewAllExpenses(_a) {
                     "Danh s\u00E1ch t\u1EA5t c\u1EA3 kho\u1EA3n chi trong nh\u00F3m (",
                     selectedExpenses.length,
                     " \u0111\u00E3 ch\u1ECDn)")),
-            expenses.length > 0 ? (React.createElement("div", { className: "space-y-3 max-h-72 overflow-y-auto" }, expenses.map(function (expense) { return (React.createElement(CardExpense_1["default"], { key: expense.expenseId, expenseId: expense.expenseId, groupId: groupId, name: expense.name, date: expense.date, amount: expense.amount, userId: userId, isSelected: selectedExpenses.includes(expense.expenseId), onSelect: function () { return handleSelectExpense(expense.expenseId); }, showDeleteOptions: true, onDeleteSuccess: onDeleteSuccess, onClose: onClose })); }))) : (React.createElement("p", { className: "text-gray-600 italic text-center" }, "Nh\u00F3m n\u00E0y ch\u01B0a c\u00F3 kho\u1EA3n chi n\u00E0o.")),
+            React.createElement("div", { className: "space-y-3 max-h-72 overflow-y-auto" }, expenses.length > 0 ? (expenses.map(function (expense) { return (React.createElement(CardExpense_1["default"], { key: expense.expenseId, expenseId: expense.expenseId, groupId: groupId, name: expense.name, date: expense.date, amount: expense.amount, currency: currency, userId: userId, isSelected: selectedExpenses.includes(expense.expenseId), onSelect: function () { return handleSelectExpense(expense.expenseId); }, showDeleteOptions: true, onDeleteSuccess: onDeleteSuccess, onEditSuccess: onEditSuccess, onClose: onClose, members: members })); })) : (React.createElement("p", { className: "text-gray-600 italic text-center" }, "Nh\u00F3m n\u00E0y ch\u01B0a c\u00F3 kho\u1EA3n chi n\u00E0o."))),
             React.createElement("button", { onClick: handleDeleteExpenses, disabled: selectedExpenses.length === 0, className: "w-full h-12 bg-red-500 text-white rounded-md text-base font-semibold hover:bg-red-600 transition-colors duration-300 flex items-center justify-center mt-4 " + (selectedExpenses.length === 0 ? "opacity-50 cursor-not-allowed" : "") },
                 React.createElement(fi_1.FiTrash2, { className: "mr-2" }),
                 " X\u00F3a ",
