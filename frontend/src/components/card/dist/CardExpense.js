@@ -42,13 +42,17 @@ var framer_motion_1 = require("framer-motion");
 var react_toastify_1 = require("react-toastify");
 var fi_1 = require("react-icons/fi");
 var fetchWithAuth_1 = require("@/lib/fetchWithAuth");
+var ModalEditExpense_1 = require("@/components/modal/ModalEditExpense");
+var categories_1 = require("@/config/categories");
 function CardExpense(_a) {
     var _this = this;
-    var expenseId = _a.expenseId, groupId = _a.groupId, name = _a.name, date = _a.date, amount = _a.amount, userId = _a.userId, _b = _a.isSelected, isSelected = _b === void 0 ? false : _b, onSelect = _a.onSelect, _c = _a.showDeleteOptions, showDeleteOptions = _c === void 0 ? false : _c, onDeleteSuccess = _a.onDeleteSuccess, onClose = _a.onClose;
-    var _d = react_1.useState(false), isOpen = _d[0], setIsOpen = _d[1];
-    var _e = react_1.useState(null), expenseDetail = _e[0], setExpenseDetail = _e[1];
-    var _f = react_1.useState(false), isLoading = _f[0], setIsLoading = _f[1];
-    var _g = react_1.useState(false), canDelete = _g[0], setCanDelete = _g[1];
+    var expenseId = _a.expenseId, groupId = _a.groupId, name = _a.name, date = _a.date, amount = _a.amount, currency = _a.currency, userId = _a.userId, _b = _a.isSelected, isSelected = _b === void 0 ? false : _b, onSelect = _a.onSelect, _c = _a.showDeleteOptions, showDeleteOptions = _c === void 0 ? false : _c, onDeleteSuccess = _a.onDeleteSuccess, onEditSuccess = _a.onEditSuccess, onClose = _a.onClose, _d = _a.members, members = _d === void 0 ? [] : _d;
+    var _e = react_1.useState(false), isOpen = _e[0], setIsOpen = _e[1];
+    var _f = react_1.useState(null), expenseDetail = _f[0], setExpenseDetail = _f[1];
+    var _g = react_1.useState(false), isLoading = _g[0], setIsLoading = _g[1];
+    var _h = react_1.useState(false), canDelete = _h[0], setCanDelete = _h[1];
+    var _j = react_1.useState(false), isEditModalOpen = _j[0], setIsEditModalOpen = _j[1];
+    var _k = react_1.useState(false), hasFetched = _k[0], setHasFetched = _k[1];
     var fetchExpenseDetail = function () { return __awaiter(_this, void 0, void 0, function () {
         var response, data, err_1;
         return __generator(this, function (_a) {
@@ -83,10 +87,12 @@ function CardExpense(_a) {
                     if (data.code === "success") {
                         setExpenseDetail(data.data);
                         setCanDelete(data.data.createdByUserId === userId);
+                        setHasFetched(true);
                     }
                     else {
                         react_toastify_1.toast.error(data.message, { position: "top-center", autoClose: 2000 });
                         setCanDelete(false);
+                        setHasFetched(true);
                     }
                     return [3 /*break*/, 6];
                 case 4:
@@ -97,6 +103,7 @@ function CardExpense(_a) {
                         autoClose: 2000
                     });
                     setCanDelete(false);
+                    setHasFetched(true);
                     return [3 /*break*/, 6];
                 case 5:
                     setIsLoading(false);
@@ -106,10 +113,10 @@ function CardExpense(_a) {
         });
     }); };
     react_1.useEffect(function () {
-        if (showDeleteOptions || isOpen) {
+        if (!hasFetched && (showDeleteOptions || isOpen)) {
             fetchExpenseDetail();
         }
-    }, [expenseId, groupId, userId, showDeleteOptions, isOpen]);
+    }, [expenseId, groupId, userId, showDeleteOptions, isOpen, hasFetched]);
     var handleToggle = function () {
         setIsOpen(!isOpen);
     };
@@ -127,7 +134,6 @@ function CardExpense(_a) {
     };
     var handleDivClick = function (e) {
         if (showDeleteOptions) {
-            // Chỉ chọn khi showDeleteOptions là true
             if (!(e.target instanceof HTMLInputElement) &&
                 !(e.target instanceof HTMLButtonElement) &&
                 onSelect &&
@@ -142,7 +148,6 @@ function CardExpense(_a) {
             }
         }
         else {
-            // Nếu không ở chế độ xóa, chỉ mở/đóng chi tiết
             handleToggle();
         }
     };
@@ -199,22 +204,27 @@ function CardExpense(_a) {
             }
         });
     }); };
+    // Lấy biểu tượng từ categories dựa trên categoryId
+    var category = categories_1.categories.find(function (cat) { return cat.category_id === (expenseDetail === null || expenseDetail === void 0 ? void 0 : expenseDetail.categoryId); });
+    var categoryIcon = category ? category.icon : "📝";
     return (React.createElement("div", { className: "mb-2" },
         React.createElement("div", { onClick: handleDivClick, className: "cursor-pointer bg-white rounded-lg p-3 shadow-md border border-gray-200 flex items-center justify-between hover:bg-gray-50 transition-colors " + (isSelected ? "bg-[#5BC5A7]/10 border-[#5BC5A7]" : "") },
             React.createElement("div", { className: "flex items-center space-x-3" },
                 showDeleteOptions && (React.createElement("input", { type: "checkbox", checked: isSelected, onChange: handleCheckboxChange, className: "h-5 w-5 text-[#5BC5A7] rounded focus:ring-[#5BC5A7]", disabled: !canDelete })),
                 React.createElement("div", { className: "bg-[#5BC5A7]/10 p-2 rounded-full" },
-                    React.createElement(fi_1.FiFileText, { className: "text-[#5BC5A7]", size: 18 })),
+                    React.createElement("span", { className: "text-[#5BC5A7]", style: { fontSize: "18px" } }, categoryIcon)),
                 React.createElement("div", null,
                     React.createElement("h4", { className: "text-sm font-medium text-gray-900" }, name),
                     React.createElement("p", { className: "text-xs text-gray-600" }, new Date(date).toLocaleDateString("vi-VN")))),
             React.createElement("div", { className: "flex items-center space-x-2" },
                 React.createElement("span", { className: "text-sm font-semibold text-[#5BC5A7]" },
                     amount.toLocaleString(),
-                    " VND"),
+                    " ",
+                    currency),
                 showDeleteOptions && canDelete && (React.createElement("button", { onClick: handleDeleteClick, className: "p-1.5 rounded-md hover:bg-red-100 transition-colors", title: "X\u00F3a kho\u1EA3n chi" },
                     React.createElement(fi_1.FiTrash2, { className: "text-red-500", size: 16 }))))),
-        React.createElement(framer_motion_1.AnimatePresence, null, isOpen && (React.createElement(framer_motion_1.motion.div, { initial: { height: 0, opacity: 0 }, animate: { height: "auto", opacity: 1 }, exit: { height: 0, opacity: 0 }, transition: { duration: 0.3, ease: "easeInOut" }, className: "bg-gray-50 rounded-b-lg p-4 border border-t-0 border-gray-200" }, isLoading ? (React.createElement("p", { className: "text-gray-600 italic animate-pulse" }, "\u0110ang t\u1EA3i chi ti\u1EBFt...")) : expenseDetail ? (React.createElement("div", { className: "space-y-3" },
+        React.createElement(framer_motion_1.AnimatePresence, null, isOpen && (React.createElement(framer_motion_1.motion.div, { initial: { height: 0, opacity: 0 }, animate: { height: "auto", opacity: 1 }, exit: { height: 0, opacity: 0 }, transition: { duration: 0.3, ease: "easeInOut" }, className: "bg-gray-50 rounded-b-lg p-4 border border-t-0 border-gray-200" }, isLoading ? (React.createElement("p", { className: "text-gray-600 italic animate-pulse" }, "\u0110ang t\u1EA3i chi ti\u1EBFt...")) : expenseDetail ? (React.createElement("div", { className: "space-y-3 relative" },
+            canDelete && (React.createElement("button", { onClick: function () { return setIsEditModalOpen(true); }, className: "absolute top-0 right-0 p-2 bg-[#5BC5A7] text-white rounded-md hover:bg-[#4AA88C] flex items-center" }, "S\u1EEDa kho\u1EA3n chi")),
             React.createElement("div", null,
                 React.createElement("h5", { className: "text-sm font-semibold text-[#5BC5A7]" }, "T\u00EAn kho\u1EA3n chi"),
                 React.createElement("p", { className: "text-sm text-gray-700" }, expenseDetail.expenseName)),
@@ -234,7 +244,9 @@ function CardExpense(_a) {
                 React.createElement("h5", { className: "text-sm font-semibold text-[#5BC5A7]" }, "Ph\u01B0\u01A1ng th\u1EE9c chia"),
                 React.createElement("p", { className: "text-sm text-gray-700" }, expenseDetail.splitMethod === "equal"
                     ? "Chia đều"
-                    : "Tùy chỉnh")),
+                    : expenseDetail.splitMethod === "percentage"
+                        ? "Chia theo %"
+                        : "Tùy chỉnh")),
             React.createElement("div", null,
                 React.createElement("h5", { className: "text-sm font-semibold text-[#5BC5A7]" }, "Th\u00E0nh vi\u00EAn tham gia"),
                 React.createElement("ul", { className: "list-disc pl-5 text-sm text-gray-700" }, expenseDetail.participants.map(function (participant) { return (React.createElement("li", { key: participant.participantId },
@@ -243,12 +255,18 @@ function CardExpense(_a) {
                     " ",
                     participant.shareAmount.toLocaleString(),
                     " ",
-                    participant.currency)); }))),
+                    currency)); }))),
             React.createElement("div", null,
                 React.createElement("h5", { className: "text-sm font-semibold text-[#5BC5A7]" }, "Ng\u00E0y chi"),
                 React.createElement("p", { className: "text-sm text-gray-700" }, new Date(expenseDetail.expenseDate).toLocaleDateString("vi-VN"))),
             React.createElement("div", null,
                 React.createElement("h5", { className: "text-sm font-semibold text-[#5BC5A7]" }, "T\u1ED5ng s\u1ED1 th\u00E0nh vi\u00EAn"),
-                React.createElement("p", { className: "text-sm text-gray-700" }, expenseDetail.totalParticipants)))) : (React.createElement("p", { className: "text-gray-600 italic" }, "Kh\u00F4ng th\u1EC3 t\u1EA3i chi ti\u1EBFt kho\u1EA3n chi.")))))));
+                React.createElement("p", { className: "text-sm text-gray-700" }, expenseDetail.totalParticipants)))) : (React.createElement("p", { className: "text-gray-600 italic" }, "Kh\u00F4ng th\u1EC3 t\u1EA3i chi ti\u1EBFt kho\u1EA3n chi."))))),
+        isEditModalOpen && expenseDetail && (React.createElement(ModalEditExpense_1["default"], { isOpen: isEditModalOpen, onClose: function () { return setIsEditModalOpen(false); }, onSuccess: function () {
+                setHasFetched(false); // Đặt lại để làm mới dữ liệu sau khi chỉnh sửa
+                fetchExpenseDetail();
+                if (onEditSuccess)
+                    onEditSuccess();
+            }, expenseDetail: expenseDetail, groupId: groupId, userId: userId, members: members, currency: currency }))));
 }
 exports["default"] = CardExpense;

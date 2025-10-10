@@ -58,7 +58,6 @@ exports.__esModule = true;
 var react_1 = require("react");
 var react_toastify_1 = require("react-toastify");
 var fetchWithAuth_1 = require("@/lib/fetchWithAuth");
-var currencies_1 = require("@/config/currencies");
 var categories_1 = require("@/config/categories");
 var CardMemberSelect_1 = require("../card/CardMemberSelect");
 var fi_1 = require("react-icons/fi");
@@ -72,15 +71,14 @@ function ModalAddExpense(_a) {
     var modalRef = react_1.useRef(null);
     var _b = react_1.useState(""), expenseName = _b[0], setExpenseName = _b[1];
     var _c = react_1.useState(0), totalAmount = _c[0], setTotalAmount = _c[1];
-    var _d = react_1.useState("VND"), currency = _d[0], setCurrency = _d[1];
-    var _e = react_1.useState(1), categoryId = _e[0], setCategoryId = _e[1];
-    var _f = react_1.useState(new Date()), expenseDate = _f[0], setExpenseDate = _f[1];
-    var _g = react_1.useState(""), description = _g[0], setDescription = _g[1];
-    var _h = react_1.useState(""), payerId = _h[0], setPayerId = _h[1];
-    var _j = react_1.useState([]), selectedParticipants = _j[0], setSelectedParticipants = _j[1];
-    var _k = react_1.useState({ apiValue: "equal", displayName: "equal" }), splitMethod = _k[0], setSplitMethod = _k[1];
-    var _l = react_1.useState({}), participantShares = _l[0], setParticipantShares = _l[1];
-    var _m = react_1.useState(false), loading = _m[0], setLoading = _m[1];
+    var _d = react_1.useState(1), categoryId = _d[0], setCategoryId = _d[1];
+    var _e = react_1.useState(new Date()), expenseDate = _e[0], setExpenseDate = _e[1];
+    var _f = react_1.useState(""), description = _f[0], setDescription = _f[1];
+    var _g = react_1.useState(""), payerId = _g[0], setPayerId = _g[1];
+    var _h = react_1.useState([]), selectedParticipants = _h[0], setSelectedParticipants = _h[1];
+    var _j = react_1.useState({ apiValue: "equal", displayName: "equal" }), splitMethod = _j[0], setSplitMethod = _j[1];
+    var _k = react_1.useState({}), participantShares = _k[0], setParticipantShares = _k[1];
+    var _l = react_1.useState(false), loading = _l[0], setLoading = _l[1];
     react_1.useEffect(function () {
         var handleClickOutside = function (event) {
             if (modalRef.current && !modalRef.current.contains(event.target)) {
@@ -97,7 +95,6 @@ function ModalAddExpense(_a) {
             // Reset toàn bộ form khi modal đóng
             setExpenseName("");
             setTotalAmount(0);
-            setCurrency("VND");
             setCategoryId(1);
             setExpenseDate(new Date());
             setDescription("");
@@ -177,7 +174,9 @@ function ModalAddExpense(_a) {
                                 return { userId: id, shareAmount: amount };
                             });
                             if (totalCustom_1 !== totalAmount) {
-                                react_toastify_1.toast.error("Tổng số tiền chia không khớp với tổng chi tiêu!", { position: "top-center" });
+                                react_toastify_1.toast.error("Tổng số tiền chia không khớp với tổng chi tiêu!", {
+                                    position: "top-center"
+                                });
                                 return [2 /*return*/];
                             }
                         }
@@ -197,9 +196,10 @@ function ModalAddExpense(_a) {
                                 groupId: groupId,
                                 expenseName: expenseName,
                                 totalAmount: totalAmount,
-                                currency: currency,
                                 categoryId: categoryId,
-                                expenseDate: expenseDate ? date_fns_1.set(expenseDate, { hours: 0, minutes: 0, seconds: 0, milliseconds: 0 }).toISOString() : null,
+                                expenseDate: expenseDate
+                                    ? date_fns_1.set(expenseDate, { hours: 0, minutes: 0, seconds: 0, milliseconds: 0 }).toISOString()
+                                    : null,
                                 description: description,
                                 payerId: payerId,
                                 splitMethod: splitMethod.apiValue,
@@ -254,12 +254,6 @@ function ModalAddExpense(_a) {
                         React.createElement(fi_1.FiDollarSign, { className: "text-gray-500 mr-2" }),
                         React.createElement("input", { type: "number", value: totalAmount, onChange: function (e) { return setTotalAmount(Number(e.target.value)); }, placeholder: "Nh\u1EADp s\u1ED1 ti\u1EC1n...", className: "w-full outline-none text-gray-800 bg-transparent\r\n                    [&::-webkit-inner-spin-button]:appearance-none \r\n                    [&::-webkit-outer-spin-button]:appearance-none \r\n                    [appearance:textfield]" }))),
                 React.createElement("div", null,
-                    React.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-1" }, "\u0110\u01A1n v\u1ECB ti\u1EC1n t\u1EC7"),
-                    React.createElement("select", { value: currency, onChange: function (e) { return setCurrency(e.target.value); }, className: "w-full border border-gray-300 rounded-md p-2 focus:border-[#5BC5A7]" }, currencies_1.currencies.map(function (currency) { return (React.createElement("option", { key: currency.code, value: currency.code },
-                        currency.code,
-                        " - ",
-                        currency.name)); }))),
-                React.createElement("div", null,
                     React.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-1" }, "Danh m\u1EE5c"),
                     React.createElement("select", { value: categoryId, onChange: function (e) { return setCategoryId(Number(e.target.value)); }, className: "w-full border border-gray-300 rounded-md p-2 focus:border-[#5BC5A7]" }, categories_1.categories.map(function (cat) { return (React.createElement("option", { key: cat.category_id, value: cat.category_id },
                         cat.icon,
@@ -286,10 +280,13 @@ function ModalAddExpense(_a) {
                     selectedParticipants.length === 0 && (React.createElement("p", { className: "text-xs text-gray-500 italic mt-1" }, "*Ch\u01B0a ch\u1ECDn ai, h\u00F3a \u0111\u01A1n s\u1EBD m\u1EB7c \u0111\u1ECBnh chia \u0111\u1EC1u cho t\u1EA5t c\u1EA3 th\u00E0nh vi\u00EAn."))),
                 selectedParticipants.length >= 2 && (React.createElement("div", null,
                     React.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-1" }, "C\u00E1ch chia ti\u1EC1n"),
-                    React.createElement("select", { value: splitMethod.displayName, onChange: function (e) { return setSplitMethod(e.target.value === "equal" ? { apiValue: "equal", displayName: "equal" }
-                            : e.target.value === "percent"
-                                ? { apiValue: "custom", displayName: "percent" }
-                                : { apiValue: "custom", displayName: "custom" }); }, className: "w-full border border-gray-300 rounded-md p-2 focus:border-[#5BC5A7]" },
+                    React.createElement("select", { value: splitMethod.displayName, onChange: function (e) {
+                            return setSplitMethod(e.target.value === "equal"
+                                ? { apiValue: "equal", displayName: "equal" }
+                                : e.target.value === "percent"
+                                    ? { apiValue: "custom", displayName: "percent" }
+                                    : { apiValue: "custom", displayName: "custom" });
+                        }, className: "w-full border border-gray-300 rounded-md p-2 focus:border-[#5BC5A7]" },
                         React.createElement("option", { value: "equal" }, "Chia \u0111\u1EC1u"),
                         React.createElement("option", { value: "percent" }, "Chia theo ph\u1EA7n tr\u0103m"),
                         React.createElement("option", { value: "custom" }, "T\u00F9y ch\u1EC9nh")),

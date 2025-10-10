@@ -55,6 +55,7 @@ interface ExpenseDetail {
   payerUserId: number;
   createdByUserId: number;
   participants: Participant[];
+  currency: string;
 }
 
 interface Member {
@@ -71,6 +72,7 @@ interface Expense {
   name: string;
   date: string;
   amount: number;
+  currency: string;
 }
 
 interface Group {
@@ -231,6 +233,7 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
           name: item.expenseName,
           date: item.expenseDate,
           amount: item.totalAmount,
+          currency: group.defaultCurrency,
         }));
 
         const totalCost = data.data.reduce(
@@ -238,16 +241,13 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
           0
         );
 
-        // Tính toán số tiền nợ/mược nhận của người dùng hiện tại và nợ của các thành viên
         let netAmount = 0;
         const memberDebts: { [key: number]: number } = {};
 
-        // Khởi tạo nợ của mỗi thành viên
         group.members.forEach((member) => {
           memberDebts[member.id] = 0;
         });
 
-        // Lặp qua từng khoản chi để lấy chi tiết
         for (const expense of data.data) {
           const detailResponse = await fetchWithAuth(
             `${process.env.NEXT_PUBLIC_API_URL}/api/groups/${slug}/expenses/${expense.expenseId}`,
@@ -261,7 +261,7 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
           );
 
           if (!detailResponse.ok) {
-            continue; // Bỏ qua nếu không lấy được chi tiết
+            continue;
           }
 
           const detailData = await detailResponse.json();
@@ -272,16 +272,13 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
           const expenseDetail: ExpenseDetail = detailData.data;
           const currentUserId = Number(localStorage.getItem("userId")) || userId;
 
-          // Tính toán cho người dùng hiện tại
           if (expenseDetail.payerUserId === currentUserId) {
-            // Người dùng là người thanh toán
             const participant = expenseDetail.participants.find(
               (p) => p.userId === currentUserId
             );
             const shareAmount = participant ? participant.shareAmount : 0;
             netAmount += expenseDetail.totalAmount - shareAmount;
           } else {
-            // Người dùng không phải người thanh toán
             const participant = expenseDetail.participants.find(
               (p) => p.userId === currentUserId
             );
@@ -290,7 +287,6 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
             }
           }
 
-          // Tính nợ cho các thành viên
           expenseDetail.participants.forEach((participant) => {
             if (participant.userId !== expenseDetail.payerUserId) {
               memberDebts[participant.userId] =
@@ -299,7 +295,6 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
           });
         }
 
-        // Cập nhật state
         setGroup((prev) => ({
           ...prev,
           expenses: mappedExpenses,
@@ -405,7 +400,6 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
         <div className="w-full max-w-[576px] mx-auto">
           <Section1 />
           <div className="bg-white rounded-lg p-6 shadow-md border border-gray-200 mb-6">
-            {/* Header */}
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center">
                 <img
@@ -475,7 +469,6 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
               </div>
             </div>
 
-            {/* Cost */}
             <div className="text-center mb-6">
               <div className="mb-4">
                 <h2 className="text-2xl font-bold text-[#5BC5A7]">
@@ -515,7 +508,6 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
               </div>
             </div>
 
-            {/* Members */}
             <div>
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-lg font-semibold text-[#5BC5A7] flex items-center">
@@ -538,6 +530,7 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
                         key={member.id}
                         name={member.name}
                         debt={member.debt}
+                        currency={group.defaultCurrency}
                         isLoading={expensesLoading}
                       />
                     ))
@@ -551,7 +544,6 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
               </button>
             </div>
 
-            {/* Expenses */}
             <div className="mt-6 mb-8">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-lg font-semibold text-[#5BC5A7] flex items-center">
@@ -580,8 +572,11 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
                         name={expense.name}
                         date={expense.date}
                         amount={expense.amount}
+                        currency={group.defaultCurrency}
                         userId={Number(userId)}
                         showDeleteOptions={false}
+                        members={group.members}
+                        onEditSuccess={fetchExpenses}
                       />
                     ))
                   ) : (
@@ -603,7 +598,6 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
         <BottomNav />
       </div>
 
-      {/* Modals */}
       <ModalAddMember
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
@@ -635,7 +629,10 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
         expenses={group.expenses}
         groupId={group.groupId}
         userId={Number(userId)}
+        currency={group.defaultCurrency}
+        members={group.members}
         onDeleteSuccess={fetchExpenses}
+        onEditSuccess={fetchExpenses}
       />
       <ModalAddExpense
         isOpen={isAddExpenseModalOpen}

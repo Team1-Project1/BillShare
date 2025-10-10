@@ -5,10 +5,11 @@ import { FiUser } from "react-icons/fi";
 interface CardFriendEnhancedProps {
   name: string;
   debt: number;
+  currency: string; // Thêm prop currency
   isLoading?: boolean;
 }
 
-export default function CardFriendEnhanced({ name, debt, isLoading }: CardFriendEnhancedProps) {
+export default function CardFriendEnhanced({ name, debt, currency, isLoading }: CardFriendEnhancedProps) {
   return (
     <div className="bg-white rounded-lg p-3 shadow-md border border-gray-200 flex items-center justify-between">
       <div className="flex items-center">
@@ -16,7 +17,7 @@ export default function CardFriendEnhanced({ name, debt, isLoading }: CardFriend
         <div>
           <h4 className="text-sm font-medium text-gray-900">{name}</h4>
           <p className="text-xs text-gray-600">
-            {isLoading ? "Đang tải..." : `Nợ: ${debt.toLocaleString()} đ`}
+            {isLoading ? "Đang tải..." : `Nợ: ${debt.toLocaleString()} ${currency}`}
           </p>
         </div>
       </div>
@@ -25,7 +26,7 @@ export default function CardFriendEnhanced({ name, debt, isLoading }: CardFriend
           isLoading ? "text-gray-600" : debt > 0 ? "text-red-600" : "text-green-600"
         }`}
       >
-        {isLoading ? "Đang tải..." : debt > 0 ? `-${debt.toLocaleString()} đ` : "0 đ"}
+        {isLoading ? "Đang tải..." : debt > 0 ? `-${debt.toLocaleString()} ${currency}` : `0 ${currency}`}
       </span>
     </div>
   );
