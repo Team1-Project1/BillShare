@@ -406,6 +406,10 @@ public class ExpenseServiceImpl implements ExpenseService {
 
     @Override
     public List<ExpenseSimpleResponse> getExpensesByConditions(Long categoryId, String expenseName, Date expenseDateFrom, Date expenseDateTo, Long userId, Long groupId) {
+        Boolean groupMember=groupMemberRepository.existsById_GroupIdAndId_UserIdAndIsActiveTrue(groupId,userId);
+        if(!groupMember){
+            throw new RuntimeException("User is not a member of the group");
+        }
         List<ExpenseEntity> expenses=expenseRepository.searchExpenses(categoryId, expenseName, expenseDateFrom, expenseDateTo,userId,groupId);
         return expenses.stream().map(expense->ExpenseSimpleResponse.builder()
                 .expenseId(expense.getExpenseId())

@@ -26,8 +26,6 @@ public class ExpenseCriteriaRepositoryImpl implements ExpenseCriteriaRepository 
 
         predicates.add(criteriaBuilder.equal(expenseRoot.get("group").get("groupId"), groupId));
 
-        Join<ExpenseEntity, ExpenseParticipantEntity> participantJoin = expenseRoot.join("expenseParticipants");
-        predicates.add(criteriaBuilder.equal(participantJoin.get("user").get("userId"), userId));
 
         if(categoryId!=null){
             predicates.add(criteriaBuilder.equal((expenseRoot.get("category").get("categoryId")),categoryId));

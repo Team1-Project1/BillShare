@@ -20,5 +20,6 @@ public class GroupDetailResponse implements Serializable {
     private Boolean isActive;
     private List<UserDetailResponse> members;
     private int totalMembers;
+    private String avatar;
 
 }

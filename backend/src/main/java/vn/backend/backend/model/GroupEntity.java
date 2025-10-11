@@ -32,6 +32,9 @@ public class GroupEntity {
     @Column( name = "created_by",nullable = false)
     private Long createdBy;
 
+    @Column( name = "avatar_url")
+    private String avatarUrl;
+
     @OneToMany(mappedBy = "group", cascade = CascadeType.REMOVE, orphanRemoval = true)
     private List<GroupMembersEntity> groupMembers;
 
