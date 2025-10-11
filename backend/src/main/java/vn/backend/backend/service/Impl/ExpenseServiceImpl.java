@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import vn.backend.backend.controller.request.UpdateExpenseRequest;
+import vn.backend.backend.controller.response.ExpenseSimpleResponse;
 import vn.backend.backend.model.ExpenseEntity;
 import vn.backend.backend.model.ExpenseParticipantEntity;
 import vn.backend.backend.model.GroupMembersEntity;
@@ -21,6 +22,8 @@ import vn.backend.backend.controller.response.ExpenseParticipantResponse;
 import vn.backend.backend.common.SplitMethod;
 import vn.backend.backend.common.ActionType;
 import vn.backend.backend.common.EntityType;
+
+import java.time.ZoneId;
 import java.util.ArrayList;
 
 import java.math.BigDecimal;
@@ -401,4 +404,16 @@ public class ExpenseServiceImpl implements ExpenseService {
                 .build();
     }
 
+    @Override
+    public List<ExpenseSimpleResponse> getExpensesByConditions(Long categoryId, String expenseName, Date expenseDateFrom, Date expenseDateTo, Long userId, Long groupId) {
+        List<ExpenseEntity> expenses=expenseRepository.searchExpenses(categoryId, expenseName, expenseDateFrom, expenseDateTo,userId,groupId);
+        return expenses.stream().map(expense->ExpenseSimpleResponse.builder()
+                .expenseId(expense.getExpenseId())
+                .categoryId(expense.getCategory().getCategoryId())
+                .expenseName(expense.getExpenseName())
+                .expenseDate(expense.getExpenseDate().toInstant()
+                        .atZone(ZoneId.systemDefault())
+                        .toLocalDate())
+                .build()).toList();
+    }
 }

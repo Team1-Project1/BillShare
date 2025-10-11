@@ -6,6 +6,7 @@ import jakarta.validation.Valid;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -14,8 +15,11 @@ import vn.backend.backend.controller.request.UpdateExpenseRequest;
 import vn.backend.backend.controller.response.ApiResponse;
 import vn.backend.backend.controller.response.ExpenseDetailResponse;
 import vn.backend.backend.controller.response.ExpenseResponse;
+import vn.backend.backend.controller.response.ExpenseSimpleResponse;
+import vn.backend.backend.model.ExpenseEntity;
 import vn.backend.backend.service.ExpenseService;
 
+import java.util.Date;
 import java.util.List;
 
 @RestController
@@ -95,6 +99,23 @@ public class ExpenseController {
                 new ApiResponse<>("success", String.format("Cập nhật chi tiêu %d thành công!", expenseId), expense)
         );
     }
+
+    @Operation(summary = "get expenses by conditions", description = "API to update an existing expense in a group")
+    @GetMapping("/search")
+    public ResponseEntity<ApiResponse<List<ExpenseSimpleResponse>>> getExpensesByConditions(
+            @RequestParam(required = false) Long categoryId,
+            @RequestParam(required = false) String expenseName,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) Date expenseDateFrom,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) Date expenseDateTo,
+            @RequestHeader("userId") Long userId,
+            @PathVariable Long groupId
+    ){
+        List<ExpenseSimpleResponse> expenses = expenseService.getExpensesByConditions(categoryId, expenseName, expenseDateFrom, expenseDateTo, userId, groupId);
+        return ResponseEntity.ok(
+                new ApiResponse<>("success", String.format("get expenses of userId %d in groupId %d successfully!", userId,groupId), expenses)
+        );
+    }
+
 
 
 }
