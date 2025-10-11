@@ -3,7 +3,6 @@
 import { useState, useEffect, useRef } from "react";
 import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";
-import { Section1 } from "@/app/(pages)/(home)/Section1";
 import CardExpense from "@/components/card/CardExpense";
 import CardFriendEnhanced from "@/components/card/CardFriendEnhanced";
 import { BottomNav } from "@/components/Footer/BottomNav";
@@ -27,6 +26,7 @@ import ModalViewAllExpense from "@/components/modal/ModalViewAllExpense";
 import ModalAddExpense from "@/components/modal/ModalAddExpense";
 import { fetchWithAuth } from "@/lib/fetchWithAuth";
 import { useAuthRefresh } from "@/hooks/useAuthRefresh";
+import { SearchBar } from "@/components/bar/SearchBar";
 
 interface APIMember {
   userId: number;
@@ -398,7 +398,7 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
         }}
       >
         <div className="w-full max-w-[576px] mx-auto">
-          <Section1 />
+          <SearchBar groupId={group.groupId} members={group.members} />
           <div className="bg-white rounded-lg p-6 shadow-md border border-gray-200 mb-6">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center">
