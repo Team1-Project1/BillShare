@@ -3,6 +3,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 import vn.backend.backend.common.MemberRole;
 import vn.backend.backend.controller.request.GroupCreateRequest;
 import vn.backend.backend.controller.request.GroupEditRequest;
@@ -21,6 +22,7 @@ import vn.backend.backend.service.GroupService;
 import vn.backend.backend.service.TransactionService;
 import vn.backend.backend.common.ActionType;
 import vn.backend.backend.common.EntityType;
+import vn.backend.backend.service.UploadImageService;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -34,14 +36,20 @@ public class GroupServiceImpl implements GroupService {
     private final GroupMembersRepository groupMembersRepository;
     private final UserRepository userRepository;
     private final TransactionService transactionService;
+    private final UploadImageService uploadImageService;
     @Override
     @Transactional
-    public GroupResponse createGroup(GroupCreateRequest request, Long userId) {
+    public GroupResponse createGroup(GroupCreateRequest request,MultipartFile file, Long userId) throws Exception {
+        String urlImage=null;
+        if(file != null && !file.isEmpty()){
+            urlImage=uploadImageService.uploadImage(file);
+        }
         GroupEntity group=GroupEntity.builder().
                 groupName(request.getGroupName()).
                 description(request.getDescription()).
                 defaultCurrency(request.getDefaultCurrency()).
                 createdBy(userId).
+                avatarUrl(urlImage).
                 build();
         groupRepository.save(group);
         UserEntity user=userRepository.findByUserId(userId).orElseThrow(()->new RuntimeException("User not found"));
@@ -71,16 +79,21 @@ public class GroupServiceImpl implements GroupService {
                 createdAt(group.getCreatedAt()).
                 updatedAt(group.getUpdatedAt()).
                 isActive(group.getIsActive()).
+                avatarUrl(group.getAvatarUrl()).
                 build();
     }
 
     @Override
-    public GroupResponse editGroup(GroupEditRequest request, Long groupId) {
+    public GroupResponse editGroup(GroupEditRequest request,MultipartFile file, Long groupId) throws Exception {
         GroupEntity group = groupRepository.findByGroupIdAndIsActiveTrue(groupId)
                 .orElseThrow(() -> new RuntimeException("Active group not found with id " + groupId));
         group.setGroupName(request.getGroupName());
         group.setDescription(request.getDescription());
         group.setDefaultCurrency(request.getDefaultCurrency());
+        if(file != null && !file.isEmpty()){
+            String urlImage=uploadImageService.uploadImage(file);
+            group.setAvatarUrl(urlImage);
+        }
         groupRepository.save(group);
         return GroupResponse.builder().
                 groupId(group.getGroupId()).
@@ -91,6 +104,7 @@ public class GroupServiceImpl implements GroupService {
                 createdAt(group.getCreatedAt()).
                 updatedAt(group.getUpdatedAt()).
                 isActive(group.getIsActive()).
+                avatarUrl(group.getAvatarUrl()).
                 build();
     }
 
@@ -108,6 +122,7 @@ public class GroupServiceImpl implements GroupService {
                         createdAt(groupMember.getGroup().getCreatedAt()).
                         updatedAt(groupMember.getGroup().getUpdatedAt()).
                         isActive(groupMember.getGroup().getIsActive()).
+                        avatarUrl(groupMember.getGroup().getAvatarUrl()).
                         build());
         }
         return GroupsOfUserResponse.builder()
@@ -141,6 +156,7 @@ public class GroupServiceImpl implements GroupService {
                 .defaultCurrency(group.getDefaultCurrency())
                 .createdAt(group.getCreatedAt())
                 .isActive(group.getIsActive())
+                .avatar(group.getAvatarUrl())
                 .members(members)
                 .totalMembers(members.size())
                 .build();
@@ -192,4 +208,19 @@ public class GroupServiceImpl implements GroupService {
         return String.format("Delete member id %d from group id %d successfully", memberId, groupId);
     }
 
+    @Override
+    public String uploadImageGroup(MultipartFile file, Long groupId, Long userId) throws Exception {
+        UserEntity user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found with id " + userId));
+        GroupEntity group = groupRepository.findByGroupIdAndIsActiveTrue(groupId)
+                .orElseThrow(() -> new RuntimeException("Group not found with id " + groupId));
+        GroupMembersEntity groupMember=groupMembersRepository.findById_GroupIdAndId_UserIdAndIsActiveTrue(groupId,userId);
+        if(groupMember==null){
+            throw new RuntimeException("User is not member of group");
+        }
+        String urlImage=uploadImageService.uploadImage(file);
+        group.setAvatarUrl(urlImage);
+        groupRepository.save(group);
+        return urlImage;
+    }
 }

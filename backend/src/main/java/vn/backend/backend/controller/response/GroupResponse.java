@@ -16,4 +16,5 @@ public class GroupResponse implements Serializable {
     private Date createdAt;
     private Date updatedAt;
     private Boolean isActive;
+    private String avatarUrl;
 }

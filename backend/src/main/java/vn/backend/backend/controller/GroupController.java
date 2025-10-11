@@ -1,13 +1,17 @@
 package vn.backend.backend.controller;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 import vn.backend.backend.controller.request.GroupCreateRequest;
 import vn.backend.backend.controller.request.GroupEditRequest;
 import vn.backend.backend.controller.request.UserCreateRequest;
@@ -17,6 +21,7 @@ import vn.backend.backend.controller.response.GroupResponse;
 import vn.backend.backend.controller.response.GroupsOfUserResponse;
 import vn.backend.backend.service.GroupService;
 
+import java.io.DataInput;
 import java.util.List;
 
 @RestController
@@ -28,21 +33,38 @@ public class GroupController {
     private final GroupService groupService;
 
     @Operation(summary = "create new group", description = "API to add a new group to the database")
-    @PostMapping("/create/{userId}")
-    public ResponseEntity<ApiResponse<GroupResponse>> register(@RequestBody GroupCreateRequest request, @PathVariable Long userId) {
-        GroupResponse group = groupService.createGroup(request,userId);
+    @PostMapping(value="/create/{userId}",consumes = {MediaType.MULTIPART_FORM_DATA_VALUE})
+    public ResponseEntity<ApiResponse<GroupResponse>> register(
+            @RequestPart("group") String groupJson,
+            @RequestPart(value = "file", required = false) MultipartFile file,
+            @PathVariable Long userId) throws Exception {
+
+        ObjectMapper mapper = new ObjectMapper();
+        GroupCreateRequest request = mapper.readValue(groupJson, GroupCreateRequest.class);
+
+        GroupResponse group = groupService.createGroup(request,file,userId);
         return ResponseEntity.ok(
                 new ApiResponse<>("success", String.format("người dùng id : %d tạo nhóm thành công!",userId), group)
         );
     }
     @Operation(summary = "edit group", description = "API to edit a group in the database")
-    @PutMapping("/edit/{groupId}")
-    public ResponseEntity<ApiResponse<GroupResponse>> editGroup(@RequestBody GroupEditRequest request, @PathVariable Long groupId) {
-        GroupResponse group = groupService.editGroup(request,groupId);
+    @PutMapping(value = "/edit/{groupId}", consumes = {MediaType.MULTIPART_FORM_DATA_VALUE})
+    public ResponseEntity<ApiResponse<GroupResponse>> editGroup(
+            @RequestPart("group") String groupJson,
+            @RequestPart(value = "file", required = false) MultipartFile file,
+            @PathVariable Long groupId) throws Exception {
+
+        ObjectMapper mapper = new ObjectMapper();
+        GroupEditRequest request = mapper.readValue(groupJson, GroupEditRequest.class);
+
+        GroupResponse group = groupService.editGroup(request, file, groupId);
         return ResponseEntity.ok(
-                new ApiResponse<>("success", String.format("sửa nhóm id : %d thành công!",groupId), group)
+                new ApiResponse<>("success",
+                        String.format("Sửa nhóm id: %d thành công!", groupId),
+                        group)
         );
     }
+
     @Operation(summary = "get list group by userId", description = "API to get list group by userId into the database")
     @GetMapping("/list-group/{userId}")
     public ResponseEntity<ApiResponse<GroupsOfUserResponse>> getListGroupByUserId(@PathVariable Long userId) {
@@ -79,6 +101,18 @@ public class GroupController {
         String result = groupService.deleteMemberFromGroup(groupId,userId,memberId);
         return ResponseEntity.ok(
                 new ApiResponse<>("success",result,null)
+        );
+    }
+    @Operation(summary = "upload image of group", description = "API to upload image of group to cloudinary")
+    @PostMapping("/{groupId}/upload-image")
+    public ResponseEntity<ApiResponse<String>> uploadImage(
+            @RequestParam("file") MultipartFile file,
+            @RequestHeader("userId") Long userId,
+            @PathVariable Long groupId
+    ) throws Exception {
+        String urlImage=groupService.uploadImageGroup(file,groupId,userId);
+        return ResponseEntity.ok(
+                new ApiResponse<>("success", String.format("userId %d upload image of groupId %d successfully!",groupId,userId), urlImage)
         );
     }
 }

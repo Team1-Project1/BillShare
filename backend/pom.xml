@@ -107,6 +107,15 @@
 			<groupId>com.sendgrid</groupId>
 			<artifactId>sendgrid-java</artifactId>
 		</dependency>
+
+		<dependency>
+			<groupId>com.cloudinary</groupId>
+			<artifactId>cloudinary-http45</artifactId>
+			<version>1.38.0</version>
+		</dependency>
+
+
+
 	</dependencies>
 
 
