@@ -1,5 +1,7 @@
 package vn.backend.backend.model;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 import java.math.BigDecimal;
@@ -27,4 +29,5 @@ public class ExpenseParticipantEntity {
 
     @Column(name = "share_amount", nullable = false)
     private BigDecimal shareAmount;
+
 }

@@ -1,5 +1,6 @@
 package vn.backend.backend.model;
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.Pattern;
@@ -73,7 +74,8 @@ public class UserEntity implements Serializable, UserDetails {
     @OneToMany(mappedBy = "member")
     private List<GroupMembersEntity> groupMembers;
 
-
+    @OneToMany(mappedBy = "user", cascade = CascadeType.REMOVE, orphanRemoval = true)
+    private List<ExpenseParticipantEntity> expenseParticipants;
 
 
     @Override

@@ -8,6 +8,8 @@ import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 import java.math.BigDecimal;
 import java.util.Date;
+import java.util.List;
+
 import vn.backend.backend.common.SplitMethod;
 
 @Getter
@@ -67,6 +69,9 @@ public class ExpenseEntity {
     @Column(name = "updated_at", nullable = false)
     @UpdateTimestamp
     private Date updatedAt;
+
+    @OneToMany(mappedBy = "expense", cascade = CascadeType.REMOVE, orphanRemoval = true)
+    private List<ExpenseParticipantEntity> expenseParticipants;
 }
 
 
