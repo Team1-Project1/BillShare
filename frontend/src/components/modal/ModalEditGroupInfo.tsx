@@ -4,12 +4,22 @@ import { useState, useRef, useEffect } from "react";
 import { toast } from "react-toastify";
 import { fetchWithAuth } from "@/lib/fetchWithAuth";
 import { currencies } from "@/config/currencies";
+import { FilePond, registerPlugin } from "react-filepond";
+import "filepond/dist/filepond.min.css";
+import FilePondPluginFileValidateType from "filepond-plugin-file-validate-type";
+import FilePondPluginImagePreview from "filepond-plugin-image-preview";
+import "filepond-plugin-image-preview/dist/filepond-plugin-image-preview.css";
+import { FiX } from "react-icons/fi";
+
+// Đăng ký plugins
+registerPlugin(FilePondPluginFileValidateType, FilePondPluginImagePreview);
 
 interface Group {
   groupId: number;
   name: string;
   description: string;
   defaultCurrency: string;
+  avatar: string;
 }
 
 interface ModalEditGroupInfoProps {
@@ -23,13 +33,14 @@ export default function ModalEditGroupInfo({ isOpen, onClose, group, onUpdateSuc
   const [groupName, setGroupName] = useState<string>(group.name);
   const [description, setDescription] = useState<string>(group.description);
   const [defaultCurrency, setDefaultCurrency] = useState<string>(group.defaultCurrency);
+  const [avatars, setAvatars] = useState<any[]>(group.avatar ? [{ source: group.avatar, options: { type: "server" } }] : []);
   const modalRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // Khởi tạo giá trị ban đầu từ group
     setGroupName(group.name);
     setDescription(group.description);
     setDefaultCurrency(group.defaultCurrency);
+    setAvatars(group.avatar ? [{ source: group.avatar, options: { type: "server" } }] : []);
   }, [group]);
 
   useEffect(() => {
@@ -45,103 +56,124 @@ export default function ModalEditGroupInfo({ isOpen, onClose, group, onUpdateSuc
   }, [isOpen, onClose]);
 
   const handleEdit = async () => {
-  try {
-    const userId = localStorage.getItem("userId");
-    if (!userId) {
-      toast.error("Không tìm thấy thông tin người dùng, vui lòng đăng nhập lại!", {
-        position: "top-center",
-        autoClose: 3000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
-      });
-      return;
-    }
+    try {
+      const userId = localStorage.getItem("userId");
+      if (!userId) {
+        toast.error("Không tìm thấy thông tin người dùng, vui lòng đăng nhập lại!", {
+          position: "top-center",
+          autoClose: 3000,
+        });
+        return;
+      }
 
-    if (!groupName.trim()) {
-      toast.error("Vui lòng nhập tên nhóm!", {
-        position: "top-center",
-        autoClose: 3000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
-      });
-      return;
-    }
+      if (!groupName.trim()) {
+        toast.error("Vui lòng nhập tên nhóm!", {
+          position: "top-center",
+          autoClose: 3000,
+        });
+        return;
+      }
 
-    const response = await fetchWithAuth(`${process.env.NEXT_PUBLIC_API_URL}/group/edit/${group.groupId}`, {
+      // Tạo JSON string cho field 'group'
+      const groupData = {
+        groupName,
+        description,
+        defaultCurrency,
+      };
+      const groupJson = JSON.stringify(groupData);
+
+      const formData = new FormData();
+      formData.append("group", groupJson);
+      if (avatars.length > 0 && avatars[0].file) {
+        formData.append("file", avatars[0].file);
+      }
+
+      let accessToken = localStorage.getItem("accessToken");
+      let response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/group/edit/${group.groupId}`, {
         method: "PUT",
+        body: formData,
         headers: {
-          "Content-Type": "application/json",
-          "Accept": "*/*",
+          Authorization: accessToken ? `Bearer ${accessToken}` : "",
+          Accept: "*/*",
         },
-        body: JSON.stringify({
-          groupName,
-          description: description, 
-          defaultCurrency: defaultCurrency || "VND",
-        }),
       });
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      console.error("Lỗi API:", errorData); // Ghi log lỗi chi tiết
       if (response.status === 401 || response.status === 403) {
-        toast.error("Phiên đăng nhập hết hạn, vui lòng đăng nhập lại!", {
+        const refreshToken = localStorage.getItem("refreshToken");
+        const refreshRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/refresh-token`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "refresh-token": refreshToken ?? "",
+          },
+        });
+
+        if (refreshRes.ok) {
+          const data = await refreshRes.json();
+          const newAccessToken = data.accessToken;
+          const newRefreshToken = data.refreshToken;
+
+          if (newAccessToken && newRefreshToken) {
+            localStorage.setItem("accessToken", newAccessToken);
+            localStorage.setItem("refreshToken", newRefreshToken);
+            accessToken = newAccessToken;
+            response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/group/edit/${group.groupId}`, {
+              method: "PUT",
+              body: formData,
+              headers: {
+                Authorization: `Bearer ${accessToken}`,
+                Accept: "*/*",
+              },
+            });
+          } else {
+            localStorage.clear();
+            window.location.href = "/login";
+            return;
+          }
+        } else {
+          localStorage.clear();
+          window.location.href = "/login";
+          return;
+        }
+      }
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        if (response.status === 409) {
+          toast.error(errorData.message || "Xung đột dữ liệu khi cập nhật nhóm!", {
+            position: "top-center",
+            autoClose: 3000,
+          });
+          return;
+        }
+        throw new Error("Không thể cập nhật thông tin nhóm");
+      }
+
+      const data = await response.json();
+      if (data.code === "error") {
+        toast.error(data.message, {
           position: "top-center",
           autoClose: 3000,
-          hideProgressBar: false,
-          closeOnClick: true,
-          pauseOnHover: true,
         });
         return;
       }
-      if (response.status === 409) {
-        toast.error(errorData.message || "Xung đột dữ liệu khi cập nhật nhóm!", {
+
+      if (data.code === "success") {
+        toast.success("Cập nhật thông tin nhóm thành công!", {
           position: "top-center",
           autoClose: 3000,
-          hideProgressBar: false,
-          closeOnClick: true,
-          pauseOnHover: true,
         });
-        return;
+        onUpdateSuccess();
+        onClose();
       }
-      throw new Error("Không thể cập nhật thông tin nhóm");
-    }
-
-    const data = await response.json();
-    if (data.code === "error") {
-      toast.error(data.message, {
+    } catch (err) {
+      console.error("Lỗi:", err);
+      toast.error("Không thể cập nhật thông tin nhóm!", {
         position: "top-center",
         autoClose: 3000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
       });
-      return;
     }
-
-    if (data.code === "success") {
-      toast.success("Cập nhật thông tin nhóm thành công!", {
-        position: "top-center",
-        autoClose: 3000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
-      });
-      onUpdateSuccess();
-      onClose();
-    }
-  } catch (err) {
-    console.error("Lỗi:", err); // Ghi log lỗi
-    toast.error("Không thể cập nhật thông tin nhóm!", {
-      position: "top-center",
-      autoClose: 3000,
-      hideProgressBar: false,
-      closeOnClick: true,
-      pauseOnHover: true,
-    });
-  }
-};
+  };
 
   if (!isOpen) return null;
 
@@ -156,8 +188,44 @@ export default function ModalEditGroupInfo({ isOpen, onClose, group, onUpdateSuc
           transition: "transform 0.3s ease-out, opacity 0.3s ease-out",
         }}
       >
-        <div className="mb-4 text-center">
+        <div className="flex justify-between items-center mb-4">
           <h2 className="text-2xl font-bold text-[#5BC5A7]">Chỉnh sửa thông tin nhóm</h2>
+          <button
+            onClick={onClose}
+            className="text-gray-500 hover:text-gray-700 focus:outline-none"
+          >
+            <FiX size={24} />
+          </button>
+        </div>
+        <div className="mb-4 text-center">
+          <label htmlFor="avatar" className="block font-[500] text-[14px] text-black mb-[5px]">
+            Avatar
+          </label>
+          <FilePond
+            name="avatar"
+            allowMultiple={false}
+            allowRemove={true}
+            labelIdle="+"
+            acceptedFileTypes={["image/*"]}
+            files={avatars}
+            onupdatefiles={setAvatars}
+            imagePreviewMaxHeight={200}
+            {...({ imagePreviewMaxWidth: 200 } as any)}
+            className="w-full"
+          />
+          {avatars.length > 0 && avatars[0].file instanceof File ? (
+            <img
+              src={URL.createObjectURL(avatars[0].file)}
+              alt="Preview avatar"
+              className="w-24 h-24 rounded-full mx-auto mt-2"
+            />
+          ) : avatars.length > 0 && avatars[0].source ? (
+            <img
+              src={avatars[0].source}
+              alt="Current avatar"
+              className="w-24 h-24 rounded-full mx-auto mt-2"
+            />
+          ) : null}
         </div>
         <div className="mb-4">
           <label className="block text-sm font-medium text-gray-700 mb-1">Tên nhóm *</label>

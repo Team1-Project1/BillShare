@@ -5,19 +5,26 @@ import { toast } from "react-toastify";
 import CardMemberSelect from "../card/CardMemberSelect";
 import { fetchWithAuth } from "@/lib/fetchWithAuth";
 import { currencies } from "@/config/currencies";
+import { FilePond, registerPlugin } from "react-filepond";
+import "filepond/dist/filepond.min.css";
+import FilePondPluginFileValidateType from "filepond-plugin-file-validate-type";
+import FilePondPluginImagePreview from "filepond-plugin-image-preview";
+import "filepond-plugin-image-preview/dist/filepond-plugin-image-preview.css";
+import JustValidate from "just-validate";
+
+// Đăng ký plugins
+registerPlugin(FilePondPluginFileValidateType, FilePondPluginImagePreview);
 
 export default function ModalCreateGroup({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
   const [groupName, setGroupName] = useState("");
   const [groupDesc, setGroupDesc] = useState("");
-  const [avatar, setAvatar] = useState("/placeholder-avatar.png"); // Avatar mặc định
   const [selectedMembers, setSelectedMembers] = useState<number[]>([]);
-  const [defaultCurrency, setDefaultCurrency] = useState("VND"); // State cho tiền tệ
+  const [defaultCurrency, setDefaultCurrency] = useState("VND");
+  const [avatars, setAvatars] = useState<any[]>([]);
   const modalRef = useRef<HTMLDivElement>(null);
 
   // Dữ liệu thành viên mẫu
-  const members = [
-    []
-  ];
+  const members = [[]];
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -37,20 +44,13 @@ export default function ModalCreateGroup({ isOpen, onClose }: { isOpen: boolean;
     );
   };
 
-  const handleUploadAvatar = () => {
-    alert("Upload avatar to Cloudinary"); // Logic upload bạn làm sau
-  };
-
   const handleCreate = async () => {
     try {
-      const userId = localStorage.getItem("userId"); // Giả định userId lưu trong localStorage
+      const userId = localStorage.getItem("userId");
       if (!userId) {
         toast.error("Không tìm thấy thông tin người dùng, vui lòng đăng nhập lại!", {
           position: "top-center",
           autoClose: 3000,
-          hideProgressBar: false,
-          closeOnClick: true,
-          pauseOnHover: true,
         });
         return;
       }
@@ -59,38 +59,77 @@ export default function ModalCreateGroup({ isOpen, onClose }: { isOpen: boolean;
         toast.error("Vui lòng nhập tên nhóm!", {
           position: "top-center",
           autoClose: 3000,
-          hideProgressBar: false,
-          closeOnClick: true,
-          pauseOnHover: true,
         });
         return;
       }
 
-      const response = await fetchWithAuth(`${process.env.NEXT_PUBLIC_API_URL}/group/create/${userId}`, {
+      // Tạo JSON string cho field 'group'
+      const groupData = {
+        groupName,
+        description: groupDesc || "Không có mô tả",
+        defaultCurrency,
+      };
+      const groupJson = JSON.stringify(groupData);
+
+      const formData = new FormData();
+      formData.append("group", groupJson); // Gửi JSON string dưới key 'group'
+      if (avatars.length > 0 && avatars[0].file) {
+        formData.append("file", avatars[0].file); // Gửi file avatar dưới key 'file'
+      }
+
+      let accessToken = localStorage.getItem("accessToken");
+      let response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/group/create/${userId}`, {
         method: "POST",
+        body: formData,
         headers: {
-          "Content-Type": "application/json",
-          "Accept": "*/*",
+          Authorization: accessToken ? `Bearer ${accessToken}` : "",
+          Accept: "*/*",
         },
-        body: JSON.stringify({
-          groupName,
-          description: groupDesc || "Không có mô tả",
-          defaultCurrency, // Gửi giá trị tiền tệ được chọn
-        }),
       });
 
-      if (!response.ok) {
-        if (response.status === 401 || response.status === 403) {
-          toast.error("Phiên đăng nhập hết hạn, vui lòng đăng nhập lại!", {
-            position: "top-center",
-            autoClose: 3000,
-            hideProgressBar: false,
-            closeOnClick: true,
-            pauseOnHover: true,
-          });
+      if (response.status === 401 || response.status === 403) {
+        // Refresh token
+        const refreshToken = localStorage.getItem("refreshToken");
+        const refreshRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/refresh-token`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "refresh-token": refreshToken ?? "",
+          },
+        });
+
+        if (refreshRes.ok) {
+          const data = await refreshRes.json();
+          const newAccessToken = data.accessToken;
+          const newRefreshToken = data.refreshToken;
+
+          if (newAccessToken && newRefreshToken) {
+            localStorage.setItem("accessToken", newAccessToken);
+            localStorage.setItem("refreshToken", newRefreshToken);
+            accessToken = newAccessToken;
+            response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/group/create/${userId}`, {
+              method: "POST",
+              body: formData,
+              headers: {
+                Authorization: `Bearer ${accessToken}`,
+                Accept: "*/*",
+              },
+            });
+          } else {
+            localStorage.clear();
+            window.location.href = "/login";
+            return;
+          }
+        } else {
+          localStorage.clear();
+          window.location.href = "/login";
           return;
         }
-        throw new Error("Không thể tạo nhóm");
+      }
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Không thể tạo nhóm");
       }
 
       const data = await response.json();
@@ -98,9 +137,6 @@ export default function ModalCreateGroup({ isOpen, onClose }: { isOpen: boolean;
         toast.error(data.message, {
           position: "top-center",
           autoClose: 3000,
-          hideProgressBar: false,
-          closeOnClick: true,
-          pauseOnHover: true,
         });
         return;
       }
@@ -109,20 +145,13 @@ export default function ModalCreateGroup({ isOpen, onClose }: { isOpen: boolean;
         toast.success("Tạo nhóm thành công!", {
           position: "top-center",
           autoClose: 3000,
-          hideProgressBar: false,
-          closeOnClick: true,
-          pauseOnHover: true,
         });
-        // console.log("Thành viên được chọn:", selectedMembers.map(id => members.find(m => m.id === id)?.name));
         onClose();
       }
     } catch (err) {
-      toast.error("Không thể tạo nhóm!", {
+      toast.error(`Không thể tạo nhóm!`, {
         position: "top-center",
         autoClose: 3000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
       });
     }
   };
@@ -151,13 +180,28 @@ export default function ModalCreateGroup({ isOpen, onClose }: { isOpen: boolean;
         </div>
         <h3 className="text-base font-medium text-gray-700 mb-2">Thông tin nhóm</h3>
         <div className="mb-4 text-center">
-          <img
-            src={avatar}
-            alt="Avatar nhóm"
-            className="w-24 h-24 rounded-full mx-auto cursor-pointer"
-            onClick={handleUploadAvatar}
+          <label htmlFor="avatar" className="block font-[500] text-[14px] text-black mb-[5px]">
+            Avatar
+          </label>
+          <FilePond
+            name="avatar"
+            allowMultiple={false}
+            allowRemove={true}
+            labelIdle="+"
+            acceptedFileTypes={["image/*"]}
+            files={avatars}
+            onupdatefiles={setAvatars}
+            imagePreviewMaxHeight={200}
+            {...({ imagePreviewMaxWidth: 200 } as any)}
+            className="w-full"
           />
-          <p className="text-sm text-gray-500 mt-2">Nhấn để tải ảnh lên</p>
+          {avatars.length > 0 && avatars[0].file && (
+            <img
+              src={URL.createObjectURL(avatars[0].file)}
+              alt="Preview avatar"
+              className="w-24 h-24 rounded-full mx-auto mt-2"
+            />
+          )}
         </div>
         <div className="mb-4">
           <label className="block text-sm font-medium text-gray-700 mb-1">Tên nhóm</label>
@@ -193,8 +237,7 @@ export default function ModalCreateGroup({ isOpen, onClose }: { isOpen: boolean;
         <h3 className="text-base font-medium text-gray-700 mb-2">Thêm thành viên</h3>
         <div className="space-y-3 max-h-48 overflow-y-auto">
           Bạn không có bạn bè.
-          {
-          /* {members.map((member) => (
+          {/* {members.map((member) => (
             <CardMemberSelect
               key={member.id}
               avatar={member.avatar}

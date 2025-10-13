@@ -98,8 +98,7 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
     name: "Nhóm A",
     description: "Không có mô tả",
     defaultCurrency: "VND",
-    avatar:
-      "https://res.cloudinary.com/dtpxp9qqf/image/upload/v1750519773/xholultqlsq1bscqj7bv.jpg",
+    avatar: "",
     memberCount: 0,
     totalCost: 0,
     netAmount: 0,
@@ -163,9 +162,7 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
           name: apiGroup.groupName,
           description: apiGroup.description || "Không có mô tả",
           defaultCurrency: apiGroup.defaultCurrency || "VND",
-          avatar:
-            apiGroup.avatarUrl ||
-            "https://res.cloudinary.com/dtpxp9qqf/image/upload/v1750519773/xholultqlsq1bscqj7bv.jpg",
+          avatar: apiGroup.avatar || "https://res.cloudinary.com/dtpxp9qqf/image/upload/v1750519773/xholultqlsq1bscqj7bv.jpg", // Sử dụng apiGroup.avatar thay vì avatarUrl
           memberCount: apiGroup.members.length,
           members: apiGroup.members.map((member: APIMember) => ({
             id: member.userId,
@@ -443,12 +440,6 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
                         <FiTrash2 className="mr-2" /> Xóa
                       </button>
                     )}
-                    <a
-                      href="#"
-                      className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-[rgba(91,197,167,0.2)]"
-                    >
-                      <FiImage className="mr-2" /> Đổi ảnh
-                    </a>
                     <button
                       onClick={() => {
                         setIsEditGroupInfoOpen(true);
