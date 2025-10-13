@@ -3,6 +3,7 @@ package vn.backend.backend.service;
 import vn.backend.backend.model.BalanceEntity;
 import vn.backend.backend.model.ExpenseEntity;
 import vn.backend.backend.model.ExpenseParticipantEntity;
+import vn.backend.backend.controller.response.BalanceResponse;
 import java.math.BigDecimal;
 import java.util.List;
 
@@ -14,4 +15,5 @@ public interface BalanceService {
     List<BalanceEntity> getBalancesByGroupId(Long groupId);
     BalanceEntity getBalanceBetweenUsers(Long groupId, Long userId1, Long userId2);
     void rollBackBalance(ExpenseEntity expense,Long oldPayerId,List<ExpenseParticipantEntity>oldParticipants);
+    BalanceResponse getUserBalanceResponse(Long groupId, Long userId);
 }

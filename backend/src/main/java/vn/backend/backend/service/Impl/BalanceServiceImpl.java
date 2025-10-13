@@ -10,6 +10,7 @@ import vn.backend.backend.repository.BalanceRepository;
 import vn.backend.backend.repository.ExpenseParticipantRepository;
 import vn.backend.backend.repository.GroupRepository;
 import vn.backend.backend.repository.UserRepository;
+import vn.backend.backend.controller.response.BalanceResponse;
 import vn.backend.backend.service.BalanceService;
 
 import java.math.BigDecimal;
@@ -166,4 +167,58 @@ public class BalanceServiceImpl implements BalanceService {
         return balanceRepository.findByGroupGroupIdAndUser1UserIdAndUser2UserId(groupId, userId1, userId2)
                 .orElseThrow(() -> new RuntimeException("Balance not found"));
     }
+
+    @Override
+    public BalanceResponse getUserBalanceResponse(Long groupId, Long userId) {
+        var group = groupRepository.findById(groupId)
+                .orElseThrow(() -> new RuntimeException("Group not found"));
+        var user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        // Lấy toàn bộ balance trong group liên quan đến user
+        List<BalanceEntity> balances = balanceRepository.findAllByGroupGroupId(groupId)
+                .stream()
+                .filter(b -> b.getUser1().getUserId().equals(userId) || b.getUser2().getUserId().equals(userId))
+                .toList();
+
+        List<BalanceResponse.UserBalanceDetail> details = balances.stream()
+                .map(balance -> {
+                    Long otherUserId;
+                    String otherUserName;
+                    BigDecimal amount;
+                    Boolean isOwed;
+
+                    // Xác định hướng nợ
+                    if (balance.getUser1().getUserId().equals(userId)) {
+                        // userId là user1
+                        otherUserId = balance.getUser2().getUserId();
+                        otherUserName = balance.getUser2().getFullName(); // nếu UserEntity có tên field khác thì chỉnh lại
+                        amount = balance.getBalance().abs();
+                        isOwed = balance.getBalance().compareTo(BigDecimal.ZERO) < 0;
+                    } else {
+                        // userId là user2
+                        otherUserId = balance.getUser1().getUserId();
+                        otherUserName = balance.getUser1().getFullName();
+                        amount = balance.getBalance().abs();
+                        isOwed = balance.getBalance().compareTo(BigDecimal.ZERO) > 0;
+                    }
+
+                    return BalanceResponse.UserBalanceDetail.builder()
+                            .userId(otherUserId)
+                            .userName(otherUserName)
+                            .amount(amount)
+                            .isOwed(isOwed)
+                            .build();
+                })
+                .toList();
+
+        return BalanceResponse.builder()
+                .userId(user.getUserId())
+                .userName(user.getFullName())
+                .groupId(group.getGroupId())
+                .groupName(group.getGroupName())
+                .balances(details)
+                .build();
+    }
+
 }
