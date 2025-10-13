@@ -1,5 +1,16 @@
 "use client";
 "use strict";
+var __assign = (this && this.__assign) || function () {
+    __assign = Object.assign || function(t) {
+        for (var s, i = 1, n = arguments.length; i < n; i++) {
+            s = arguments[i];
+            for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p))
+                t[p] = s[p];
+        }
+        return t;
+    };
+    return __assign.apply(this, arguments);
+};
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -46,23 +57,25 @@ var __spreadArrays = (this && this.__spreadArrays) || function () {
 exports.__esModule = true;
 var react_1 = require("react");
 var react_toastify_1 = require("react-toastify");
-var CardMemberSelect_1 = require("../card/CardMemberSelect");
-var fetchWithAuth_1 = require("@/lib/fetchWithAuth");
 var currencies_1 = require("@/config/currencies");
+var react_filepond_1 = require("react-filepond");
+require("filepond/dist/filepond.min.css");
+var filepond_plugin_file_validate_type_1 = require("filepond-plugin-file-validate-type");
+var filepond_plugin_image_preview_1 = require("filepond-plugin-image-preview");
+require("filepond-plugin-image-preview/dist/filepond-plugin-image-preview.css");
+// Đăng ký plugins
+react_filepond_1.registerPlugin(filepond_plugin_file_validate_type_1["default"], filepond_plugin_image_preview_1["default"]);
 function ModalCreateGroup(_a) {
     var _this = this;
     var isOpen = _a.isOpen, onClose = _a.onClose;
     var _b = react_1.useState(""), groupName = _b[0], setGroupName = _b[1];
     var _c = react_1.useState(""), groupDesc = _c[0], setGroupDesc = _c[1];
-    var _d = react_1.useState("/placeholder-avatar.png"), avatar = _d[0], setAvatar = _d[1]; // Avatar mặc định
-    var _e = react_1.useState([]), selectedMembers = _e[0], setSelectedMembers = _e[1];
-    var _f = react_1.useState("VND"), defaultCurrency = _f[0], setDefaultCurrency = _f[1]; // State cho tiền tệ
+    var _d = react_1.useState([]), selectedMembers = _d[0], setSelectedMembers = _d[1];
+    var _e = react_1.useState("VND"), defaultCurrency = _e[0], setDefaultCurrency = _e[1];
+    var _f = react_1.useState([]), avatars = _f[0], setAvatars = _f[1];
     var modalRef = react_1.useRef(null);
     // Dữ liệu thành viên mẫu
-    var members = [
-        { id: 1, name: "An", email: "annghiav01@gmail.com", avatar: "/avatar1.png" },
-        { id: 2, name: "Trung Pham", email: "trung@gmail.com", avatar: "/avatar2.png" },
-    ];
+    var members = [[]];
     react_1.useEffect(function () {
         var handleClickOutside = function (event) {
             if (modalRef.current && !modalRef.current.contains(event.target)) {
@@ -79,99 +92,122 @@ function ModalCreateGroup(_a) {
             return prev.includes(id) ? prev.filter(function (m) { return m !== id; }) : __spreadArrays(prev, [id]);
         });
     };
-    var handleUploadAvatar = function () {
-        alert("Upload avatar to Cloudinary"); // Logic upload bạn làm sau
-    };
     var handleCreate = function () { return __awaiter(_this, void 0, void 0, function () {
-        var userId, response, data, err_1;
+        var userId, groupData, groupJson, formData, accessToken, response, refreshToken, refreshRes, data_1, newAccessToken, newRefreshToken, errorData, data, err_1;
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0:
-                    _a.trys.push([0, 3, , 4]);
+                    _a.trys.push([0, 12, , 13]);
                     userId = localStorage.getItem("userId");
                     if (!userId) {
                         react_toastify_1.toast.error("Không tìm thấy thông tin người dùng, vui lòng đăng nhập lại!", {
                             position: "top-center",
-                            autoClose: 3000,
-                            hideProgressBar: false,
-                            closeOnClick: true,
-                            pauseOnHover: true
+                            autoClose: 3000
                         });
                         return [2 /*return*/];
                     }
                     if (!groupName.trim()) {
                         react_toastify_1.toast.error("Vui lòng nhập tên nhóm!", {
                             position: "top-center",
-                            autoClose: 3000,
-                            hideProgressBar: false,
-                            closeOnClick: true,
-                            pauseOnHover: true
+                            autoClose: 3000
                         });
                         return [2 /*return*/];
                     }
-                    return [4 /*yield*/, fetchWithAuth_1.fetchWithAuth(process.env.NEXT_PUBLIC_API_URL + "/group/create/" + userId, {
+                    groupData = {
+                        groupName: groupName,
+                        description: groupDesc || "Không có mô tả",
+                        defaultCurrency: defaultCurrency
+                    };
+                    groupJson = JSON.stringify(groupData);
+                    formData = new FormData();
+                    formData.append("group", groupJson); // Gửi JSON string dưới key 'group'
+                    if (avatars.length > 0 && avatars[0].file) {
+                        formData.append("file", avatars[0].file); // Gửi file avatar dưới key 'file'
+                    }
+                    accessToken = localStorage.getItem("accessToken");
+                    return [4 /*yield*/, fetch(process.env.NEXT_PUBLIC_API_URL + "/group/create/" + userId, {
                             method: "POST",
+                            body: formData,
                             headers: {
-                                "Content-Type": "application/json",
-                                "Accept": "*/*"
-                            },
-                            body: JSON.stringify({
-                                groupName: groupName,
-                                description: groupDesc || "Không có mô tả",
-                                defaultCurrency: defaultCurrency
-                            })
+                                Authorization: accessToken ? "Bearer " + accessToken : "",
+                                Accept: "*/*"
+                            }
                         })];
                 case 1:
                     response = _a.sent();
-                    if (!response.ok) {
-                        if (response.status === 401 || response.status === 403) {
-                            react_toastify_1.toast.error("Phiên đăng nhập hết hạn, vui lòng đăng nhập lại!", {
-                                position: "top-center",
-                                autoClose: 3000,
-                                hideProgressBar: false,
-                                closeOnClick: true,
-                                pauseOnHover: true
-                            });
-                            return [2 /*return*/];
-                        }
-                        throw new Error("Không thể tạo nhóm");
-                    }
-                    return [4 /*yield*/, response.json()];
+                    if (!(response.status === 401 || response.status === 403)) return [3 /*break*/, 8];
+                    refreshToken = localStorage.getItem("refreshToken");
+                    return [4 /*yield*/, fetch(process.env.NEXT_PUBLIC_API_URL + "/auth/refresh-token", {
+                            method: "POST",
+                            headers: {
+                                "Content-Type": "application/json",
+                                "refresh-token": refreshToken !== null && refreshToken !== void 0 ? refreshToken : ""
+                            }
+                        })];
                 case 2:
+                    refreshRes = _a.sent();
+                    if (!refreshRes.ok) return [3 /*break*/, 7];
+                    return [4 /*yield*/, refreshRes.json()];
+                case 3:
+                    data_1 = _a.sent();
+                    newAccessToken = data_1.accessToken;
+                    newRefreshToken = data_1.refreshToken;
+                    if (!(newAccessToken && newRefreshToken)) return [3 /*break*/, 5];
+                    localStorage.setItem("accessToken", newAccessToken);
+                    localStorage.setItem("refreshToken", newRefreshToken);
+                    accessToken = newAccessToken;
+                    return [4 /*yield*/, fetch(process.env.NEXT_PUBLIC_API_URL + "/group/create/" + userId, {
+                            method: "POST",
+                            body: formData,
+                            headers: {
+                                Authorization: "Bearer " + accessToken,
+                                Accept: "*/*"
+                            }
+                        })];
+                case 4:
+                    response = _a.sent();
+                    return [3 /*break*/, 6];
+                case 5:
+                    localStorage.clear();
+                    window.location.href = "/login";
+                    return [2 /*return*/];
+                case 6: return [3 /*break*/, 8];
+                case 7:
+                    localStorage.clear();
+                    window.location.href = "/login";
+                    return [2 /*return*/];
+                case 8:
+                    if (!!response.ok) return [3 /*break*/, 10];
+                    return [4 /*yield*/, response.json()];
+                case 9:
+                    errorData = _a.sent();
+                    throw new Error(errorData.message || "Không thể tạo nhóm");
+                case 10: return [4 /*yield*/, response.json()];
+                case 11:
                     data = _a.sent();
                     if (data.code === "error") {
                         react_toastify_1.toast.error(data.message, {
                             position: "top-center",
-                            autoClose: 3000,
-                            hideProgressBar: false,
-                            closeOnClick: true,
-                            pauseOnHover: true
+                            autoClose: 3000
                         });
                         return [2 /*return*/];
                     }
                     if (data.code === "success") {
                         react_toastify_1.toast.success("Tạo nhóm thành công!", {
                             position: "top-center",
-                            autoClose: 3000,
-                            hideProgressBar: false,
-                            closeOnClick: true,
-                            pauseOnHover: true
+                            autoClose: 3000
                         });
-                        console.log("Thành viên được chọn:", selectedMembers.map(function (id) { var _a; return (_a = members.find(function (m) { return m.id === id; })) === null || _a === void 0 ? void 0 : _a.name; }));
                         onClose();
                     }
-                    return [3 /*break*/, 4];
-                case 3:
+                    return [3 /*break*/, 13];
+                case 12:
                     err_1 = _a.sent();
-                    react_toastify_1.toast.error("Không thể tạo nhóm!", {
+                    react_toastify_1.toast.error("Kh\u00F4ng th\u1EC3 t\u1EA1o nh\u00F3m!", {
                         position: "top-center",
-                        autoClose: 3000,
-                        hideProgressBar: false,
-                        closeOnClick: true,
-                        pauseOnHover: true
+                        autoClose: 3000
                     });
-                    return [3 /*break*/, 4];
-                case 4: return [2 /*return*/];
+                    return [3 /*break*/, 13];
+                case 13: return [2 /*return*/];
             }
         });
     }); };
@@ -188,8 +224,9 @@ function ModalCreateGroup(_a) {
                 React.createElement("button", { onClick: handleCreate, className: "w-24 h-10 bg-[#5BC5A7] text-white rounded-md text-base font-semibold hover:bg-[#4AA88C] transition-colors duration-300 flex items-center justify-center" }, "T\u1EA1o")),
             React.createElement("h3", { className: "text-base font-medium text-gray-700 mb-2" }, "Th\u00F4ng tin nh\u00F3m"),
             React.createElement("div", { className: "mb-4 text-center" },
-                React.createElement("img", { src: avatar, alt: "Avatar nh\u00F3m", className: "w-24 h-24 rounded-full mx-auto cursor-pointer", onClick: handleUploadAvatar }),
-                React.createElement("p", { className: "text-sm text-gray-500 mt-2" }, "Nh\u1EA5n \u0111\u1EC3 t\u1EA3i \u1EA3nh l\u00EAn")),
+                React.createElement("label", { htmlFor: "avatar", className: "block font-[500] text-[14px] text-black mb-[5px]" }, "Avatar"),
+                React.createElement(react_filepond_1.FilePond, __assign({ name: "avatar", allowMultiple: false, allowRemove: true, labelIdle: "+", acceptedFileTypes: ["image/*"], files: avatars, onupdatefiles: setAvatars, imagePreviewMaxHeight: 200 }, { imagePreviewMaxWidth: 200 }, { className: "w-full" })),
+                avatars.length > 0 && avatars[0].file && (React.createElement("img", { src: URL.createObjectURL(avatars[0].file), alt: "Preview avatar", className: "w-24 h-24 rounded-full mx-auto mt-2" }))),
             React.createElement("div", { className: "mb-4" },
                 React.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-1" }, "T\u00EAn nh\u00F3m"),
                 React.createElement("input", { type: "text", value: groupName, onChange: function (e) { return setGroupName(e.target.value); }, className: "w-full border border-gray-300 rounded-md p-2 focus:border-[#5BC5A7]" })),
@@ -203,6 +240,6 @@ function ModalCreateGroup(_a) {
                     " - ",
                     currency.name)); }))),
             React.createElement("h3", { className: "text-base font-medium text-gray-700 mb-2" }, "Th\u00EAm th\u00E0nh vi\u00EAn"),
-            React.createElement("div", { className: "space-y-3 max-h-48 overflow-y-auto" }, members.map(function (member) { return (React.createElement(CardMemberSelect_1["default"], { key: member.id, avatar: member.avatar, name: member.name, email: member.email, selected: selectedMembers.includes(member.id), onSelect: function () { return handleSelectMember(member.id); } })); })))));
+            React.createElement("div", { className: "space-y-3 max-h-48 overflow-y-auto" }, "B\u1EA1n kh\u00F4ng c\u00F3 b\u1EA1n b\u00E8."))));
 }
 exports["default"] = ModalCreateGroup;
