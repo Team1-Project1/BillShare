@@ -42,7 +42,7 @@ interface Member {
   name: string;
   email: string;
   avatar?: string;
-  debt: number;
+  // debt: number;
 }
 
 interface CardExpenseProps {
