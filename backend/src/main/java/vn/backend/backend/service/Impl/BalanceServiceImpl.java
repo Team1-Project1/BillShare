@@ -402,29 +402,43 @@ public class BalanceServiceImpl implements BalanceService {
      * Xây dựng đồ thị flow network từ danh sách balance hiện tại
      *
      * Quy tắc chuyển đổi:
+     * - Xét TẤT CẢ các cặp userId có trong bảng balance (kể cả balance = 0)
      * - Nếu balance > 0: user1 nợ user2 -> tạo cạnh user1 -> user2
      * - Nếu balance < 0: user2 nợ user1 -> tạo cạnh user2 -> user1
+     * - Nếu balance = 0: tạo cạnh 2 chiều với capacity = 0 (để thuật toán có thể tìm đường đi qua)
      * - Capacity của cạnh = |balance|
      *
-     * @param balances Danh sách balance entities
+     * LƯU Ý: Balance = 0 vẫn được thêm vào đồ thị vì:
+     * - Đây là các cặp đã từng có quan hệ nợ (tồn tại trong DB)
+     * - Có thể tạo ra đường đi gián tiếp để tối ưu hóa
+     * - Chỉ loại bỏ các cặp hoàn toàn không tồn tại trong bảng balance
+     *
+     * @param balances Danh sách balance entities (bao gồm cả balance = 0)
      * @return FlowGraph đại diện cho mạng nợ
      */
     private FlowGraph buildGraphFromBalances(List<BalanceEntity> balances) {
         FlowGraph g = new FlowGraph();
 
         for (BalanceEntity b : balances) {
-            // Bỏ qua balance = 0 (đã thanh toán xong)
-            if (b.getBalance().compareTo(BigDecimal.ZERO) == 0) continue;
-
             Long u1 = b.getUser1().getUserId();
             Long u2 = b.getUser2().getUserId();
+
+            // Thêm cả 2 user vào đồ thị (để đảm bảo node tồn tại)
+            g.nodes.add(u1);
+            g.nodes.add(u2);
 
             if (b.getBalance().compareTo(BigDecimal.ZERO) > 0) {
                 // balance > 0: user1 nợ user2
                 g.addEdge(u1, u2, b.getBalance());
-            } else {
+            } else if (b.getBalance().compareTo(BigDecimal.ZERO) < 0) {
                 // balance < 0: user2 nợ user1
                 g.addEdge(u2, u1, b.getBalance().abs());
+            } else {
+                // balance = 0: Tạo cạnh 2 chiều với capacity = 0
+                // Mục đích: cho phép thuật toán tìm đường đi qua cặp này nếu cần
+                // (vì đây là cặp đã từng có quan hệ nợ)
+                g.addEdge(u1, u2, BigDecimal.ZERO);
+                g.addEdge(u2, u1, BigDecimal.ZERO);
             }
         }
 
@@ -483,7 +497,7 @@ public class BalanceServiceImpl implements BalanceService {
         for (Map.Entry<Long, List<Edge>> e : mainGraph.adj.entrySet()) {
             for (Edge edge : e.getValue()) {
                 // Chỉ lấy các cạnh thuận (capacity > 0)
-                if (edge.capacity.compareTo(BigDecimal.ZERO) > 0) {
+                if (edge.capacity.compareTo(BigDecimal.ZERO) >= 0) {
                     initialEdges.add(new Debt(edge.from, edge.to, edge.capacity));
                 }
             }
