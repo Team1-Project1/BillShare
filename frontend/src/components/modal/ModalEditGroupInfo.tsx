@@ -2,7 +2,6 @@
 
 import { useState, useRef, useEffect } from "react";
 import { toast } from "react-toastify";
-import { fetchWithAuth } from "@/lib/fetchWithAuth";
 import { currencies } from "@/config/currencies";
 import { FilePond, registerPlugin } from "react-filepond";
 import "filepond/dist/filepond.min.css";
@@ -34,8 +33,10 @@ export default function ModalEditGroupInfo({ isOpen, onClose, group, onUpdateSuc
   const [description, setDescription] = useState<string>(group.description);
   const [defaultCurrency, setDefaultCurrency] = useState<string>(group.defaultCurrency);
   const [avatars, setAvatars] = useState<any[]>(group.avatar ? [{ source: group.avatar, options: { type: "server" } }] : []);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
   const modalRef = useRef<HTMLDivElement>(null);
 
+  // Đồng bộ state khi group thay đổi
   useEffect(() => {
     setGroupName(group.name);
     setDescription(group.description);
@@ -43,6 +44,7 @@ export default function ModalEditGroupInfo({ isOpen, onClose, group, onUpdateSuc
     setAvatars(group.avatar ? [{ source: group.avatar, options: { type: "server" } }] : []);
   }, [group]);
 
+  // Xử lý click ngoài modal để đóng
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (modalRef.current && !modalRef.current.contains(event.target as Node)) {
@@ -57,6 +59,7 @@ export default function ModalEditGroupInfo({ isOpen, onClose, group, onUpdateSuc
 
   const handleEdit = async () => {
     try {
+      setIsLoading(true);
       const userId = localStorage.getItem("userId");
       if (!userId) {
         toast.error("Không tìm thấy thông tin người dùng, vui lòng đăng nhập lại!", {
@@ -84,7 +87,8 @@ export default function ModalEditGroupInfo({ isOpen, onClose, group, onUpdateSuc
 
       const formData = new FormData();
       formData.append("group", groupJson);
-      if (avatars.length > 0 && avatars[0].file) {
+      // Chỉ append file nếu người dùng chọn ảnh mới
+      if (avatars.length > 0 && avatars[0].file instanceof File) {
         formData.append("file", avatars[0].file);
       }
 
@@ -151,7 +155,7 @@ export default function ModalEditGroupInfo({ isOpen, onClose, group, onUpdateSuc
 
       const data = await response.json();
       if (data.code === "error") {
-        toast.error(data.message, {
+        toast.error(data.message || "Không thể cập nhật thông tin nhóm!", {
           position: "top-center",
           autoClose: 3000,
         });
@@ -163,6 +167,10 @@ export default function ModalEditGroupInfo({ isOpen, onClose, group, onUpdateSuc
           position: "top-center",
           autoClose: 3000,
         });
+        // Cập nhật avatar từ server nếu có
+        if (data.data.avatarUrl) {
+          setAvatars([{ source: data.data.avatarUrl, options: { type: "server" } }]);
+        }
         onUpdateSuccess();
         onClose();
       }
@@ -172,6 +180,8 @@ export default function ModalEditGroupInfo({ isOpen, onClose, group, onUpdateSuc
         position: "top-center",
         autoClose: 3000,
       });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -208,7 +218,9 @@ export default function ModalEditGroupInfo({ isOpen, onClose, group, onUpdateSuc
             labelIdle="+"
             acceptedFileTypes={["image/*"]}
             files={avatars}
-            onupdatefiles={setAvatars}
+            onupdatefiles={(fileItems) => {
+              setAvatars(fileItems);
+            }}
             imagePreviewMaxHeight={200}
             {...({ imagePreviewMaxWidth: 200 } as any)}
             className="w-full"
@@ -225,7 +237,9 @@ export default function ModalEditGroupInfo({ isOpen, onClose, group, onUpdateSuc
               alt="Current avatar"
               className="w-24 h-24 rounded-full mx-auto mt-2"
             />
-          ) : null}
+          ) : (
+            <p className="mt-2 text-gray-500">Chưa có ảnh</p>
+          )}
         </div>
         <div className="mb-4">
           <label className="block text-sm font-medium text-gray-700 mb-1">Tên nhóm *</label>
@@ -260,9 +274,12 @@ export default function ModalEditGroupInfo({ isOpen, onClose, group, onUpdateSuc
         </div>
         <button
           onClick={handleEdit}
-          className="w-full h-10 bg-[#5BC5A7] text-white rounded-md text-base font-semibold hover:bg-[#4AA88C] transition-colors duration-300 flex items-center justify-center"
+          disabled={isLoading}
+          className={`w-full h-10 text-white rounded-md text-base font-semibold transition-colors duration-300 flex items-center justify-center ${
+            isLoading ? "bg-gray-400 cursor-not-allowed" : "bg-[#5BC5A7] hover:bg-[#4AA88C]"
+          }`}
         >
-          Xác nhận
+          {isLoading ? "Đang xử lý..." : "Xác nhận"}
         </button>
       </div>
     </div>

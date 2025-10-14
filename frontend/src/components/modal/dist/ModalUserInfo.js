@@ -49,33 +49,34 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
 };
 exports.__esModule = true;
 var react_1 = require("react");
+var fi_1 = require("react-icons/fi");
 var react_toastify_1 = require("react-toastify");
-var currencies_1 = require("@/config/currencies");
 var react_filepond_1 = require("react-filepond");
 require("filepond/dist/filepond.min.css");
 var filepond_plugin_file_validate_type_1 = require("filepond-plugin-file-validate-type");
 var filepond_plugin_image_preview_1 = require("filepond-plugin-image-preview");
 require("filepond-plugin-image-preview/dist/filepond-plugin-image-preview.css");
-var fi_1 = require("react-icons/fi");
-// Đăng ký plugins
 react_filepond_1.registerPlugin(filepond_plugin_file_validate_type_1["default"], filepond_plugin_image_preview_1["default"]);
-function ModalEditGroupInfo(_a) {
+function UserInfo(_a) {
     var _this = this;
-    var isOpen = _a.isOpen, onClose = _a.onClose, group = _a.group, onUpdateSuccess = _a.onUpdateSuccess;
-    var _b = react_1.useState(group.name), groupName = _b[0], setGroupName = _b[1];
-    var _c = react_1.useState(group.description), description = _c[0], setDescription = _c[1];
-    var _d = react_1.useState(group.defaultCurrency), defaultCurrency = _d[0], setDefaultCurrency = _d[1];
-    var _e = react_1.useState(group.avatar ? [{ source: group.avatar, options: { type: "server" } }] : []), avatars = _e[0], setAvatars = _e[1];
-    var _f = react_1.useState(false), isLoading = _f[0], setIsLoading = _f[1];
+    var isOpen = _a.isOpen, onClose = _a.onClose, user = _a.user, onSuccess = _a.onSuccess, userId = _a.userId;
+    var _b = react_1.useState(false), isEditing = _b[0], setIsEditing = _b[1];
+    var _c = react_1.useState((user === null || user === void 0 ? void 0 : user.fullName) || ""), fullName = _c[0], setFullName = _c[1];
+    var _d = react_1.useState((user === null || user === void 0 ? void 0 : user.email) || ""), email = _d[0], setEmail = _d[1];
+    var _e = react_1.useState((user === null || user === void 0 ? void 0 : user.phone) || ""), phone = _e[0], setPhone = _e[1];
+    var _f = react_1.useState((user === null || user === void 0 ? void 0 : user.avatarUrl) ? [{ source: user.avatarUrl, options: { type: "server" } }] : []), avatars = _f[0], setAvatars = _f[1];
+    var _g = react_1.useState(false), isEmailChanged = _g[0], setIsEmailChanged = _g[1];
+    var _h = react_1.useState(false), isLoading = _h[0], setIsLoading = _h[1];
     var modalRef = react_1.useRef(null);
-    // Đồng bộ state khi group thay đổi
     react_1.useEffect(function () {
-        setGroupName(group.name);
-        setDescription(group.description);
-        setDefaultCurrency(group.defaultCurrency);
-        setAvatars(group.avatar ? [{ source: group.avatar, options: { type: "server" } }] : []);
-    }, [group]);
-    // Xử lý click ngoài modal để đóng
+        console.log("Avatar URL:", user === null || user === void 0 ? void 0 : user.avatarUrl); // Debug URL
+        setFullName((user === null || user === void 0 ? void 0 : user.fullName) || "");
+        setEmail((user === null || user === void 0 ? void 0 : user.email) || "");
+        setPhone((user === null || user === void 0 ? void 0 : user.phone) || "");
+        setAvatars((user === null || user === void 0 ? void 0 : user.avatarUrl) ? [{ source: user.avatarUrl, options: { type: "server" } }] : []);
+        setIsEditing(false);
+        setIsEmailChanged(false);
+    }, [user, isOpen]);
     react_1.useEffect(function () {
         var handleClickOutside = function (event) {
             if (modalRef.current && !modalRef.current.contains(event.target)) {
@@ -87,43 +88,70 @@ function ModalEditGroupInfo(_a) {
         }
         return function () { return document.removeEventListener("mousedown", handleClickOutside); };
     }, [isOpen, onClose]);
-    var handleEdit = function () { return __awaiter(_this, void 0, void 0, function () {
-        var userId, groupData, groupJson, formData, accessToken, response, refreshToken, refreshRes, data_1, newAccessToken, newRefreshToken, errorData, data, err_1;
+    var handleSetEditing = function () { return __awaiter(_this, void 0, void 0, function () {
+        var success;
+        return __generator(this, function (_a) {
+            switch (_a.label) {
+                case 0:
+                    if (!isEditing) return [3 /*break*/, 2];
+                    return [4 /*yield*/, handleSaveChanges()];
+                case 1:
+                    success = _a.sent();
+                    if (success)
+                        setIsEditing(false);
+                    return [3 /*break*/, 3];
+                case 2:
+                    setIsEditing(true);
+                    _a.label = 3;
+                case 3: return [2 /*return*/];
+            }
+        });
+    }); };
+    var handleSaveChanges = function () { return __awaiter(_this, void 0, void 0, function () {
+        var userData, userJson, formData, accessToken, response, refreshToken, refreshRes, data_1, newAccessToken, newRefreshToken, errorData, data, err_1;
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0:
                     _a.trys.push([0, 12, 13, 14]);
                     setIsLoading(true);
-                    userId = localStorage.getItem("userId");
-                    if (!userId) {
-                        react_toastify_1.toast.error("Không tìm thấy thông tin người dùng, vui lòng đăng nhập lại!", {
+                    if (!fullName.trim()) {
+                        react_toastify_1.toast.error("Vui lòng nhập tên người dùng!", {
                             position: "top-center",
                             autoClose: 3000
                         });
-                        return [2 /*return*/];
+                        return [2 /*return*/, false];
                     }
-                    if (!groupName.trim()) {
-                        react_toastify_1.toast.error("Vui lòng nhập tên nhóm!", {
+                    if (!email.trim()) {
+                        react_toastify_1.toast.error("Vui lòng nhập email!", {
                             position: "top-center",
                             autoClose: 3000
                         });
-                        return [2 /*return*/];
+                        return [2 /*return*/, false];
                     }
-                    groupData = {
-                        groupName: groupName,
-                        description: description,
-                        defaultCurrency: defaultCurrency
+                    if (!phone.trim()) {
+                        react_toastify_1.toast.error("Vui lòng nhập số điện thoại!", {
+                            position: "top-center",
+                            autoClose: 3000
+                        });
+                        return [2 /*return*/, false];
+                    }
+                    if (email !== user.email) {
+                        setIsEmailChanged(true);
+                    }
+                    userData = {
+                        fullName: fullName,
+                        email: email,
+                        phone: phone
                     };
-                    groupJson = JSON.stringify(groupData);
+                    userJson = JSON.stringify(userData);
                     formData = new FormData();
-                    formData.append("group", groupJson);
-                    // Chỉ append file nếu người dùng chọn ảnh mới
+                    formData.append("user", userJson);
                     if (avatars.length > 0 && avatars[0].file instanceof File) {
                         formData.append("file", avatars[0].file);
                     }
                     accessToken = localStorage.getItem("accessToken");
-                    return [4 /*yield*/, fetch(process.env.NEXT_PUBLIC_API_URL + "/group/edit/" + group.groupId, {
-                            method: "PUT",
+                    return [4 /*yield*/, fetch(process.env.NEXT_PUBLIC_API_URL + "/users/edit/" + userId, {
+                            method: "PATCH",
                             body: formData,
                             headers: {
                                 Authorization: accessToken ? "Bearer " + accessToken : "",
@@ -153,8 +181,8 @@ function ModalEditGroupInfo(_a) {
                     localStorage.setItem("accessToken", newAccessToken);
                     localStorage.setItem("refreshToken", newRefreshToken);
                     accessToken = newAccessToken;
-                    return [4 /*yield*/, fetch(process.env.NEXT_PUBLIC_API_URL + "/group/edit/" + group.groupId, {
-                            method: "PUT",
+                    return [4 /*yield*/, fetch(process.env.NEXT_PUBLIC_API_URL + "/users/edit/" + userId, {
+                            method: "PATCH",
                             body: formData,
                             headers: {
                                 Authorization: "Bearer " + accessToken,
@@ -167,56 +195,68 @@ function ModalEditGroupInfo(_a) {
                 case 5:
                     localStorage.clear();
                     window.location.href = "/login";
-                    return [2 /*return*/];
+                    return [2 /*return*/, false];
                 case 6: return [3 /*break*/, 8];
                 case 7:
                     localStorage.clear();
                     window.location.href = "/login";
-                    return [2 /*return*/];
+                    return [2 /*return*/, false];
                 case 8:
                     if (!!response.ok) return [3 /*break*/, 10];
                     return [4 /*yield*/, response.json()];
                 case 9:
                     errorData = _a.sent();
                     if (response.status === 409) {
-                        react_toastify_1.toast.error(errorData.message || "Xung đột dữ liệu khi cập nhật nhóm!", {
+                        react_toastify_1.toast.error(errorData.message || "Xung đột dữ liệu khi cập nhật người dùng!", {
                             position: "top-center",
                             autoClose: 3000
                         });
-                        return [2 /*return*/];
+                        return [2 /*return*/, false];
                     }
-                    throw new Error("Không thể cập nhật thông tin nhóm");
+                    throw new Error("Không thể cập nhật thông tin người dùng");
                 case 10: return [4 /*yield*/, response.json()];
                 case 11:
                     data = _a.sent();
                     if (data.code === "error") {
-                        react_toastify_1.toast.error(data.message || "Không thể cập nhật thông tin nhóm!", {
+                        react_toastify_1.toast.error(data.message || "Không thể cập nhật thông tin người dùng!", {
                             position: "top-center",
                             autoClose: 3000
                         });
-                        return [2 /*return*/];
+                        return [2 /*return*/, false];
                     }
                     if (data.code === "success") {
-                        react_toastify_1.toast.success("Cập nhật thông tin nhóm thành công!", {
-                            position: "top-center",
-                            autoClose: 3000
-                        });
-                        // Cập nhật avatar từ server nếu có
-                        if (data.data.avatarUrl) {
-                            setAvatars([{ source: data.data.avatarUrl, options: { type: "server" } }]);
+                        if (isEmailChanged) {
+                            react_toastify_1.toast.success("Cập nhật thông tin người dùng thành công! Vui lòng đăng nhập lại.", {
+                                position: "top-center",
+                                autoClose: 3000
+                            });
+                            localStorage.clear();
+                            window.location.href = "/login";
+                            onClose();
+                            return [2 /*return*/, true];
                         }
-                        onUpdateSuccess();
-                        onClose();
+                        else {
+                            react_toastify_1.toast.success("Cập nhật thông tin người dùng thành công!", {
+                                position: "top-center",
+                                autoClose: 3000
+                            });
+                            if (data.data.avatarUrl) {
+                                setAvatars([{ source: data.data.avatarUrl, options: { type: "server" } }]);
+                            }
+                            onClose();
+                            onSuccess();
+                            return [2 /*return*/, true];
+                        }
                     }
                     return [3 /*break*/, 14];
                 case 12:
                     err_1 = _a.sent();
                     console.error("Lỗi:", err_1);
-                    react_toastify_1.toast.error("Không thể cập nhật thông tin nhóm!", {
+                    react_toastify_1.toast.error("Không thể cập nhật thông tin người dùng!", {
                         position: "top-center",
                         autoClose: 3000
                     });
-                    return [3 /*break*/, 14];
+                    return [2 /*return*/, false];
                 case 13:
                     setIsLoading(false);
                     return [7 /*endfinally*/];
@@ -224,36 +264,47 @@ function ModalEditGroupInfo(_a) {
             }
         });
     }); };
-    if (!isOpen)
+    if (!user || !isOpen) {
         return null;
+    }
     return (React.createElement("div", { className: "fixed inset-0 flex items-center justify-center z-50" },
-        React.createElement("div", { ref: modalRef, className: "bg-white/90 backdrop-blur-md rounded-lg p-4 w-full max-w-[476px] shadow-xl border border-gray-200", style: {
+        React.createElement("div", { className: "absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity duration-300", onClick: onClose }),
+        React.createElement("div", { ref: modalRef, className: "bg-white/90 backdrop-blur-md rounded-lg p-4 w-full max-w-[500px] shadow-xl border border-gray-200", style: {
                 transform: isOpen ? "scale(1)" : "scale(0.7)",
                 opacity: isOpen ? 1 : 0,
                 transition: "transform 0.3s ease-out, opacity 0.3s ease-out"
             } },
-            React.createElement("div", { className: "flex justify-between items-center mb-4" },
-                React.createElement("h2", { className: "text-2xl font-bold text-[#5BC5A7]" }, "Ch\u1EC9nh s\u1EEDa th\u00F4ng tin nh\u00F3m"),
-                React.createElement("button", { onClick: onClose, className: "text-gray-500 hover:text-gray-700 focus:outline-none" },
-                    React.createElement(fi_1.FiX, { size: 24 }))),
             React.createElement("div", { className: "mb-4 text-center" },
-                React.createElement("label", { htmlFor: "avatar", className: "block font-[500] text-[14px] text-black mb-[5px]" }, "Avatar"),
+                React.createElement("label", { htmlFor: "avatar", className: "block font-[500] text-[14px] text-black mb-[5px]" }, "\u1EA2nh \u0111\u1EA1i di\u1EC7n"),
                 React.createElement(react_filepond_1.FilePond, __assign({ name: "avatar", allowMultiple: false, allowRemove: true, labelIdle: "+", acceptedFileTypes: ["image/*"], files: avatars, onupdatefiles: function (fileItems) {
                         setAvatars(fileItems);
                     }, imagePreviewMaxHeight: 200 }, { imagePreviewMaxWidth: 200 }, { className: "w-full" })),
                 avatars.length > 0 && avatars[0].file instanceof File ? (React.createElement("img", { src: URL.createObjectURL(avatars[0].file), alt: "Preview avatar", className: "w-24 h-24 rounded-full mx-auto mt-2" })) : avatars.length > 0 && avatars[0].source ? (React.createElement("img", { src: avatars[0].source, alt: "Current avatar", className: "w-24 h-24 rounded-full mx-auto mt-2" })) : (React.createElement("p", { className: "mt-2 text-gray-500" }, "Ch\u01B0a c\u00F3 \u1EA3nh"))),
-            React.createElement("div", { className: "mb-4" },
-                React.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-1" }, "T\u00EAn nh\u00F3m *"),
-                React.createElement("input", { type: "text", value: groupName, onChange: function (e) { return setGroupName(e.target.value); }, className: "w-full border border-gray-300 rounded-md p-2 focus:border-[#5BC5A7]" })),
-            React.createElement("div", { className: "mb-4" },
-                React.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-1" }, "M\u00F4 t\u1EA3"),
-                React.createElement("textarea", { value: description, onChange: function (e) { return setDescription(e.target.value); }, className: "w-full border border-gray-300 rounded-md p-2 focus:border-[#5BC5A7] h-24" })),
-            React.createElement("div", { className: "mb-4" },
-                React.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-1" }, "Ti\u1EC1n t\u1EC7"),
-                React.createElement("select", { value: defaultCurrency, onChange: function (e) { return setDefaultCurrency(e.target.value); }, className: "w-full border border-gray-300 rounded-md p-2 focus:border-[#5BC5A7]" }, currencies_1.currencies.map(function (currency) { return (React.createElement("option", { key: currency.code, value: currency.code },
-                    currency.code,
-                    " - ",
-                    currency.name)); }))),
-            React.createElement("button", { onClick: handleEdit, disabled: isLoading, className: "w-full h-10 text-white rounded-md text-base font-semibold transition-colors duration-300 flex items-center justify-center " + (isLoading ? "bg-gray-400 cursor-not-allowed" : "bg-[#5BC5A7] hover:bg-[#4AA88C]") }, isLoading ? "Đang xử lý..." : "Xác nhận"))));
+            React.createElement("div", { className: "space-y-4" },
+                React.createElement("div", null,
+                    React.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-1" }, "H\u1ECD v\u00E0 t\u00EAn"),
+                    React.createElement("div", { className: "flex items-center border border-gray-300 rounded-md p-2" },
+                        React.createElement(fi_1.FiUser, { className: "text-[#5BC5A7] mr-2" }),
+                        React.createElement("input", { type: "text", value: fullName, disabled: !isEditing, onChange: function (e) { return setFullName(e.target.value); }, className: "flex-1 bg-transparent outline-none " + (isEditing ? "text-gray-900" : "text-gray-600") }))),
+                React.createElement("div", null,
+                    React.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-1" }, "Email"),
+                    React.createElement("div", { className: "flex items-center border border-gray-300 rounded-md p-2" },
+                        React.createElement(fi_1.FiMail, { className: "text-[#5BC5A7] mr-2" }),
+                        React.createElement("input", { type: "email", value: email, disabled: !isEditing, onChange: function (e) { return setEmail(e.target.value); }, className: "flex-1 bg-transparent outline-none " + (isEditing ? "text-gray-900" : "text-gray-600") }))),
+                React.createElement("div", null,
+                    React.createElement("label", { className: "block text-sm font-medium text-gray-700 mb-1" }, "S\u1ED1 \u0111i\u1EC7n tho\u1EA1i"),
+                    React.createElement("div", { className: "flex items-center border border-gray-300 rounded-md p-2" },
+                        React.createElement(fi_1.FiPhone, { className: "text-[#5BC5A7] mr-2" }),
+                        React.createElement("input", { type: "tel", value: phone, disabled: !isEditing, onChange: function (e) { return setPhone(e.target.value); }, className: "flex-1 bg-transparent outline-none " + (isEditing ? "text-gray-900" : "text-gray-600") })))),
+            React.createElement("div", { className: "flex justify-center mt-8" },
+                React.createElement("button", { onClick: handleSetEditing, disabled: isLoading, className: "flex items-center justify-center gap-2 w-[200px] h-12 rounded-md text-base font-semibold transition-all duration-300 " + (isLoading
+                        ? "bg-gray-400 cursor-not-allowed text-gray-800"
+                        : isEditing
+                            ? "bg-[#5BC5A7] text-white hover:bg-[#4AA88C]"
+                            : "bg-gray-300 text-gray-800 hover:bg-gray-400") }, isLoading ? (React.createElement("span", null, "\u0110ang x\u1EED l\u00FD...")) : isEditing ? (React.createElement(React.Fragment, null,
+                    React.createElement(fi_1.FiSave, { size: 18 }),
+                    React.createElement("span", null, "L\u01B0u thay \u0111\u1ED5i"))) : (React.createElement(React.Fragment, null,
+                    React.createElement(fi_1.FiEdit3, { size: 18 }),
+                    React.createElement("span", null, "Ch\u1EC9nh s\u1EEDa"))))))));
 }
-exports["default"] = ModalEditGroupInfo;
+exports["default"] = UserInfo;
