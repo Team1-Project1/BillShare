@@ -90,8 +90,12 @@ public class GroupServiceImpl implements GroupService {
         group.setGroupName(request.getGroupName());
         group.setDescription(request.getDescription());
         group.setDefaultCurrency(request.getDefaultCurrency());
-        if(file != null && !file.isEmpty()){
-            String urlImage=uploadImageService.uploadImage(file);
+        //Nếu người dùng không đổi ảnh, giữ nguyên avatar cũ
+        if (file == null || file.isEmpty()) {
+            // không làm gì cả, giữ nguyên ảnh cũ
+        } else {
+            //Nếu có file mới, upload và cập nhật
+            String urlImage = uploadImageService.uploadImage(file);
             group.setAvatarUrl(urlImage);
         }
         groupRepository.save(group);

@@ -24,7 +24,10 @@ public class UploadImageServiceImpl implements UploadImageService {
 
     @Override
     public String uploadImage(MultipartFile file) throws Exception {
-        assert file.getOriginalFilename() != null;
+        if (file == null || file.isEmpty() || file.getOriginalFilename() == null) {
+            log.warn("File upload trống hoặc không hợp lệ");
+            return null;
+        }
         String publicValue=generatePublicValue(file.getOriginalFilename());
         String extension=getFileName(file.getOriginalFilename())[1];
         File fileUpload=convert(file);
@@ -36,7 +39,7 @@ public class UploadImageServiceImpl implements UploadImageService {
     }
     public File convert(MultipartFile file) throws Exception{
         assert file.getOriginalFilename() != null;
-        File convFile=new File(StringUtils.join(generatePublicValue(file.getOriginalFilename()),getFileName(file.getOriginalFilename())[1]));
+        File convFile = new File(generatePublicValue(file.getOriginalFilename()) + "." + getFileName(file.getOriginalFilename())[1]);
         try(InputStream is=file.getInputStream()){
             Files.copy(is,convFile.toPath());
         }
@@ -56,6 +59,13 @@ public class UploadImageServiceImpl implements UploadImageService {
     }
 
     public String[] getFileName(String originalName){
-        return originalName.split("\\.");
+        String[] parts = originalName.split("\\.");
+        if (parts.length < 2) {
+            return new String[]{parts[0], ""}; // không có phần mở rộng
+        }
+        // nếu tên có nhiều dấu chấm, ví dụ: "my.photo.image.png"
+        String extension = parts[parts.length - 1];
+        String name = String.join(".", java.util.Arrays.copyOf(parts, parts.length - 1));
+        return new String[]{name, extension};
     }
 }
