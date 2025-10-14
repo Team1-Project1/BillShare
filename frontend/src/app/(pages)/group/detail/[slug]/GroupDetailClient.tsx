@@ -63,7 +63,6 @@ interface Member {
   name: string;
   email: string;
   avatar?: string;
-  debt: number;
 }
 
 interface Expense {
@@ -75,6 +74,13 @@ interface Expense {
   currency: string;
 }
 
+interface Balances {
+  userId: number;
+  userName: string;
+  amount: number;
+  isOwed: boolean;
+}
+
 interface Group {
   groupId: number;
   name: string;
@@ -82,8 +88,8 @@ interface Group {
   defaultCurrency: string;
   avatar: string;
   memberCount: number;
-  totalCost: number;
   netAmount: number;
+  totalCost: number;
   members: Member[];
   expenses: Expense[];
   createdBy: number;
@@ -100,8 +106,8 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
     defaultCurrency: "VND",
     avatar: "",
     memberCount: 0,
-    totalCost: 0,
     netAmount: 0,
+    totalCost: 0,
     members: [],
     expenses: [],
     createdBy: 0,
@@ -115,6 +121,7 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
   const [isEditGroupInfoOpen, setIsEditGroupInfoOpen] = useState(false);
   const [isViewAllExpensesOpen, setIsViewAllExpensesOpen] = useState(false);
   const [isAddExpenseModalOpen, setIsAddExpenseModalOpen] = useState(false);
+  const [balances, setBalances] = useState<Balances[]>([]);
   const canShowDelete = userId === group.createdBy;
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -238,68 +245,13 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
           0
         );
 
-        let netAmount = 0;
-        const memberDebts: { [key: number]: number } = {};
-
-        group.members.forEach((member) => {
-          memberDebts[member.id] = 0;
-        });
-
-        for (const expense of data.data) {
-          const detailResponse = await fetchWithAuth(
-            `${process.env.NEXT_PUBLIC_API_URL}/api/groups/${slug}/expenses/${expense.expenseId}`,
-            {
-              method: "GET",
-              headers: {
-                "Content-Type": "application/json",
-                Accept: "*/*",
-              },
-            }
-          );
-
-          if (!detailResponse.ok) {
-            continue;
-          }
-
-          const detailData = await detailResponse.json();
-          if (detailData.code !== "success") {
-            continue;
-          }
-
-          const expenseDetail: ExpenseDetail = detailData.data;
-          const currentUserId = Number(localStorage.getItem("userId")) || userId;
-
-          if (expenseDetail.payerUserId === currentUserId) {
-            const participant = expenseDetail.participants.find(
-              (p) => p.userId === currentUserId
-            );
-            const shareAmount = participant ? participant.shareAmount : 0;
-            netAmount += expenseDetail.totalAmount - shareAmount;
-          } else {
-            const participant = expenseDetail.participants.find(
-              (p) => p.userId === currentUserId
-            );
-            if (participant) {
-              netAmount -= participant.shareAmount;
-            }
-          }
-
-          expenseDetail.participants.forEach((participant) => {
-            if (participant.userId !== expenseDetail.payerUserId) {
-              memberDebts[participant.userId] =
-                (memberDebts[participant.userId] || 0) + participant.shareAmount;
-            }
-          });
-        }
-
+        
         setGroup((prev) => ({
           ...prev,
           expenses: mappedExpenses,
           totalCost,
-          netAmount,
           members: prev.members.map((member) => ({
             ...member,
-            debt: memberDebts[member.id] || 0,
           })),
         }));
 
@@ -317,6 +269,70 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
     }
   };
 
+  const fetchBalances = async () => {
+    if (!slug || isNaN(Number(slug))) {
+      console.error("Invalid groupId:", slug);
+      toast.error("ID nhóm không hợp lệ!", { position: "top-center" });
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const response = await fetchWithAuth(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/groups/${slug}/users/${userId}/balances`,
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "*/*",
+          },
+        }
+      );
+      if (!response.ok) {
+        if (response.status === 401) {
+          toast.error("Phiên đăng nhập hết hạn, vui lòng đăng nhập lại!", {
+            position: "top-center",
+          });
+          return;
+        } throw new Error("Không thể tải số dư");
+      }
+      const data = await response.json();
+      
+      if ( Array.isArray(data.balances)) {
+        const mappedBalances: Balances[] = data.balances.map((item: any) => ({
+          userId: item.userId,
+          userName: item.userName,
+          amount: item.amount,
+          isOwed: item.isOwed,
+        }));
+
+        let netAmount = 0;
+        mappedBalances.forEach((b) => {
+          if (b.isOwed) {
+            netAmount += b.amount;
+          } else {
+            netAmount -= b.amount;
+          }
+        });
+
+        setGroup((prev) => ({
+          ...prev,
+          netAmount: netAmount,
+        }));
+
+        setBalances(mappedBalances);
+        toast.success("Tải số dư thành công!", { position: "top-center" });
+      } else {
+        toast.error("Không thể tải số dư!", { position: "top-center" });
+      }
+      setLoading(false);
+    } catch (err) {
+      console.error("Fetch error:", err);
+      toast.error("Không thể tải số dư!", { position: "top-center" });
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     const loadData = async () => {
       await fetchGroupDetails();
@@ -324,6 +340,15 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
     };
     loadData();
   }, [slug]);
+
+  useEffect(() => {
+    console.log("UserID in GroupDetailClient:", userId);
+    const loafData = async () => {
+      if (!userId) return;
+      await fetchBalances();
+    };
+    loafData();
+  }, [slug, userId]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -338,6 +363,11 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
   const handleInviteSuccess = () => {
     fetchGroupDetails();
   };
+
+  const handleEditExpenseSuccess = () => {
+    fetchExpenses();
+    fetchBalances();
+  }
 
   const handleDeleteGroup = async () => {
     try {
@@ -515,12 +545,13 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
               <div className="space-y-4">
                 {loading
                   ? <p className="text-gray-600 italic text-center">Đang tải...</p>
-                  : group.members.length > 0
-                  ? group.members.map((member) => (
+                  : balances.length > 0
+                  ? balances.map((balance) => (
                       <CardFriendEnhanced
-                        key={member.id}
-                        name={member.name}
-                        debt={member.debt}
+                        key={balance.userId}
+                        name={balance.userName}
+                        debt={balance.amount}
+                        isOwed={balance.isOwed}
                         currency={group.defaultCurrency}
                         isLoading={expensesLoading}
                       />
@@ -622,13 +653,13 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
         userId={Number(userId)}
         currency={group.defaultCurrency}
         members={group.members}
-        onDeleteSuccess={fetchExpenses}
-        onEditSuccess={fetchExpenses}
+        onDeleteSuccess={handleEditExpenseSuccess}
+        onEditSuccess={handleEditExpenseSuccess}
       />
       <ModalAddExpense
         isOpen={isAddExpenseModalOpen}
         onClose={() => setIsAddExpenseModalOpen(false)}
-        onSuccess={fetchExpenses}
+        onSuccess={handleEditExpenseSuccess}
         userId={Number(userId)}
         groupId={group.groupId}
         members={group.members}
