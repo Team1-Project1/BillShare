@@ -16,4 +16,5 @@ public interface BalanceService {
     BalanceEntity getBalanceBetweenUsers(Long groupId, Long userId1, Long userId2);
     void rollBackBalance(ExpenseEntity expense,Long oldPayerId,List<ExpenseParticipantEntity>oldParticipants);
     BalanceResponse getUserBalanceResponse(Long groupId, Long userId);
+    BalanceResponse getSimplifiedUserBalanceResponse(Long groupId, Long userId);
 }
