@@ -94,7 +94,9 @@ public class UserServiceImpl implements UserService {
             }
             user.setPhone(userRequest.getPhone());
         }
-        if (file != null && !file.isEmpty()) {
+        if (file == null || file.isEmpty()) {
+        }
+        else{
             String imageUrl = uploadImageService.uploadImage(file);
             user.setAvatarUrl(imageUrl);
         }
