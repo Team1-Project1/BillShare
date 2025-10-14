@@ -44,7 +44,7 @@ public class AppConfig {
             public void addCorsMappings(@NonNull CorsRegistry registry) {
                 registry.addMapping("/**") // cho tất cả API
                         .allowedOrigins("*") // cho phép mọi domain gọi
-                        .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS") // các method cho phép
+                        .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS","PATCH") // các method cho phép
                         .allowedHeaders("*") // cho phép mọi header
                         .allowCredentials(false) // không cho gửi cookie
                         .maxAge(3600); // cache preflight request trong 1h
