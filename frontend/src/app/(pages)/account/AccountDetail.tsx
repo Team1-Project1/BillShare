@@ -1,13 +1,14 @@
 "use client";
 
-import { use, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import ModalConfirmLogout from "@/components/modal/ModalConfirmLogout";
-import { FiUser, FiMail, FiSettings } from "react-icons/fi";
+import { FiUser, FiMail, FiSettings, FiLock } from "react-icons/fi";
 import { toast } from "react-toastify";
 import { fetchWithAuth } from "@/lib/fetchWithAuth";
 import { useAuthRefresh } from "@/hooks/useAuthRefresh";
 import ModalUserInfo from "@/components/modal/ModalUserInfo";
+import ModalResetPassword from "@/components/modal/ModalResetPassword";
 
 interface User {
     fullName: string;
@@ -22,6 +23,8 @@ export default function AccountDetailPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const [onSuccess, setOnSuccess] = useState(false);
+  const [isAccountSettingOpen, setIsAccountSettingOpen] = useState(false);
+  const [isModalResetPasswordOpen, setIsModalResetPasswordOpen] = useState(false);
   const router = useRouter();
 
   const handleLogout = () => {
@@ -114,10 +117,38 @@ export default function AccountDetailPage() {
             <span className="text-base font-medium">Liên hệ hỗ trợ</span>
           </button>
 
-          <button className="flex items-center w-full p-3 rounded-lg hover:bg-gray-100 transition">
-            <FiSettings className="text-[#5BC5A7] mr-3" size={20} />
-            <span className="text-base font-medium">Cài đặt tài khoản</span>
+          {/* Cài đặt tài khoản (menu cha) */}
+          <div>
+          <button
+            onClick={() => setIsAccountSettingOpen(!isAccountSettingOpen)}
+            className="flex items-center justify-between w-full p-3 rounded-lg hover:bg-gray-100 transition"
+          >
+            <div className="flex items-center">
+              <FiSettings className="text-[#5BC5A7] mr-3" size={20} />
+              <span className="text-base font-medium">Cài đặt tài khoản</span>
+            </div>
+            <span
+              className={`transition-transform duration-200 ${
+              isAccountSettingOpen ? "rotate-180" : "rotate-0"
+              }`}
+            >
+              ▼
+            </span>
           </button>
+
+          {/* Menu con */}
+          {isAccountSettingOpen && (
+            <div className="pl-10 pr-3 py-2 animate-fadeIn ">
+              <button
+                onClick={() => setIsModalResetPasswordOpen(true)}
+                className="flex items-center w-full p-2 rounded-md hover:bg-gray-100 text-gray-700 transition"
+              >
+                <FiLock className="text-[#5BC5A7] mr-3" size={18} />
+                <span className="text-sm font-medium">Đặt lại mật khẩu</span>
+              </button>
+            </div>
+          )}
+          </div>
         </div>
       </div>
 
@@ -138,7 +169,14 @@ export default function AccountDetailPage() {
         onSuccess={() => setOnSuccess(true)}
         user={user!}
         userId={userId!}
-        /> 
+        />
+        <ModalResetPassword
+        isOpen= {isModalResetPasswordOpen}
+        onClose={() => setIsModalResetPasswordOpen(false)}
+        onSuccess={handleLogout}
+        user={user!}
+        userId={userId!}
+        />
     </>
   );
 }
