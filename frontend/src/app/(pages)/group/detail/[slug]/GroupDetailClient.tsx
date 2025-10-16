@@ -12,11 +12,10 @@ import {
   FiMoreVertical,
   FiTrash2,
   FiEdit2,
-  FiImage,
-  FiDownload,
   FiUserPlus,
   FiEdit,
   FiEye,
+  FiDownload,
 } from "react-icons/fi";
 import ModalAddMember from "@/components/modal/ModalAddMember";
 import ModalViewAllMembers from "@/components/modal/ModalViewAllMembers";
@@ -27,6 +26,7 @@ import ModalAddExpense from "@/components/modal/ModalAddExpense";
 import { fetchWithAuth } from "@/lib/fetchWithAuth";
 import { useAuthRefresh } from "@/hooks/useAuthRefresh";
 import { SearchBar } from "@/components/bar/SearchBar";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface APIMember {
   userId: number;
@@ -122,6 +122,8 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
   const [isViewAllExpensesOpen, setIsViewAllExpensesOpen] = useState(false);
   const [isAddExpenseModalOpen, setIsAddExpenseModalOpen] = useState(false);
   const [balances, setBalances] = useState<Balances[]>([]);
+  const [simplifiedBalances, setSimplifiedBalances] = useState<Balances[]>([]);
+  const [isSimplified, setIsSimplified] = useState(false);
   const canShowDelete = userId === group.createdBy;
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -169,7 +171,9 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
           name: apiGroup.groupName,
           description: apiGroup.description || "Không có mô tả",
           defaultCurrency: apiGroup.defaultCurrency || "VND",
-          avatar: apiGroup.avatar || "https://res.cloudinary.com/dtpxp9qqf/image/upload/v1750519773/xholultqlsq1bscqj7bv.jpg", // Sử dụng apiGroup.avatar thay vì avatarUrl
+          avatar:
+            apiGroup.avatar ||
+            "https://res.cloudinary.com/dtpxp9qqf/image/upload/v1750519773/xholultqlsq1bscqj7bv.jpg",
           memberCount: apiGroup.members.length,
           members: apiGroup.members.map((member: APIMember) => ({
             id: member.userId,
@@ -245,7 +249,6 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
           0
         );
 
-        
         setGroup((prev) => ({
           ...prev,
           expenses: mappedExpenses,
@@ -294,11 +297,12 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
             position: "top-center",
           });
           return;
-        } throw new Error("Không thể tải số dư");
+        }
+        throw new Error("Không thể tải số dư");
       }
       const data = await response.json();
-      
-      if ( Array.isArray(data.balances)) {
+
+      if (Array.isArray(data.balances)) {
         const mappedBalances: Balances[] = data.balances.map((item: any) => ({
           userId: item.userId,
           userName: item.userName,
@@ -333,6 +337,64 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
     }
   };
 
+  const fetchSimplifiedBalances = async () => {
+    if (!slug || isNaN(Number(slug))) {
+      console.error("Invalid groupId:", slug);
+      toast.error("ID nhóm không hợp lệ!", { position: "top-center" });
+      return;
+    }
+
+    try {
+      const response = await fetchWithAuth(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/groups/${slug}/users/${userId}/balances/simplified`,
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "*/*",
+          },
+        }
+      );
+      if (!response.ok) {
+        if (response.status === 401) {
+          toast.error("Phiên đăng nhập hết hạn, vui lòng đăng nhập lại!", {
+            position: "top-center",
+          });
+          return;
+        }
+        throw new Error("Không thể tải số dư đơn giản hóa");
+      }
+      const data = await response.json();
+
+      if (Array.isArray(data.balances)) {
+        const mappedSimplifiedBalances: Balances[] = data.balances.map((item: any) => ({
+          userId: item.userId,
+          userName: item.userName,
+          amount: item.amount,
+          isOwed: item.isOwed,
+        }));
+
+        setSimplifiedBalances(mappedSimplifiedBalances);
+        toast.success("Đơn giản hóa nợ thành công!", { position: "top-center" });
+      } else {
+        toast.error("Không thể tải số dư đơn giản hóa!", { position: "top-center" });
+      }
+    } catch (err) {
+      console.error("Fetch error:", err);
+      toast.error("Không thể tải số dư đơn giản hóa!", { position: "top-center" });
+    }
+  };
+
+  const handleSimplifyToggle = async () => {
+    if (isSimplified) {
+      setIsSimplified(false);
+      toast.info("Đã hoàn tác đơn giản hóa!", { position: "top-center" });
+    } else {
+      await fetchSimplifiedBalances();
+      setIsSimplified(true);
+    }
+  };
+
   useEffect(() => {
     const loadData = async () => {
       await fetchGroupDetails();
@@ -343,11 +405,11 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
 
   useEffect(() => {
     console.log("UserID in GroupDetailClient:", userId);
-    const loafData = async () => {
+    const loadData = async () => {
       if (!userId) return;
       await fetchBalances();
     };
-    loafData();
+    loadData();
   }, [slug, userId]);
 
   useEffect(() => {
@@ -367,7 +429,7 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
   const handleEditExpenseSuccess = () => {
     fetchExpenses();
     fetchBalances();
-  }
+  };
 
   const handleDeleteGroup = async () => {
     try {
@@ -522,9 +584,9 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
                     ? `Bạn được nhận: ${group.netAmount.toLocaleString()} ${
                         group.defaultCurrency
                       }`
-                    : `Bạn đang nợ: ${Math.abs(group.netAmount).toLocaleString()} ${
-                        group.defaultCurrency
-                      }`}
+                    : `Bạn đang nợ: ${Math.abs(
+                        group.netAmount
+                      ).toLocaleString()} ${group.defaultCurrency}`}
                 </p>
               </div>
             </div>
@@ -542,21 +604,62 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
                   Xem tất cả
                 </a>
               </div>
+              <button
+                onClick={handleSimplifyToggle}
+                className={`w-full h-12 text-white rounded-md text-base font-semibold transition-colors duration-300 flex items-center justify-center pt-2 mb-4 ${
+                  isSimplified
+                    ? "bg-[#FFB74D] hover:bg-[#F5A623]"
+                    : "bg-[#4B8BBE] hover:bg-[#6397c3]"
+                }`}
+              >
+                {isSimplified ? "Hoàn tác" : "Đơn giản hóa"}
+              </button>
               <div className="space-y-4">
-                {loading
-                  ? <p className="text-gray-600 italic text-center">Đang tải...</p>
-                  : balances.length > 0
-                  ? balances.map((balance) => (
-                      <CardFriendEnhanced
-                        key={balance.userId}
-                        name={balance.userName}
-                        debt={balance.amount}
-                        isOwed={balance.isOwed}
-                        currency={group.defaultCurrency}
-                        isLoading={expensesLoading}
-                      />
-                    ))
-                  : <p className="text-gray-600 italic text-center">Chưa có thành viên nào.</p>}
+                <AnimatePresence>
+                  {loading ? (
+                    <motion.p
+                      key="loading"
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -20 }}
+                      transition={{ duration: 0.3 }}
+                      className="text-gray-600 italic text-center"
+                    >
+                      Đang tải...
+                    </motion.p>
+                  ) : (isSimplified ? simplifiedBalances : balances).length > 0 ? (
+                    (isSimplified ? simplifiedBalances : balances).map(
+                      (balance) => (
+                        <motion.div
+                          key={balance.userId}
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -20 }}
+                          transition={{ duration: 0.3 }}
+                        >
+                          <CardFriendEnhanced
+                            name={balance.userName}
+                            debt={balance.amount}
+                            isOwed={balance.isOwed}
+                            currency={group.defaultCurrency}
+                            isLoading={expensesLoading}
+                          />
+                        </motion.div>
+                      )
+                    )
+                  ) : (
+                    <motion.p
+                      key="no-members"
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -20 }}
+                      transition={{ duration: 0.3 }}
+                      className="text-gray-600 italic text-center"
+                    >
+                      Chưa có thành viên nào.
+                    </motion.p>
+                  )}
+                </AnimatePresence>
               </div>
               <button
                 onClick={() => setIsModalOpen(true)}
