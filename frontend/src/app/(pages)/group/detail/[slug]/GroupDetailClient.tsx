@@ -5,6 +5,7 @@ import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";
 import CardExpense from "@/components/card/CardExpense";
 import CardFriendEnhanced from "@/components/card/CardFriendEnhanced";
+import CardActivity from "@/components/card/CardActivity";
 import { BottomNav } from "@/components/Footer/BottomNav";
 import Head from "next/head";
 import {
@@ -16,6 +17,9 @@ import {
   FiEdit,
   FiEye,
   FiDownload,
+  FiActivity,
+  FiHelpCircle,
+  FiChevronDown,
 } from "react-icons/fi";
 import ModalAddMember from "@/components/modal/ModalAddMember";
 import ModalViewAllMembers from "@/components/modal/ModalViewAllMembers";
@@ -81,6 +85,17 @@ interface Balances {
   isOwed: boolean;
 }
 
+interface Activity {
+  transactionId: number;
+  groupId: number;
+  userId: number;
+  actionType: string;
+  entityType: string;
+  entityId: number;
+  timestamp: string;
+  userName?: string;
+}
+
 interface Group {
   groupId: number;
   name: string;
@@ -98,6 +113,7 @@ interface Group {
 export default function GroupDetailClient({ slug }: { slug: string }) {
   const router = useRouter();
   const { userId } = useAuthRefresh();
+  const activitiesRef = useRef<HTMLDivElement>(null);
 
   const [group, setGroup] = useState<Group>({
     groupId: 0,
@@ -124,6 +140,9 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
   const [balances, setBalances] = useState<Balances[]>([]);
   const [simplifiedBalances, setSimplifiedBalances] = useState<Balances[]>([]);
   const [isSimplified, setIsSimplified] = useState(false);
+  const [activities, setActivities] = useState<Activity[]>([]);
+  const [activitiesLoading, setActivitiesLoading] = useState(false);
+  const [showActivities, setShowActivities] = useState(false);
   const canShowDelete = userId === group.createdBy;
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -385,6 +404,71 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
     }
   };
 
+  const fetchActivities = async () => {
+    if (!slug || isNaN(Number(slug))) {
+      console.error("Invalid groupId:", slug);
+      toast.error("ID nhóm không hợp lệ!", { position: "top-center" });
+      return;
+    }
+
+    setActivitiesLoading(true);
+    if (!userId) {
+      toast.error("Bạn cần đăng nhập để xem giao dịch!");
+      return;
+    }
+    try {
+      const response = await fetchWithAuth(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/groups/${slug}/transactions`,
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "*/*",
+            "userId": userId.toString(),
+          },
+        }
+      );
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          toast.error("Phiên đăng nhập hết hạn, vui lòng đăng nhập lại!", {
+            position: "top-center",
+          });
+          return;
+        }
+        throw new Error("Không thể tải hoạt động");
+      }
+
+      const data = await response.json();
+      if (data.code === "error") {
+        toast.error(data.message, { position: "top-center" });
+        return;
+      }
+
+      if (data.code === "success" && Array.isArray(data.data)) {
+        const mappedActivities: Activity[] = data.data.map((item: any) => ({
+          transactionId: item.transactionId,
+          groupId: item.groupId,
+          userId: item.userId,
+          actionType: item.actionType,
+          entityType: item.entityType,
+          entityId: item.entityId,
+          timestamp: item.timestamp,
+          userName: group.members.find((m) => m.id === item.userId)?.name || "Người dùng",
+        }));
+        setActivities(mappedActivities);
+        toast.success("Tải hoạt động thành công!", { position: "top-center" });
+      } else {
+        toast.error("Không thể tải hoạt động!", { position: "top-center" });
+      }
+    } catch (err) {
+      console.error("Fetch error:", err);
+      toast.error("Không thể tải hoạt động!", { position: "top-center" });
+    } finally {
+      setActivitiesLoading(false);
+    }
+  };
+
   const handleSimplifyToggle = async () => {
     if (isSimplified) {
       setIsSimplified(false);
@@ -393,6 +477,15 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
       await fetchSimplifiedBalances();
       setIsSimplified(true);
     }
+  };
+
+  const handleShowActivities = () => {
+    if (!showActivities) {
+      fetchActivities();
+      // Cuộn mượt mà đến section Hoạt động gần đây
+      activitiesRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+    setShowActivities(!showActivities);
   };
 
   useEffect(() => {
@@ -461,6 +554,17 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Variants cho stagger effect
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1,
+      },
+    },
   };
 
   if (loading) return <p className="text-gray-600 text-center">Đang tải...</p>;
@@ -596,24 +700,36 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
                 <h2 className="text-lg font-semibold text-[#5BC5A7] flex items-center">
                   <FiUsers className="mr-2" /> Thành viên
                 </h2>
-                <a
-                  href="#"
+                <button
                   onClick={() => setIsViewAllModalOpen(true)}
                   className="text-sm text-[#5BC5A7] hover:underline"
                 >
                   Xem tất cả
-                </a>
+                </button>
               </div>
-              <button
-                onClick={handleSimplifyToggle}
-                className={`w-full h-12 text-white rounded-md text-base font-semibold transition-colors duration-300 flex items-center justify-center pt-2 mb-4 ${
-                  isSimplified
-                    ? "bg-[#FFB74D] hover:bg-[#F5A623]"
-                    : "bg-[#4B8BBE] hover:bg-[#6397c3]"
-                }`}
-              >
-                {isSimplified ? "Hoàn tác" : "Đơn giản hóa"}
-              </button>
+              <div className="flex items-center mb-4">
+                <div className="group relative flex items-center">
+                  <FiHelpCircle className="text-gray-500 mr-2" size={16} />
+                  <span className="absolute left-0 bottom-full mb-2 hidden group-hover:block w-48 bg-gray-800 text-white text-xs rounded py-1 px-2">
+                    Bật để xem danh sách nợ đơn giản hóa, tắt để xem chi tiết.
+                  </span>
+                </div>
+                <div
+                  className={`relative w-14 h-7 rounded-full cursor-pointer transition-colors duration-300 ${
+                    isSimplified ? "bg-[#5BC5A7]" : "bg-gray-300"
+                  }`}
+                  onClick={handleSimplifyToggle}
+                >
+                  <motion.div
+                    className="absolute w-5 h-5 bg-white rounded-full top-1 left-1 shadow-sm"
+                    animate={{ x: isSimplified ? 28 : 0 }}
+                    transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                  />
+                </div>
+                <span className="text-sm text-gray-500 ml-2">
+                  {isSimplified ? "Đơn giản hóa: Bật" : "Đơn giản hóa: Tắt"}
+                </span>
+              </div>
               <div className="space-y-4">
                 <AnimatePresence>
                   {loading ? (
@@ -674,13 +790,12 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
                 <h2 className="text-lg font-semibold text-[#5BC5A7] flex items-center">
                   <FiEye className="mr-2" /> Khoản chi gần đây
                 </h2>
-                <a
-                  href="#"
+                <button
                   onClick={() => setIsViewAllExpensesOpen(true)}
                   className="text-sm text-[#5BC5A7] hover:underline"
                 >
                   Xem tất cả
-                </a>
+                </button>
               </div>
               {expensesLoading ? (
                 <p className="text-gray-600 italic animate-pulse text-center">
@@ -717,6 +832,77 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
               >
                 <FiEdit2 className="mr-2" /> Thêm chi tiêu
               </button>
+              <div className="mt-6" ref={activitiesRef}>
+                <div className="flex items-center justify-between mb-2">
+                  <h2
+                    className="text-lg font-semibold text-[#5BC5A7] flex items-center cursor-pointer hover:underline"
+                    onClick={handleShowActivities}
+                  >
+                    <FiActivity className="mr-2" /> Hoạt động gần đây
+                  </h2>
+                  <button
+                    onClick={handleShowActivities}
+                    className="text-sm text-[#5BC5A7] hover:underline"
+                  >
+                    {showActivities ? "Ẩn" : "Xem tất cả"}
+                  </button>
+                </div>
+                <div className="flex justify-center">
+                  <motion.button
+                    onClick={handleShowActivities}
+                    className="flex items-center justify-center px-4 py-2 bg-[#E6F4F1] text-[#5BC5A7] rounded-md text-sm font-semibold border border-[#5BC5A7]/50 hover:bg-[#D1E9E3] transition-colors duration-300"
+                    whileHover={{ scale: 1.05, transition: { duration: 0.2 } }}
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    <motion.span
+                      animate={{ rotate: showActivities ? 180 : 0 }}
+                      transition={{ duration: 0.3 }}
+                    >
+                      <FiChevronDown className="mr-2" />
+                    </motion.span>
+                    {showActivities ? "Thu gọn" : "Mở rộng"}
+                  </motion.button>
+                </div>
+                <AnimatePresence>
+                  {showActivities && (
+                    <motion.div
+                      variants={containerVariants}
+                      initial="hidden"
+                      animate="visible"
+                      exit="hidden"
+                      className="space-y-4 mt-4"
+                    >
+                      {activitiesLoading ? (
+                        <motion.p
+                          key="loading-activities"
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          exit={{ opacity: 0 }}
+                          transition={{ duration: 0.3 }}
+                          className="text-gray-600 italic animate-pulse text-center"
+                        >
+                          Đang tải hoạt động...
+                        </motion.p>
+                      ) : activities.length > 0 ? (
+                        activities.map((activity) => (
+                          <CardActivity key={activity.transactionId} activity={activity} />
+                        ))
+                      ) : (
+                        <motion.p
+                          key="no-activities"
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          exit={{ opacity: 0 }}
+                          transition={{ duration: 0.3 }}
+                          className="text-gray-600 italic text-center"
+                        >
+                          Chưa có hoạt động nào.
+                        </motion.p>
+                      )}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
             </div>
           </div>
         </div>
