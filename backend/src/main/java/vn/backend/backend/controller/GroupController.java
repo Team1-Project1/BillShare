@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -85,9 +86,9 @@ public class GroupController {
             summary = "Delete group by id",
             description = "API to delete group by ID. Only allowed if user is admin and delete confirmation message if any member has cost."
     )
-    @PutMapping("/{groupId}/delete-by/{userId}")
-    public ResponseEntity<ApiResponse<String>> deleteGroup(@PathVariable Long groupId,@PathVariable Long userId) {
-        String result = groupService.deleteGroup(groupId,userId);
+    @PutMapping("/{groupId}/delete")
+    public ResponseEntity<ApiResponse<String>> deleteGroup(@PathVariable Long groupId, HttpServletRequest request, @RequestParam(defaultValue = "false") boolean confirmDeleteWithExpenses) {
+        String result = groupService.deleteGroup(groupId,request,confirmDeleteWithExpenses);
         return ResponseEntity.ok(
                 new ApiResponse<>("success",result,null)
         );
@@ -96,9 +97,20 @@ public class GroupController {
             summary = "Delete member from group",
             description = "API to delete members by ID. Only allowed if user is admin and delete and no member with cost can be deleted."
     )
-    @PutMapping("/{groupId}/{memberId}/delete-by/{userId}")
-    public ResponseEntity<ApiResponse<String>> deleteMemberFromGroup(@PathVariable Long groupId,@PathVariable Long userId,@PathVariable Long memberId) {
-        String result = groupService.deleteMemberFromGroup(groupId,userId,memberId);
+    @PutMapping("/{groupId}/delete/{memberId}")
+    public ResponseEntity<ApiResponse<String>> deleteMemberFromGroup(@PathVariable Long groupId, @PathVariable Long memberId, HttpServletRequest request) {
+        String result = groupService.deleteMemberFromGroup(groupId,memberId,request);
+        return ResponseEntity.ok(
+                new ApiResponse<>("success",result,null)
+        );
+    }
+    @Operation(
+            summary = "user leave from group",
+            description = "API to  members leave group. Only allowed if user has not expense leave group"
+    )
+    @PutMapping("/{groupId}/leave")
+    public ResponseEntity<ApiResponse<String>> leaveGroup(@PathVariable Long groupId,HttpServletRequest request) {
+        String result = groupService.leaveGroup(groupId,request);
         return ResponseEntity.ok(
                 new ApiResponse<>("success",result,null)
         );

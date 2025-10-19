@@ -13,5 +13,6 @@ public interface ExpenseParticipantRepository extends JpaRepository<ExpenseParti
     List<ExpenseParticipantEntity> findAllByUserUserId(Long userId);
     void deleteAllByExpenseExpenseId(Long expenseId);
     List<ExpenseParticipantEntity> findAllByExpense_Group_GroupId(Long groupId);
+    List<ExpenseParticipantEntity> findAllByExpense_Group_GroupIdAndUser_UserId(Long groupId, Long userId);
 }
 

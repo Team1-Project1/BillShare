@@ -1,24 +1,22 @@
 package vn.backend.backend.service.Impl;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import vn.backend.backend.common.MemberRole;
+import vn.backend.backend.common.TokenType;
 import vn.backend.backend.controller.request.GroupCreateRequest;
 import vn.backend.backend.controller.request.GroupEditRequest;
 import vn.backend.backend.controller.response.GroupDetailResponse;
 import vn.backend.backend.controller.response.GroupResponse;
 import vn.backend.backend.controller.response.GroupsOfUserResponse;
 import vn.backend.backend.controller.response.UserDetailResponse;
-import vn.backend.backend.model.GroupEntity;
-import vn.backend.backend.model.GroupMembersEntity;
-import vn.backend.backend.model.GroupMembersId;
-import vn.backend.backend.model.UserEntity;
-import vn.backend.backend.repository.GroupMembersRepository;
-import vn.backend.backend.repository.GroupRepository;
-import vn.backend.backend.repository.UserRepository;
+import vn.backend.backend.model.*;
+import vn.backend.backend.repository.*;
 import vn.backend.backend.service.GroupService;
+import vn.backend.backend.service.JwtService;
 import vn.backend.backend.service.TransactionService;
 import vn.backend.backend.common.ActionType;
 import vn.backend.backend.common.EntityType;
@@ -37,6 +35,10 @@ public class GroupServiceImpl implements GroupService {
     private final UserRepository userRepository;
     private final TransactionService transactionService;
     private final UploadImageService uploadImageService;
+    private final ExpenseRepository expenseRepository;
+    private final ExpenseParticipantRepository expenseParticipantRepository;
+    private final JwtService jwtService;
+    private final BalanceRepository balanceRepository;
     @Override
     @Transactional
     public GroupResponse createGroup(GroupCreateRequest request,MultipartFile file, Long userId) throws Exception {
@@ -167,10 +169,11 @@ public class GroupServiceImpl implements GroupService {
     }
     @Transactional
     @Override
-    public String deleteGroup(Long groupId,Long userId) {
-        UserEntity user= userRepository.findById(userId).orElseThrow(()->new RuntimeException("User not found with id " + userId));
+    public String deleteGroup(Long groupId, HttpServletRequest request, boolean confirmDeleteWithExpenses) {
+        String token= request.getHeader("Authorization").substring("Bearer ".length());
+        Long userId=jwtService.extractUserId(token, TokenType.ACCESS_TOKEN);
         GroupEntity group=groupRepository.findByGroupIdAndIsActiveTrue(groupId).orElseThrow(()->new RuntimeException("Group not found with id " + groupId));
-        Optional<GroupMembersEntity> group_member=groupMembersRepository.findById(GroupMembersId.builder().userId(user.getUserId()).groupId(groupId).build());
+        Optional<GroupMembersEntity> group_member=groupMembersRepository.findById(GroupMembersId.builder().userId(userId).groupId(groupId).build());
         if(group_member.isEmpty() ){
             throw new RuntimeException("User is not member of group");
         }
@@ -178,6 +181,12 @@ public class GroupServiceImpl implements GroupService {
             throw new RuntimeException("User is not admin of group");
         }
         //TODO: kiểm tra người dùng trong nhóm có khoản chi nào không, nếu có thì phải thông báo trưcớc khi xóa
+        List<ExpenseEntity> hasExpenses = expenseRepository.findAllByGroupGroupId(groupId);
+        if (!hasExpenses.isEmpty() && !confirmDeleteWithExpenses) {
+            throw new RuntimeException("Group id "+groupId+" has "+hasExpenses.size()+" expenses, confirmation required before deletion");
+        }
+        balanceRepository.deleteByGroup_GroupId(groupId);
+        expenseRepository.deleteByGroup_GroupId(groupId);
         group.setIsActive(false);
         groupRepository.save(group);
         List<GroupMembersEntity> members = groupMembersRepository.findAllById_GroupId(groupId);
@@ -187,13 +196,16 @@ public class GroupServiceImpl implements GroupService {
         groupMembersRepository.saveAll(members);
         return String.format("Delete group id %d successfully",groupId);
     }
-
+    @Transactional
     @Override
-    public String deleteMemberFromGroup(Long groupId, Long userId, Long memberId) {
-        UserEntity user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found with id " + userId));
-        Optional<GroupMembersEntity> group_member=groupMembersRepository.findById(GroupMembersId.builder().userId(user.getUserId()).groupId(groupId).build());
-        if(group_member.isEmpty() || group_member.get().getRole()!= MemberRole.admin){
+    public String deleteMemberFromGroup(Long groupId, Long memberId, HttpServletRequest request) {
+        String token= request.getHeader("Authorization").substring("Bearer ".length());
+        Long id=jwtService.extractUserId(token, TokenType.ACCESS_TOKEN);
+        Optional<GroupMembersEntity> group_member=groupMembersRepository.findById(GroupMembersId.builder().userId(id).groupId(groupId).build());
+        if(group_member.isEmpty()){
+            throw new RuntimeException("User is not member of group");
+        }
+        if(group_member.get().getRole()!= MemberRole.admin){
             throw new RuntimeException("User is not admin of group");
         }
         GroupMembersEntity memberToDelete = groupMembersRepository.findById(
@@ -202,16 +214,42 @@ public class GroupServiceImpl implements GroupService {
                         .groupId(groupId)
                         .build()
         ).orElseThrow(() -> new RuntimeException("Member with id " + memberId + " not found in group " + groupId));
-        if(userId.equals(memberId)){
+        if(id.equals(memberId)){
             throw new RuntimeException("Admin cannot delete themselves from the group");
         }
         // TODO: Kiểm tra thành viên có khoản chi trong group không nếu có thì không được xóa
+        List<ExpenseParticipantEntity> hasExpenses =expenseParticipantRepository.findAllByExpense_Group_GroupIdAndUser_UserId(groupId, memberId);
+
+        if (!hasExpenses.isEmpty()) {
+            throw new RuntimeException("Cannot remove member id " +memberId+ " because they have "+hasExpenses.size() +" related expenses in the group");
+        }
+        balanceRepository.deleteByGroup_GroupIdAndUser1_UserIdOrGroup_GroupIdAndUser2_UserId(groupId, memberId, groupId, memberId);
         memberToDelete.setIsActive(false);
         groupMembersRepository.save(memberToDelete);
-
         return String.format("Delete member id %d from group id %d successfully", memberId, groupId);
     }
-
+    @Transactional
+    @Override
+    public String leaveGroup(Long groupId, HttpServletRequest request) {
+        String token= request.getHeader("Authorization").substring("Bearer ".length());
+        Long userId=jwtService.extractUserId(token, TokenType.ACCESS_TOKEN);
+        GroupEntity group=groupRepository.findByGroupIdAndIsActiveTrue(groupId).orElseThrow(()->new RuntimeException("Group not found with id " + groupId));
+        GroupMembersEntity groupMember=groupMembersRepository.findById_GroupIdAndId_UserIdAndIsActiveTrue(groupId,userId);
+        if(groupMember==null){
+            throw new RuntimeException("User is not member of group");
+        }
+        if(groupMember.getRole()==MemberRole.admin){
+            throw new RuntimeException("Admin cannot leave the group. Please assign another admin before leaving.");
+        }
+        List<ExpenseParticipantEntity> hasExpenses =expenseParticipantRepository.findAllByExpense_Group_GroupIdAndUser_UserId(groupId, userId);
+        if (!hasExpenses.isEmpty()) {
+            throw new RuntimeException("user id "+userId+" cannot leave group because you have "+hasExpenses.size() +" related expenses in the group");
+        }
+        balanceRepository.deleteByGroup_GroupIdAndUser1_UserIdOrGroup_GroupIdAndUser2_UserId(groupId, userId, groupId, userId);
+        groupMember.setIsActive(false);
+        groupMembersRepository.save(groupMember);
+        return String.format("User id %d leave group id %d successfully",userId,groupId);
+    }
     @Override
     public String uploadImageGroup(MultipartFile file, Long groupId, Long userId) throws Exception {
         UserEntity user = userRepository.findById(userId)
