@@ -6,6 +6,7 @@ import org.springframework.transaction.annotation.Transactional;
 import vn.backend.backend.model.BalanceEntity;
 import vn.backend.backend.model.ExpenseEntity;
 import vn.backend.backend.model.ExpenseParticipantEntity;
+import vn.backend.backend.model.PaymentEntity;
 import vn.backend.backend.repository.BalanceRepository;
 import vn.backend.backend.repository.ExpenseParticipantRepository;
 import vn.backend.backend.repository.GroupRepository;
@@ -604,5 +605,31 @@ public class BalanceServiceImpl implements BalanceService {
                 .groupName(group.getGroupName())
                 .balances(details)
                 .build();
+    }@Override
+    @Transactional
+    public void updateBalancesForPayment(PaymentEntity payment) {
+        Long payerId = payment.getPayer().getUserId();
+        Long payeeId = payment.getPayee().getUserId();
+        Long groupId = payment.getGroup().getGroupId();
+        BigDecimal amount = payment.getAmount();
+
+        // Payment giảm nợ: payer trả tiền cho payee
+        // Cần trừ số tiền khỏi balance giữa 2 người
+        // Nếu payer đang nợ payee -> giảm nợ
+        // Nếu payee đang nợ payer -> tăng nợ ngược lại (payee nợ ít hơn)
+        updateOrCreateBalance(groupId, payerId, payeeId, amount.negate());
+    }
+
+    @Override
+    @Transactional
+    public void updateBalancesAfterPaymentDeletion(PaymentEntity payment) {
+        Long payerId = payment.getPayer().getUserId();
+        Long payeeId = payment.getPayee().getUserId();
+        Long groupId = payment.getGroup().getGroupId();
+        BigDecimal amount = payment.getAmount();
+
+        // Rollback payment: hoàn tác việc trả nợ
+        // Cộng lại số tiền vào balance
+        updateOrCreateBalance(groupId, payerId, payeeId, amount);
     }
 }

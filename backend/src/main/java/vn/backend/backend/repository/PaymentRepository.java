@@ -12,7 +12,6 @@ public interface PaymentRepository extends JpaRepository<PaymentEntity, Long> {
     List<PaymentEntity> findAllByGroupGroupId(Long groupId);
     List<PaymentEntity> findAllByPayerUserId(Long payerId);
     List<PaymentEntity> findAllByPayeeUserId(Long payeeId);
-    List<PaymentEntity> findAllByStatus(String status);
     Optional<PaymentEntity> findByPaymentId(Long paymentId);
 }
 
