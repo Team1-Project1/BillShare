@@ -527,7 +527,7 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
   const handleDeleteGroup = async () => {
     try {
       const response = await fetchWithAuth(
-        `${process.env.NEXT_PUBLIC_API_URL}/group/${group.groupId}/delete-by/${group.createdBy}`,
+        `${process.env.NEXT_PUBLIC_API_URL}/group/${group.groupId}/delete?confirmDeleteWithExpenses=true`,
         {
           method: "PUT",
           headers: {
@@ -540,7 +540,7 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
       if (response.ok) {
         toast.success("Xóa nhóm thành công!", { position: "top-center" });
         setIsConfirmDeleteOpen(false);
-        router.push("/group/list");
+        router.push("/");
       } else {
         const errorData = await response.json();
         toast.error(errorData.message || "Không thể xóa nhóm!", {
@@ -628,7 +628,11 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
                     {canShowDelete && (
                       <button
                         onClick={() => {
-                          setIsConfirmDeleteOpen(true);
+                          if(group.expenses.length > 0) {
+                            setIsConfirmDeleteOpen(true);
+                          } else {
+                            handleDeleteGroup();
+                          }
                           setIsMenuOpen(false);
                         }}
                         className="flex items-center px-4 py-2 text-sm text-red-500 cursor-pointer hover:bg-[rgba(227,76,76,0.2)] w-full text-left"
@@ -919,6 +923,7 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
       <ModalViewAllMembers
         isOpen={isViewAllModalOpen}
         onClose={() => setIsViewAllModalOpen(false)}
+        onDeleteMemberSuccess={fetchGroupDetails}
         groupId={group.groupId}
         members={group.members}
         createdBy={group.createdBy}

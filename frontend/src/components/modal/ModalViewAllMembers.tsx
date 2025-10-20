@@ -16,12 +16,13 @@ interface Member {
 interface ModalViewAllMembersProps {
   isOpen: boolean;
   onClose: () => void;
+  onDeleteMemberSuccess: () => void;
   groupId: number;
   members: Member[];
   createdBy: number;
 }
 
-export default function ModalViewAllMembers({ isOpen, onClose, groupId, members, createdBy}: ModalViewAllMembersProps) {
+export default function ModalViewAllMembers({ isOpen, onClose, onDeleteMemberSuccess, groupId, members, createdBy}: ModalViewAllMembersProps) {
   const modalRef = useRef<HTMLDivElement>(null);
   const [selectedMembers, setSelectedMembers] = useState<number[]>([]);
 
@@ -60,37 +61,44 @@ export default function ModalViewAllMembers({ isOpen, onClose, groupId, members,
     );
   };
 
-  const handleDeleteMembers = async () => {
-    try {
-      const response = await fetchWithAuth(
-        `${process.env.NEXT_PUBLIC_API_URL}/group/${groupId}/${selectedMembers}/delete-by/${userId}`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Accept: "*/*",
-          },
+const handleDeleteMembers = async () => {
+  try {
+    const results = await Promise.all(
+      selectedMembers.map(async (memberId) => {
+        const response = await fetchWithAuth(
+          `${process.env.NEXT_PUBLIC_API_URL}/group/${groupId}/delete/${memberId}`,
+          {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+              Accept: "*/*",
+            },
+          }
+        );
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          if (errorData.status === 500) {
+            throw new Error("Thành viên có giao dịch chưa thanh toán");
+          } else {
+            throw new Error(errorData.message || "Không thể xóa thành viên");
+          }
         }
-      );
-        
+        return response;
+      })
+    );
 
-      if (response.ok) {
-        toast.success("Xóa thành viên thành công!", { position: "top-center" });
-        setSelectedMembers([]); // Reset danh sách chọn
-        onClose(); // Đóng modal
-        // if (typeof onRefresh === "function") onRefresh(); // Làm mới dữ liệu
-      } else {
-        const errorData = await response.json();
-        toast.error(errorData.message || "Không thể xóa thành viên!", { position: "top-center" });
-      }
-    } catch (err) {
-      toast.error("Lỗi khi xóa thành viên!", { position: "top-center" });
-    }
-    
-    setSelectedMembers([]); 
-  };
+    toast.success("Xóa thành viên thành công!", { position: "top-center" });
+    setSelectedMembers([]);
+    onDeleteMemberSuccess();
+    onClose();
 
-  
+  } catch (err: any) {
+    toast.error(err.message || "Lỗi khi xóa thành viên!", { position: "top-center" });
+  } finally {
+    setSelectedMembers([]);
+  }
+};
 
   const canShowDelete = userId === createdBy; // Chỉ người tạo nhóm mới có quyền xóa thành viên
 
