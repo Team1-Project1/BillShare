@@ -39,6 +39,4 @@ public class PaymentEntity {
     @Column(name = "payment_date", nullable = false)
     private Date paymentDate;
 
-    @Column(name = "status")
-    private String status;
 }
