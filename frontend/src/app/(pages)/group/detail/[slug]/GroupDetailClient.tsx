@@ -524,10 +524,10 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
     fetchBalances();
   };
 
-  const handleDeleteGroup = async () => {
+  const handleDeleteGroup = async (confirmDeleteWithExpenses : boolean) => {
     try {
       const response = await fetchWithAuth(
-        `${process.env.NEXT_PUBLIC_API_URL}/group/${group.groupId}/delete?confirmDeleteWithExpenses=true`,
+        `${process.env.NEXT_PUBLIC_API_URL}/group/${group.groupId}/delete?confirmDeleteWithExpenses=${confirmDeleteWithExpenses}`,
         {
           method: "PUT",
           headers: {
@@ -543,9 +543,14 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
         router.push("/");
       } else {
         const errorData = await response.json();
-        toast.error(errorData.message || "Không thể xóa nhóm!", {
-          position: "top-center",
-        });
+
+        if (!confirmDeleteWithExpenses && response.status === 500) {
+          setIsConfirmDeleteOpen(true);
+        } else {
+          toast.error(errorData.message || "Không thể xóa nhóm!", {
+            position: "top-center",
+          });
+        }
       }
     } catch (err) {
       console.error("Fetch error:", err);
@@ -628,11 +633,7 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
                     {canShowDelete && (
                       <button
                         onClick={() => {
-                          if(group.expenses.length > 0) {
-                            setIsConfirmDeleteOpen(true);
-                          } else {
-                            handleDeleteGroup();
-                          }
+                          handleDeleteGroup(false);
                           setIsMenuOpen(false);
                         }}
                         className="flex items-center px-4 py-2 text-sm text-red-500 cursor-pointer hover:bg-[rgba(227,76,76,0.2)] w-full text-left"
@@ -931,7 +932,7 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
       <ModalConfirmDelete
         isOpen={isConfirmDeleteOpen}
         onClose={() => setIsConfirmDeleteOpen(false)}
-        onConfirm={handleDeleteGroup}
+        onConfirm={() => handleDeleteGroup(true)}
       />
       <ModalEditGroupInfo
         isOpen={isEditGroupInfoOpen}
