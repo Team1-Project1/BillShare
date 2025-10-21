@@ -264,8 +264,18 @@ export default function ModalAddExpense({
               <FiDollarSign className="text-gray-500 mr-2" />
               <input
                 type="number"
-                value={totalAmount}
-                onChange={(e) => setTotalAmount(Number(e.target.value))}
+                pattern="[0-9]*"
+                min="0"
+                value={totalAmount === 0 ? "" : totalAmount}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  if (value === "") {
+                    setTotalAmount(0);
+                  } else {
+                    const num = parseFloat(value);
+                    setTotalAmount(isNaN(num) ? 0 : num);
+                  }
+                }}
                 placeholder="Nhập số tiền..."
                 className="w-full outline-none text-gray-800 bg-transparent
                     [&::-webkit-inner-spin-button]:appearance-none 
@@ -408,11 +418,13 @@ export default function ModalAddExpense({
                         <span className="text-gray-800">{member.name}</span>
                         <input
                           type="number"
-                          value={participantShares[id] ?? ""}
+                          pattern="[0-9]*"
+                          min="0"
+                          value={participantShares[id] === 0 ? ""  : participantShares[id] ?? ""}
                           onChange={(e) =>
                             setParticipantShares((prev) => ({
                               ...prev,
-                              [id]: Number(e.target.value),
+                              [id]: isNaN(parseFloat(e.target.value)) ? 0 : parseFloat(e.target.value),
                             }))
                           }
                           placeholder={splitMethod.displayName === "percent" ? "% chia" : "Số tiền"}
