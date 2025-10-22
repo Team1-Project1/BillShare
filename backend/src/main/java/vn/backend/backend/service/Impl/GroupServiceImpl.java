@@ -93,9 +93,19 @@ public class GroupServiceImpl implements GroupService {
     }
 
     @Override
-    public GroupResponse editGroup(GroupEditRequest request,MultipartFile file, Long groupId) throws Exception {
+    @Transactional
+    public GroupResponse editGroup(HttpServletRequest req,GroupEditRequest request,MultipartFile file, Long groupId) throws Exception {
         GroupEntity group = groupRepository.findByGroupIdAndIsActiveTrue(groupId)
                 .orElseThrow(() -> new RuntimeException("Active group not found with id " + groupId));
+        String token= req.getHeader("Authorization").substring("Bearer ".length());
+        Long userId=jwtService.extractUserId(token, TokenType.ACCESS_TOKEN);
+        GroupMembersEntity groupMember=groupMembersRepository.findById_GroupIdAndId_UserIdAndIsActiveTrue(groupId,userId);
+        if(groupMember==null){
+            throw new RuntimeException("User is not member of group");
+        }
+        if(groupMember.getRole()!= MemberRole.admin){
+            throw new RuntimeException("User is not admin of group");
+        }
         group.setGroupName(request.getGroupName());
         group.setDescription(request.getDescription());
         group.setDefaultCurrency(request.getDefaultCurrency());
@@ -108,6 +118,13 @@ public class GroupServiceImpl implements GroupService {
             group.setAvatarUrl(urlImage);
         }
         groupRepository.save(group);
+        transactionService.createTransaction(
+                groupId,
+                userId,
+                ActionType.update,
+                EntityType.group,
+                groupId
+        );
         return GroupResponse.builder().
                 groupId(group.getGroupId()).
                 groupName(group.getGroupName()).
@@ -201,6 +218,13 @@ public class GroupServiceImpl implements GroupService {
             member.setIsActive(false);
         }
         groupMembersRepository.saveAll(members);
+        transactionService.createTransaction(
+                groupId,
+                userId,
+                ActionType.delete,
+                EntityType.group,
+                groupId
+        );
         return String.format("Delete group id %d successfully",groupId);
     }
     @Transactional
@@ -233,6 +257,13 @@ public class GroupServiceImpl implements GroupService {
         balanceRepository.deleteByGroup_GroupIdAndUser1_UserIdOrGroup_GroupIdAndUser2_UserId(groupId, memberId, groupId, memberId);
         memberToDelete.setIsActive(false);
         groupMembersRepository.save(memberToDelete);
+        transactionService.createTransaction(
+                groupId,
+                id,
+                ActionType.update,
+                EntityType.group,
+                groupId
+        );
         return String.format("Delete member id %d from group id %d successfully", memberId, groupId);
     }
     @Transactional
@@ -255,10 +286,18 @@ public class GroupServiceImpl implements GroupService {
         balanceRepository.deleteByGroup_GroupIdAndUser1_UserIdOrGroup_GroupIdAndUser2_UserId(groupId, userId, groupId, userId);
         groupMember.setIsActive(false);
         groupMembersRepository.save(groupMember);
+        transactionService.createTransaction(
+                groupId,
+                userId,
+                ActionType.leave,
+                EntityType.group,
+                groupId
+        );
         return String.format("User id %d leave group id %d successfully",userId,groupId);
     }
 
     @Override
+    @Transactional
     public void exportGroupReport(Long groupId, HttpServletRequest request, HttpServletResponse response) throws IOException {
         // --- Lấy thông tin nhóm ---
         GroupEntity group = groupRepository.findByGroupIdAndIsActiveTrue(groupId)
@@ -285,7 +324,7 @@ public class GroupServiceImpl implements GroupService {
         // --- Thiết lập response - QUAN TRỌNG ---
         response.reset(); // Xóa mọi encoding cũ
         response.setCharacterEncoding("UTF-8");
-        response.setContentType("text/csv; charset=UTF-8");
+        response.setContentType("application/vnd.ms-excel");
 
         String currentDate = new SimpleDateFormat("dd-MM-yyyy").format(new Date());
         String fileName = URLEncoder.encode("group_" + groupId + "_" + currentDate, "UTF-8") + ".csv";
@@ -311,7 +350,7 @@ public class GroupServiceImpl implements GroupService {
             // --- Chi tiêu ---
             for (ExpenseEntity expense : expenses) {
                 ReportRowResponse row = new ReportRowResponse();
-                row.setDate(new SimpleDateFormat("dd/MM/yyyy").format(expense.getExpenseDate()));
+                row.setDate(" "+new SimpleDateFormat("dd/MM/yyyy").format(expense.getExpenseDate()));
                 row.setDescription(expense.getDescription());
                 row.setCategory(expense.getCategory().getCategoryName());
                 row.setCost(expense.getTotalAmount().toString());
@@ -351,7 +390,7 @@ public class GroupServiceImpl implements GroupService {
             // --- Thanh toán ---
             for (PaymentEntity payment : payments) {
                 ReportRowResponse row = new ReportRowResponse();
-                row.setDate(new SimpleDateFormat("dd/MM/yyyy").format(payment.getPaymentDate()));
+                row.setDate(" "+new SimpleDateFormat("dd/MM/yyyy").format(payment.getPaymentDate()));
                 row.setDescription(String.format("%s paid %s",
                         payment.getPayer().getFullName(), payment.getPayee().getFullName()));
                 row.setCategory("Payment");
@@ -392,8 +431,8 @@ public class GroupServiceImpl implements GroupService {
                     BigDecimal value = row.getMemberValues().getOrDefault(id, BigDecimal.ZERO);
                     data.add(value.stripTrailingZeros().toPlainString());
                 }
-
                 csvWriter.writeNext(data.toArray(new String[0]));
+
             }
 
             // --- Tổng kết ---

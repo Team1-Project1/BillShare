@@ -15,7 +15,7 @@ import java.util.List;
 
 public interface GroupService {
     GroupResponse createGroup(GroupCreateRequest request,MultipartFile file, Long userId) throws Exception;
-    GroupResponse editGroup(GroupEditRequest request, MultipartFile file, Long groupId) throws Exception;
+    GroupResponse editGroup(HttpServletRequest req,GroupEditRequest request, MultipartFile file, Long groupId) throws Exception;
     GroupsOfUserResponse getAllGroupsByUserId(Long userId);
     GroupDetailResponse getGroupDetailById(Long groupId);
     String deleteGroup(Long groupId, HttpServletRequest request, boolean confirmDeleteWithExpenses);
