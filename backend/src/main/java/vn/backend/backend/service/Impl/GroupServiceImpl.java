@@ -1,5 +1,6 @@
 package vn.backend.backend.service.Impl;
 import com.opencsv.CSVWriter;
+import jakarta.servlet.ServletOutputStream;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -21,8 +22,13 @@ import vn.backend.backend.common.ActionType;
 import vn.backend.backend.common.EntityType;
 import vn.backend.backend.service.UploadImageService;
 
+import java.io.BufferedWriter;
 import java.io.IOException;
+import java.io.OutputStreamWriter;
+import java.io.PrintWriter;
 import java.math.BigDecimal;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
@@ -254,6 +260,7 @@ public class GroupServiceImpl implements GroupService {
 
     @Override
     public void exportGroupReport(Long groupId, HttpServletRequest request, HttpServletResponse response) throws IOException {
+        // --- Lấy thông tin nhóm ---
         GroupEntity group = groupRepository.findByGroupIdAndIsActiveTrue(groupId)
                 .orElseThrow(() -> new RuntimeException("Group not found with id " + groupId));
 
@@ -268,98 +275,110 @@ public class GroupServiceImpl implements GroupService {
         List<ExpenseEntity> expenses = expenseRepository.findAllByGroupGroupId(groupId);
         List<PaymentEntity> payments = paymentRepository.findAllByGroupGroupId(groupId);
 
-        List<String> memberName = new ArrayList<>();
-        List<Long> memberId = new ArrayList<>();
+        List<String> memberNames = new ArrayList<>();
+        List<Long> memberIds = new ArrayList<>();
         group.getGroupMembers().forEach(member -> {
-            memberName.add(member.getMember().getFullName());
-            memberId.add(member.getMember().getUserId());
+            memberNames.add(member.getMember().getFullName());
+            memberIds.add(member.getMember().getUserId());
         });
 
-        String currentDate = new SimpleDateFormat("dd-MM-yyyy").format(new Date());
-        String fileName = "group_" + groupId + "_" + currentDate + ".csv";
-
+        // --- Thiết lập response - QUAN TRỌNG ---
+        response.reset(); // Xóa mọi encoding cũ
+        response.setCharacterEncoding("UTF-8");
         response.setContentType("text/csv; charset=UTF-8");
-        response.setHeader("Content-Disposition", "attachment; filename=\"" + fileName + "\"");
-        response.getWriter().write('\uFEFF'); // BOM để Excel đọc đúng UTF-8
 
-        try (CSVWriter writer = new CSVWriter(response.getWriter())) {
-            List<String> header = new ArrayList<>(Arrays.asList(
-                    "Date", "Description", "Category", "Cost", "Currency"
-            ));
-            header.addAll(memberName);
-            writer.writeNext(header.toArray(new String[0]));
+        String currentDate = new SimpleDateFormat("dd-MM-yyyy").format(new Date());
+        String fileName = URLEncoder.encode("group_" + groupId + "_" + currentDate, "UTF-8") + ".csv";
+        response.setHeader("Content-Disposition", "attachment; filename=\"" + fileName + "\"");
+
+        // --- Viết BOM cho Excel ---
+        ServletOutputStream outputStream = response.getOutputStream();
+        outputStream.write(0xEF);
+        outputStream.write(0xBB);
+        outputStream.write(0xBF);
+
+        try (OutputStreamWriter osw = new OutputStreamWriter(outputStream, StandardCharsets.UTF_8);
+             com.opencsv.CSVWriter csvWriter = new com.opencsv.CSVWriter(osw)) {
+
+            // --- Header ---
+            List<String> header = new ArrayList<>(Arrays.asList("Date", "Description", "Category", "Cost", "Currency"));
+            header.addAll(memberNames);
+            csvWriter.writeNext(header.toArray(new String[0]));
 
             List<ReportRowResponse> rows = new ArrayList<>();
             Map<Long, BigDecimal> memberTotals = new HashMap<>();
 
             // --- Chi tiêu ---
-            for (var expense : expenses) {
+            for (ExpenseEntity expense : expenses) {
                 ReportRowResponse row = new ReportRowResponse();
                 row.setDate(new SimpleDateFormat("dd/MM/yyyy").format(expense.getExpenseDate()));
                 row.setDescription(expense.getDescription());
                 row.setCategory(expense.getCategory().getCategoryName());
                 row.setCost(expense.getTotalAmount().toString());
                 row.setCurrency(expense.getCurrency());
-                row.setDateObject(expense.getExpenseDate()); // <--- thêm thuộc tính ngày thực
+                row.setDateObject(new Date(expense.getExpenseDate().getTime()));
 
                 BigDecimal totalAmount = expense.getTotalAmount();
                 Long payerId = expense.getPayer().getUserId();
 
                 Map<Long, BigDecimal> shareMap = new HashMap<>();
-                for (var expenseParticipant : expense.getExpenseParticipants()) {
-                    shareMap.put(expenseParticipant.getUser().getUserId(), expenseParticipant.getShareAmount());
+                for (var ep : expense.getExpenseParticipants()) {
+                    shareMap.put(ep.getUser().getUserId(), ep.getShareAmount());
                 }
 
-                for (var id : memberId) {
+                for (Long id : memberIds) {
                     BigDecimal value = BigDecimal.ZERO;
                     boolean isPayer = id.equals(payerId);
                     boolean participated = shareMap.containsKey(id);
+
                     if (isPayer) {
-                        if (participated) {
+                        if(participated){
                             value = totalAmount.subtract(shareMap.get(id));
-                        } else {
+                        }else{
                             value = totalAmount;
                         }
                     } else if (participated) {
                         value = shareMap.get(id).negate();
                     }
+
                     memberTotals.merge(id, value, BigDecimal::add);
                     row.getMemberValues().put(id, value);
                 }
+
                 rows.add(row);
             }
 
             // --- Thanh toán ---
-            for (var payment : payments) {
+            for (PaymentEntity payment : payments) {
                 ReportRowResponse row = new ReportRowResponse();
                 row.setDate(new SimpleDateFormat("dd/MM/yyyy").format(payment.getPaymentDate()));
-                row.setDescription(String.format("%s paid %s", payment.getPayer().getFullName(), payment.getPayee().getFullName()));
+                row.setDescription(String.format("%s paid %s",
+                        payment.getPayer().getFullName(), payment.getPayee().getFullName()));
                 row.setCategory("Payment");
                 row.setCost(payment.getAmount().toString());
                 row.setCurrency(payment.getCurrency());
-                row.setDateObject(payment.getPaymentDate()); // <--- thêm thuộc tính ngày thực
+                row.setDateObject(new Date(payment.getPaymentDate().getTime()));
 
                 Long payerId = payment.getPayer().getUserId();
                 Long payeeId = payment.getPayee().getUserId();
                 BigDecimal amount = payment.getAmount();
 
-                for (var id : memberId) {
+                for (Long id : memberIds) {
                     BigDecimal value = BigDecimal.ZERO;
-                    if (id.equals(payerId)) {
-                        value = amount;
-                    } else if (id.equals(payeeId)) {
-                        value = amount.negate();
-                    }
+                    if (id.equals(payerId)) value = amount;
+                    else if (id.equals(payeeId)) value = amount.negate();
+
                     memberTotals.merge(id, value, BigDecimal::add);
                     row.getMemberValues().put(id, value);
                 }
+
                 rows.add(row);
             }
 
-            // --- Sắp xếp theo ngày thực ---
-            rows.sort(Comparator.comparing(ReportRowResponse::getDateObject));
+            // --- Sắp xếp theo ngày ---
+            rows.sort(Comparator.comparing(ReportRowResponse::getDateObject, Comparator.nullsLast(Date::compareTo)));
 
-            // --- Ghi dữ liệu chi tiết ---
+            // --- Ghi dữ liệu ---
             for (ReportRowResponse row : rows) {
                 List<String> data = new ArrayList<>(Arrays.asList(
                         row.getDate(),
@@ -368,20 +387,22 @@ public class GroupServiceImpl implements GroupService {
                         row.getCost(),
                         row.getCurrency()
                 ));
-                for (Long id : memberId) {
+
+                for (Long id : memberIds) {
                     BigDecimal value = row.getMemberValues().getOrDefault(id, BigDecimal.ZERO);
                     data.add(value.stripTrailingZeros().toPlainString());
                 }
-                writer.writeNext(data.toArray(new String[0]));
+
+                csvWriter.writeNext(data.toArray(new String[0]));
             }
 
-            // --- Ghi dòng tổng cộng ---
+            // --- Tổng kết ---
             List<String> totalRow = new ArrayList<>(Arrays.asList("", "Total balance", "", "", group.getDefaultCurrency()));
-            for (Long id : memberId) {
+            for (Long id : memberIds) {
                 BigDecimal total = memberTotals.getOrDefault(id, BigDecimal.ZERO);
                 totalRow.add(total.stripTrailingZeros().toPlainString());
             }
-            writer.writeNext(totalRow.toArray(new String[0]));
+            csvWriter.writeNext(totalRow.toArray(new String[0]));
         }
     }
 
