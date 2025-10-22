@@ -138,21 +138,22 @@ public class GroupController {
             }
     )
     @GetMapping("/{groupId}/export")
-    public ResponseEntity<?>  exportGroupReport(
+    public void  exportGroupReport(
             @PathVariable Long groupId,
             HttpServletResponse response,
             HttpServletRequest request
     ) throws IOException {
         try {
             groupService.exportGroupReport(groupId, request, response);
-            return null;
-        }catch (Exception e){
-            Map<String, Object> error = new HashMap<>();
-            error.put("success", false);
-            error.put("message", "CSV export failed: " + e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        } catch (RuntimeException ex) {
+            response.setStatus(HttpServletResponse.SC_FORBIDDEN); // 403
+            response.setContentType("application/json; charset=UTF-8");
+            response.getWriter().write("{\"error\": \"" + ex.getMessage() + "\"}");
+        } catch (Exception ex) {
+            response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR); // 500
+            response.setContentType("application/json; charset=UTF-8");
+            response.getWriter().write("{\"error\": \"Lỗi hệ thống: " + ex.getMessage() + "\"}");
         }
-
     }
     @Operation(summary = "upload image of group", description = "API to upload image of group to cloudinary")
     @PostMapping("/{groupId}/upload-image")
