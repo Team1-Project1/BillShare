@@ -1,6 +1,7 @@
 package vn.backend.backend.service;
 
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.multipart.MultipartFile;
 import vn.backend.backend.controller.request.GroupCreateRequest;
@@ -9,6 +10,7 @@ import vn.backend.backend.controller.response.GroupDetailResponse;
 import vn.backend.backend.controller.response.GroupResponse;
 import vn.backend.backend.controller.response.GroupsOfUserResponse;
 
+import java.io.IOException;
 import java.util.List;
 
 public interface GroupService {
@@ -20,4 +22,5 @@ public interface GroupService {
     String deleteMemberFromGroup(Long groupId, Long memberId, HttpServletRequest request);
     String uploadImageGroup(MultipartFile file,Long groupId, Long userId) throws Exception;
     String leaveGroup(Long groupId, HttpServletRequest request);
+    void exportGroupReport(Long groupId,HttpServletRequest request, HttpServletResponse response) throws IOException;
 }
