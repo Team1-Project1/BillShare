@@ -1,29 +1,32 @@
 package vn.backend.backend.controller;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.StringUtils;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import vn.backend.backend.controller.request.GroupCreateRequest;
 import vn.backend.backend.controller.request.GroupEditRequest;
-import vn.backend.backend.controller.request.UserCreateRequest;
 import vn.backend.backend.controller.response.ApiResponse;
 import vn.backend.backend.controller.response.GroupDetailResponse;
 import vn.backend.backend.controller.response.GroupResponse;
 import vn.backend.backend.controller.response.GroupsOfUserResponse;
 import vn.backend.backend.service.GroupService;
 
-import java.io.DataInput;
-import java.util.List;
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/group")
@@ -114,6 +117,42 @@ public class GroupController {
         return ResponseEntity.ok(
                 new ApiResponse<>("success",result,null)
         );
+    }
+    @io.swagger.v3.oas.annotations.Operation(
+            summary = "Export group report to CSV",
+            description = "API to export group expense file report to CSV",
+            responses = {
+                    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                            responseCode = "200",
+                            description = "CSV file created successfully",
+                            content = @io.swagger.v3.oas.annotations.media.Content(
+                                    mediaType = "text/csv",
+                                    schema = @io.swagger.v3.oas.annotations.media.Schema(type = "string", format = "binary")
+                            )
+                    ),
+                    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                            responseCode = "500",
+                            description = "Error while exporting file",
+                            content = @io.swagger.v3.oas.annotations.media.Content(mediaType = "application/json")
+                    )
+            }
+    )
+    @GetMapping("/{groupId}/export")
+    public ResponseEntity<?>  exportGroupReport(
+            @PathVariable Long groupId,
+            HttpServletResponse response,
+            HttpServletRequest request
+    ) throws IOException {
+        try {
+            groupService.exportGroupReport(groupId, request, response);
+            return null;
+        }catch (Exception e){
+            Map<String, Object> error = new HashMap<>();
+            error.put("success", false);
+            error.put("message", "CSV export failed: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
+
     }
     @Operation(summary = "upload image of group", description = "API to upload image of group to cloudinary")
     @PostMapping("/{groupId}/upload-image")
