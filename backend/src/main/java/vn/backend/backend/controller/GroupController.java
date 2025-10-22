@@ -54,6 +54,7 @@ public class GroupController {
     @Operation(summary = "edit group", description = "API to edit a group in the database")
     @PutMapping(value = "/edit/{groupId}", consumes = {MediaType.MULTIPART_FORM_DATA_VALUE})
     public ResponseEntity<ApiResponse<GroupResponse>> editGroup(
+            HttpServletRequest req,
             @RequestPart("group") String groupJson,
             @RequestPart(value = "file", required = false) MultipartFile file,
             @PathVariable Long groupId) throws Exception {
@@ -61,7 +62,7 @@ public class GroupController {
         ObjectMapper mapper = new ObjectMapper();
         GroupEditRequest request = mapper.readValue(groupJson, GroupEditRequest.class);
 
-        GroupResponse group = groupService.editGroup(request, file, groupId);
+        GroupResponse group = groupService.editGroup(req,request, file, groupId);
         return ResponseEntity.ok(
                 new ApiResponse<>("success",
                         String.format("Sửa nhóm id: %d thành công!", groupId),
