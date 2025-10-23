@@ -8,6 +8,6 @@ import vn.backend.backend.controller.request.UserCreateRequest;
 import vn.backend.backend.controller.response.EditUserResponse;
 
 public interface UserService extends UserDetailsService {
-    EditUserResponse getUser(Long userId, HttpServletRequest request);
-    EditUserResponse editUser(Long userId, EditUserRequest userRequest, MultipartFile file,HttpServletRequest request) throws Exception;
+    EditUserResponse getUser( HttpServletRequest request);
+    EditUserResponse editUser( EditUserRequest userRequest, MultipartFile file,HttpServletRequest request) throws Exception;
 }

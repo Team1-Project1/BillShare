@@ -48,3 +48,4 @@ jwt:
   timeOutRefreshToken: 1440
   secretKeyAccessToken: ${JWT_SECRET_ACCESS}
   secretKeyRefreshToken: ${JWT_SECRET_REFRESH}
+

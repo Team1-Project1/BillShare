@@ -45,15 +45,12 @@ public class UserServiceImpl implements UserService {
 
 
     @Override
-    public EditUserResponse getUser(Long userId,HttpServletRequest request) {
+    public EditUserResponse getUser(HttpServletRequest request) {
         String token=request.getHeader("Authorization").substring("Bearer ".length());
-        String email=jwtService.extractEmail(token, TokenType.ACCESS_TOKEN);
-        var tokenEntity = tokenService.findByEmail(email);
-        if(userId!=tokenEntity.getUserId()){
-            throw new RuntimeException("You do not have permission to access this user");
-        }
+        Long userId=jwtService.extractUserId(token, TokenType.ACCESS_TOKEN);
         UserEntity user = userRepository.findByUserId(userId).orElseThrow(() -> new RuntimeException("User not found"));
         return EditUserResponse.builder()
+                .id(userId)
                 .fullName(user.getFullName())
                 .email(user.getEmail())
                 .phone(user.getPhone())
@@ -62,13 +59,10 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public EditUserResponse editUser(Long userId, EditUserRequest userRequest, MultipartFile file,HttpServletRequest request) throws Exception {
+    public EditUserResponse editUser( EditUserRequest userRequest, MultipartFile file,HttpServletRequest request) throws Exception {
         String token=request.getHeader("Authorization").substring("Bearer ".length());
+        Long userId=jwtService.extractUserId(token, TokenType.ACCESS_TOKEN);
         String email=jwtService.extractEmail(token, TokenType.ACCESS_TOKEN);
-        var tokenEntity = tokenService.findByEmail(email);
-        if(userId!=tokenEntity.getUserId()){
-            throw new RuntimeException("You do not have permission to access this user");
-        }
         UserEntity user = userRepository.findByUserId(userId).orElseThrow(() -> new RuntimeException("User not found"));
         if (!StringUtils.isEmpty(userRequest.getOldPassword()) && !StringUtils.isEmpty(userRequest.getNewPassword()) && !StringUtils.isEmpty(userRequest.getRepeatNewPassword())) {
             if (!passwordEncoder.matches(userRequest.getOldPassword(), user.getPassword())) {
@@ -106,6 +100,7 @@ public class UserServiceImpl implements UserService {
             log.info("User with email {} has changed their email. All tokens associated with the old email have been deleted.", email);
         }
         return EditUserResponse.builder()
+                .id(userId)
                 .fullName(user.getFullName())
                 .email(user.getEmail())
                 .phone(user.getPhone())

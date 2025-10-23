@@ -31,6 +31,7 @@ public class Prefilter extends OncePerRequestFilter {
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
+
         final String authorization = request.getHeader("Authorization");
         if (StringUtils.isBlank(authorization) || !authorization.startsWith("Bearer ")) {
             filterChain.doFilter(request, response);
