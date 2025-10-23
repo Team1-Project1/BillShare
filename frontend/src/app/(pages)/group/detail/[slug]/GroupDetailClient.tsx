@@ -143,6 +143,7 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
   const [activities, setActivities] = useState<Activity[]>([]);
   const [activitiesLoading, setActivitiesLoading] = useState(false);
   const [showActivities, setShowActivities] = useState(false);
+  const [hasExported, setHasExported] = useState(false); // State để theo dõi đã export chưa
   const canShowDelete = userId === group.createdBy;
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -469,6 +470,62 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
     }
   };
 
+  // Hàm xử lý export CSV với parsing filename từ header
+  const handleExportCSV = async () => {
+    if (hasExported) return; // Ngăn gọi lại nếu đã export
+
+    try {
+      const response = await fetchWithAuth(
+        `${process.env.NEXT_PUBLIC_API_URL}/group/${group.groupId}/export`,
+        {
+          method: "GET",
+          headers: {
+            Accept: "text/csv, application/vnd.ms-excel, /", // ← FIX 2: Thêm cả 2 types
+          },
+          credentials: 'include', // ← FIX 3: Thêm credentials
+        }
+      );
+
+      if (!response.ok) {
+        console.error("Response not ok:", response.status, await response.text());
+        throw new Error("Lỗi khi xuất CSV");
+      }
+
+      // Parse filename từ Content-Disposition
+      const disposition = response.headers.get("Content-Disposition");
+      let filename = `group_${group.groupId}_report.csv`;
+      
+      if (disposition && disposition.includes("attachment")) {
+        const filenameRegex = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/;
+        const matches = filenameRegex.exec(disposition);
+        if (matches != null && matches[1]) {
+          filename = matches[1].replace(/['"]/g, "");
+        }
+      }
+
+      // Lấy blob và download
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+      toast.success("Xuất CSV thành công và đã tải về!", {
+        position: "top-center",
+      });
+      setHasExported(true); // Disable nút sau khi thành công
+    } catch (err) {
+      console.error("Export error:", err);
+      toast.error("Không thể xuất CSV! Kiểm tra console để debug.", {
+        position: "top-center",
+      });
+    }
+  };
+
   const handleSimplifyToggle = async () => {
     if (isSimplified) {
       setIsSimplified(false);
@@ -524,7 +581,7 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
     fetchBalances();
   };
 
-  const handleDeleteGroup = async (confirmDeleteWithExpenses : boolean) => {
+  const handleDeleteGroup = async (confirmDeleteWithExpenses: boolean) => {
     try {
       const response = await fetchWithAuth(
         `${process.env.NEXT_PUBLIC_API_URL}/group/${group.groupId}/delete?confirmDeleteWithExpenses=${confirmDeleteWithExpenses}`,
@@ -646,16 +703,19 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
                         setIsEditGroupInfoOpen(true);
                         setIsMenuOpen(false);
                       }}
-                      className="flex items-center px-4 py-2 text-sm text-gray-700 cursor-pointer hover:bg-[rgba(91,197,167,0.2)]"
+                      className="flex items-center px-4 py-2 text-sm text-gray-700 cursor-pointer hover:bg-[rgba(91,197,167,0.2)] w-full text-left"
                     >
                       <FiEdit className="mr-2" /> Đổi thông tin nhóm
                     </button>
-                    <a
-                      href="#"
-                      className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-[rgba(91,197,167,0.2)]"
+                    <button
+                      onClick={() => {
+                        handleExportCSV();
+                        setIsMenuOpen(false);
+                      }}
+                      className={`flex items-center px-4 py-2 text-sm text-gray-700 w-full text-left ${hasExported ? 'pointer-events-none opacity-50 cursor-not-allowed' : 'cursor-pointer hover:bg-[rgba(91,197,167,0.2)]'}`}
                     >
                       <FiDownload className="mr-2" /> Xuất CSV
-                    </a>
+                    </button>
                   </div>
                 )}
               </div>

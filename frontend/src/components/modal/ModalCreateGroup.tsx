@@ -21,6 +21,7 @@ export default function ModalCreateGroup({ isOpen, onClose }: { isOpen: boolean;
   const [selectedMembers, setSelectedMembers] = useState<number[]>([]);
   const [defaultCurrency, setDefaultCurrency] = useState("VND");
   const [avatars, setAvatars] = useState<any[]>([]);
+  const [isCreating, setIsCreating] = useState(false); // Thêm trạng thái isCreating
   const modalRef = useRef<HTMLDivElement>(null);
 
   // Dữ liệu thành viên mẫu
@@ -45,6 +46,7 @@ export default function ModalCreateGroup({ isOpen, onClose }: { isOpen: boolean;
   };
 
   const handleCreate = async () => {
+    setIsCreating(true); // Disable nút và đổi trạng thái
     try {
       const userId = localStorage.getItem("userId");
       if (!userId) {
@@ -52,6 +54,7 @@ export default function ModalCreateGroup({ isOpen, onClose }: { isOpen: boolean;
           position: "top-center",
           autoClose: 3000,
         });
+        setIsCreating(false); // Reset trạng thái
         return;
       }
 
@@ -60,6 +63,7 @@ export default function ModalCreateGroup({ isOpen, onClose }: { isOpen: boolean;
           position: "top-center",
           autoClose: 3000,
         });
+        setIsCreating(false); // Reset trạng thái
         return;
       }
 
@@ -118,11 +122,13 @@ export default function ModalCreateGroup({ isOpen, onClose }: { isOpen: boolean;
           } else {
             localStorage.clear();
             window.location.href = "/login";
+            setIsCreating(false); // Reset trạng thái
             return;
           }
         } else {
           localStorage.clear();
           window.location.href = "/login";
+          setIsCreating(false); // Reset trạng thái
           return;
         }
       }
@@ -138,6 +144,7 @@ export default function ModalCreateGroup({ isOpen, onClose }: { isOpen: boolean;
           position: "top-center",
           autoClose: 3000,
         });
+        setIsCreating(false); // Reset trạng thái
         return;
       }
 
@@ -153,6 +160,8 @@ export default function ModalCreateGroup({ isOpen, onClose }: { isOpen: boolean;
         position: "top-center",
         autoClose: 3000,
       });
+    } finally {
+      setIsCreating(false); // Reset trạng thái sau khi hoàn tất
     }
   };
 
@@ -173,9 +182,12 @@ export default function ModalCreateGroup({ isOpen, onClose }: { isOpen: boolean;
           <h2 className="text-lg font-semibold text-gray-900">Tạo Nhóm</h2>
           <button
             onClick={handleCreate}
-            className="w-24 h-10 bg-[#5BC5A7] text-white rounded-md text-base font-semibold hover:bg-[#4AA88C] transition-colors duration-300 flex items-center justify-center"
+            disabled={isCreating} // Disable nút khi đang tạo
+            className={`w-24 h-10 text-white rounded-md text-base font-semibold transition-colors duration-300 flex items-center justify-center ${
+              isCreating ? "bg-gray-400 cursor-not-allowed" : "bg-[#5BC5A7] hover:bg-[#4AA88C]"
+            }`}
           >
-            Tạo
+            {isCreating ? "Đang tạo" : "Tạo"}
           </button>
         </div>
         <h3 className="text-base font-medium text-gray-700 mb-2">Thông tin nhóm</h3>
