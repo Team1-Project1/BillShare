@@ -65,10 +65,10 @@ export const FormRegister = () => {
           validator: (value: string) => /\d/.test(value),
           errorMessage: 'Mật khẩu phải chứa ít nhất một chữ số!',
         },
-        {
-          validator: (value: string) => /[@$!%*?&]/.test(value),
-          errorMessage: 'Mật khẩu phải chứa ít nhất một ký tự đặc biệt!',
-        },
+        // {
+        //   validator: (value: string) => /[@$!%*?&]/.test(value),
+        //   errorMessage: 'Mật khẩu phải chứa ít nhất một ký tự đặc biệt!',
+        // },
       ])
       .addField('#confirmPassword', [
         {
