@@ -40,10 +40,10 @@ export default function AccountDetailPage() {
   }, [onSuccess]);
 
   const fetchUserData = async () => {
+    console.log(userId)
     try {
       const response = await fetchWithAuth(
-        `${process.env.NEXT_PUBLIC_API_URL}/users/${Number(userId)
-        }`,
+        `${process.env.NEXT_PUBLIC_API_URL}/users `,
         {
           method: "GET",
           headers: {
@@ -59,6 +59,10 @@ export default function AccountDetailPage() {
                 position: "top-center",
             });
             return;
+        } else if (response.status === 500) {
+          toast.error ("Bạn không có quyền truy cập", {
+              position: "top-center",
+          });
         }
         throw new Error("Không thể tải thông tin");
       }

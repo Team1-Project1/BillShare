@@ -8,10 +8,9 @@ interface CardGroupProps {
   groupName: string;
   description: string;
   defaultCurrency: string;
-  memberCount?: number;
 }
 
-export default function CardGroup({ groupId, groupName, description, defaultCurrency, memberCount = 0 }: CardGroupProps) {
+export default function CardGroup({ groupId, groupName, description, defaultCurrency}: CardGroupProps) {
   return (
     <Link href={`/group/detail/${groupId}`} className="block">
       <div className="bg-white rounded-lg p-3 shadow-md border border-gray-200">
@@ -21,7 +20,6 @@ export default function CardGroup({ groupId, groupName, description, defaultCurr
             <h4 className="text-sm font-medium text-gray-900">{groupName}</h4>
             <p className="text-xs text-gray-600">{description}</p>
             <p className="text-xs text-gray-500">Tiền tệ: {defaultCurrency}</p>
-            <p className="text-xs text-gray-600">{memberCount} thành viên</p>
           </div>
         </div>
       </div>

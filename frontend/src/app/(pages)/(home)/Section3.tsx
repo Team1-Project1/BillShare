@@ -65,7 +65,6 @@ export const Section3 = ({ onOpenModal }: Section3Props) => {
         }
 
         const data = await response.json();
-        console.log("Group list API response:", data); // Debug API response
         if (data.code === "error") {
           toast.error(data.message, {
             position: "top-center",
@@ -135,7 +134,6 @@ export const Section3 = ({ onOpenModal }: Section3Props) => {
               groupName={group.groupName}
               description={group.description}
               defaultCurrency={group.defaultCurrency}
-              memberCount={0} // Cập nhật nếu có API lấy số thành viên
             />
           ))
         )}
