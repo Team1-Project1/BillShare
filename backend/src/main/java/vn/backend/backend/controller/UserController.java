@@ -28,34 +28,31 @@ public class UserController {
     private final UserService userService;
 
     @Operation(summary = "get user", description = "API to get information a user to the database")
-    @GetMapping(value = "/{userId}")
+    @GetMapping(value = "")
     public ResponseEntity<ApiResponse<EditUserResponse>> getUser(
-            @PathVariable(name = "userId")Long userId,
             HttpServletRequest request){
 
-        EditUserResponse user = userService.getUser(userId,request);
+        EditUserResponse user = userService.getUser(request);
         return ResponseEntity.ok(
                 new ApiResponse<>("success",
-                        String.format("get user  id: %d successfully!", userId),
-                        user)
+                        String.format("get user  id: %d successfully!", user.getId()),user)
         );
     }
 
     @Operation(summary = "edit user", description = "API to edit a user in the database")
-    @PatchMapping(value = "/edit/{userId}", consumes = {MediaType.MULTIPART_FORM_DATA_VALUE})
+    @PatchMapping(value = "/edit", consumes = {MediaType.MULTIPART_FORM_DATA_VALUE})
     public ResponseEntity<ApiResponse<EditUserResponse>> editGroup(
             @RequestPart("user") String userJson,
             @RequestPart(value = "file", required = false) MultipartFile file,
-            @PathVariable(name = "userId") Long userId,
             HttpServletRequest request) throws Exception {
 
         ObjectMapper mapper = new ObjectMapper();
         EditUserRequest userRequest = mapper.readValue(userJson, EditUserRequest.class);
 
-        EditUserResponse user = userService.editUser(userId,userRequest, file,request);
+        EditUserResponse user = userService.editUser(userRequest, file,request);
         return ResponseEntity.ok(
                 new ApiResponse<>("success",
-                        String.format("update user  id: %d successfully!", userId),
+                        String.format("update user  id: %d successfully!", user.getId()),
                         user)
         );
     }

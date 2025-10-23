@@ -8,6 +8,7 @@ import lombok.Setter;
 @Getter
 @Builder
 public class EditUserResponse {
+    private Long id;
     private String fullName;
     private String email;
     private String phone;
