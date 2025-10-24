@@ -176,7 +176,11 @@ public class BalanceServiceImpl implements BalanceService {
                 .orElseThrow(() -> new RuntimeException("Group not found"));
         var user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
-
+        // Kiểm tra xem nhóm có bật tính năng tối ưu hóa nợ không
+        if (Boolean.TRUE.equals(group.getSimplifyDebtOn())) {
+            // Nếu bật simplify, gọi phương thức tối ưu hóa
+            return getSimplifiedUserBalanceResponse(groupId, userId);
+        }
         // Lấy toàn bộ balance trong group liên quan đến user
         List<BalanceEntity> balances = balanceRepository.findAllByGroupGroupId(groupId)
                 .stream()

@@ -463,4 +463,17 @@ public class GroupServiceImpl implements GroupService {
         groupRepository.save(group);
         return urlImage;
     }
+    @Override
+    public void setSimplifyDebt(Long groupId, Long userId, boolean isSimplifyDebt) {
+        UserEntity user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found with id " + userId));
+        GroupEntity group = groupRepository.findByGroupIdAndIsActiveTrue(groupId)
+                .orElseThrow(() -> new RuntimeException("Group not found with id " + groupId));
+        GroupMembersEntity groupMember=groupMembersRepository.findById_GroupIdAndId_UserIdAndIsActiveTrue(groupId,userId);
+        if(groupMember==null){
+            throw new RuntimeException("User is not member of group");
+        }
+        group.setSimplifyDebtOn(isSimplifyDebt);
+        groupRepository.save(group);
+    }
 }

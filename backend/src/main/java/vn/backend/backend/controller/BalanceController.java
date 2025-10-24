@@ -20,12 +20,4 @@ public class BalanceController {
         BalanceResponse response = balanceService.getUserBalanceResponse(groupId, userId);
         return ResponseEntity.ok(response);
     }
-
-    @GetMapping("/{groupId}/users/{userId}/balances/simplified")
-    public ResponseEntity<BalanceResponse> getSimplifiedUserBalances(
-            @PathVariable Long groupId,
-            @PathVariable Long userId) {
-        BalanceResponse response = balanceService.getSimplifiedUserBalanceResponse(groupId, userId);
-        return ResponseEntity.ok(response);
-    }
 }
