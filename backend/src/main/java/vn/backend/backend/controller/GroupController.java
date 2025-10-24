@@ -168,4 +168,17 @@ public class GroupController {
                 new ApiResponse<>("success", String.format("userId %d upload image of groupId %d successfully!",groupId,userId), urlImage)
         );
     }
+
+    @Operation(summary = "set Simplify Debt mode", description = "API to Set Simplify Debts")
+    @PostMapping("/{groupId}/set-simplify-debt")
+    public ResponseEntity<ApiResponse<String>> setSimplifyDebt(
+            @RequestParam("setSimplifyDebt") Boolean setSimplifyDebt,
+            @RequestHeader("userId") Long userId,
+            @PathVariable Long groupId
+    ) throws Exception {
+        groupService.setSimplifyDebt( groupId, userId, setSimplifyDebt);
+        return ResponseEntity.ok(
+                new ApiResponse<>("success", String.format("userId %d set simplify debt groupId %d successfully!",userId, groupId), null)
+        );
+    }
 }

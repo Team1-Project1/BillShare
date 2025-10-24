@@ -23,4 +23,5 @@ public interface GroupService {
     String uploadImageGroup(MultipartFile file,Long groupId, Long userId) throws Exception;
     String leaveGroup(Long groupId, HttpServletRequest request);
     void exportGroupReport(Long groupId,HttpServletRequest request, HttpServletResponse response) throws IOException;
+    void setSimplifyDebt(Long groupId,Long userId, boolean isSimplifyDebt);
 }
