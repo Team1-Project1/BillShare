@@ -16,7 +16,6 @@ interface ResetPasswordProps {
   onClose: () => void;
   onSuccess: () => void;
   user: User;
-  userId: number;
 }
 
 export default function ResetPassword({
@@ -24,7 +23,6 @@ export default function ResetPassword({
   onClose,
   onSuccess,
   user,
-  userId,
 }: ResetPasswordProps) {
   const modalRef = useRef<HTMLDivElement>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -32,7 +30,6 @@ export default function ResetPassword({
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
-  // 👁️ Thêm 3 state điều khiển ẩn/hiện mật khẩu
   const [showCurrent, setShowCurrent] = useState(false);
   const [showNew, setShowNew] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
@@ -95,7 +92,7 @@ export default function ResetPassword({
 
       let accessToken = localStorage.getItem("accessToken");
       let response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/users/edit/${userId}`,
+        `${process.env.NEXT_PUBLIC_API_URL}/users/edit`,
         {
           method: "PATCH",
           body: formData,
@@ -129,7 +126,7 @@ export default function ResetPassword({
             localStorage.setItem("refreshToken", newRefreshToken);
             accessToken = newAccessToken;
             response = await fetch(
-              `${process.env.NEXT_PUBLIC_API_URL}/users/edit/${userId}`,
+              `${process.env.NEXT_PUBLIC_API_URL}/users/edit`,
               {
                 method: "PATCH",
                 body: formData,

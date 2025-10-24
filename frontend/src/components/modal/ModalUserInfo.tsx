@@ -23,7 +23,6 @@ interface UserInfoProps {
   onClose: () => void;
   onSuccess: () => void;
   user: User;
-  userId: number;
 }
 
 export default function UserInfo({
@@ -31,7 +30,6 @@ export default function UserInfo({
   onClose, 
   user,
   onSuccess,
-  userId
 }: UserInfoProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [fullName, setFullName] = useState(user?.fullName || "");
@@ -119,7 +117,7 @@ export default function UserInfo({
       }
 
       let accessToken = localStorage.getItem("accessToken");
-      let response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/edit/${userId}`, {
+      let response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/edit`, {
         method: "PATCH",
         body: formData,
         headers: {
@@ -147,7 +145,7 @@ export default function UserInfo({
             localStorage.setItem("accessToken", newAccessToken);
             localStorage.setItem("refreshToken", newRefreshToken);
             accessToken = newAccessToken;
-            response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/edit/${userId}`, {
+            response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/edit`, {
               method: "PATCH",
               body: formData,
               headers: {

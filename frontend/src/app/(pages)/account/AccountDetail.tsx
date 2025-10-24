@@ -6,7 +6,6 @@ import ModalConfirmLogout from "@/components/modal/ModalConfirmLogout";
 import { FiUser, FiMail, FiSettings, FiLock } from "react-icons/fi";
 import { toast } from "react-toastify";
 import { fetchWithAuth } from "@/lib/fetchWithAuth";
-import { useAuthRefresh } from "@/hooks/useAuthRefresh";
 import ModalUserInfo from "@/components/modal/ModalUserInfo";
 import ModalResetPassword from "@/components/modal/ModalResetPassword";
 
@@ -18,7 +17,6 @@ interface User {
 }
 
 export default function AccountDetailPage() {
-  const { userId } = useAuthRefresh();
   const [isModalUserInfoOpen, setIsModalUserInfoOpen] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [user, setUser] = useState<User | null>(null);
@@ -40,7 +38,6 @@ export default function AccountDetailPage() {
   }, [onSuccess]);
 
   const fetchUserData = async () => {
-    console.log(userId)
     try {
       const response = await fetchWithAuth(
         `${process.env.NEXT_PUBLIC_API_URL}/users `,
@@ -85,10 +82,8 @@ export default function AccountDetailPage() {
   };
 
   useEffect(() => {
-    if (userId) {
-        fetchUserData();
-    }
-  }, [userId]);
+    fetchUserData();
+  }, []);
       
 
   return (
@@ -172,14 +167,12 @@ export default function AccountDetailPage() {
         onClose={() => setIsModalUserInfoOpen(false)}
         onSuccess={() => setOnSuccess(true)}
         user={user!}
-        userId={userId!}
         />
         <ModalResetPassword
         isOpen= {isModalResetPasswordOpen}
         onClose={() => setIsModalResetPasswordOpen(false)}
         onSuccess={handleLogout}
         user={user!}
-        userId={userId!}
         />
     </>
   );
