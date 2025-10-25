@@ -58,22 +58,22 @@ export default function ModalCreatePayment({
     try {
       const response = await fetchWithAuth(
         `${process.env.NEXT_PUBLIC_API_URL}/api/groups/${groupId}/payments`,
-            {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                  "Accept": "*/*",
-                },
-                body: JSON.stringify({
-                  groupId:groupId,
-                  payerId:payerId,
-                  payeeId:payeeId,
-                  amount:paymentAmount,
-                  currency
-                }),
-            }
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Accept": "*/*",
+          },
+          body: JSON.stringify({
+            groupId: groupId,
+            payerId: payerId,
+            payeeId: payeeId,
+            amount: paymentAmount,
+            currency
+          }),
+        }
       );
-      
+
       if (!response.ok) {
         toast.error("Thanh toán thất bại")
         return
@@ -81,10 +81,10 @@ export default function ModalCreatePayment({
 
       if (response.ok) {
         toast.success(`Thanh toán ${paymentAmount.toLocaleString()} ${currency} thành công!`, {
-            position: "top-center",
-            autoClose: 2000,
+          position: "top-center",
+          autoClose: 2000,
         });
-        if(onSuccess) onSuccess();
+        if (onSuccess) onSuccess();
         onClose();
       }
     } catch (err) {
@@ -135,11 +135,10 @@ export default function ModalCreatePayment({
           </button>
           <button
             onClick={handleConfirm}
-            className={`px-4 py-2 rounded-md text-white font-medium transition ${
-              paymentAmount > amount || paymentAmount <= 0
+            className={`px-4 py-2 rounded-md text-white font-medium transition ${paymentAmount > amount || paymentAmount <= 0
                 ? "bg-gray-400 cursor-not-allowed"
                 : "bg-[#5BC5A7] hover:bg-[#4AA88C]"
-            }`}
+              }`}
             disabled={paymentAmount > amount || paymentAmount <= 0}
           >
             Xác nhận
