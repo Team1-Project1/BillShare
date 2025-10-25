@@ -3,14 +3,12 @@
 import { useState, useRef, useEffect } from "react";
 import { toast } from "react-toastify";
 import CardMemberSelect from "../card/CardMemberSelect";
-import { fetchWithAuth } from "@/lib/fetchWithAuth";
 import { currencies } from "@/config/currencies";
 import { FilePond, registerPlugin } from "react-filepond";
 import "filepond/dist/filepond.min.css";
 import FilePondPluginFileValidateType from "filepond-plugin-file-validate-type";
 import FilePondPluginImagePreview from "filepond-plugin-image-preview";
 import "filepond-plugin-image-preview/dist/filepond-plugin-image-preview.css";
-import JustValidate from "just-validate";
 
 // Đăng ký plugins
 registerPlugin(FilePondPluginFileValidateType, FilePondPluginImagePreview);
@@ -38,6 +36,14 @@ export default function ModalCreateGroup({ isOpen, onClose }: { isOpen: boolean;
     }
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [isOpen, onClose]);
+
+  useEffect(() => {
+    setGroupName("")
+    setGroupDesc("")
+    setDefaultCurrency("VND")
+    setAvatars([])
+    setIsCreating(false)
+  },[isOpen]);
 
   const handleSelectMember = (id: number) => {
     setSelectedMembers((prev) =>
@@ -168,17 +174,18 @@ export default function ModalCreateGroup({ isOpen, onClose }: { isOpen: boolean;
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center z-50">
+    <div className="fixed inset-0 flex items-center justify-center z-50 ">
       <div
         ref={modalRef}
-        className="bg-white/90 backdrop-blur-md rounded-lg p-4 w-full max-w-[476px] shadow-xl border border-gray-200"
+        className="bg-white/90 backdrop-blur-md rounded-lg p-4 w-full max-w-[476px] shadow-xl border border-gray-200 
+          max-h-[90vh] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent"
         style={{
           transform: isOpen ? "scale(1)" : "scale(0.7)",
           opacity: isOpen ? 1 : 0,
           transition: "transform 0.3s ease-out, opacity 0.3s ease-out",
         }}
       >
-        <div className="flex justify-between items-center mb-4">
+        <div className="flex justify-between items-center mb-4 ">
           <h2 className="text-lg font-semibold text-gray-900">Tạo Nhóm</h2>
           <button
             onClick={handleCreate}

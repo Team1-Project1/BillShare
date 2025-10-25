@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, use } from "react";
 import { toast } from "react-toastify";
 import CardGroup from "@/components/card/CardGroup";
 import { FiUsers } from "react-icons/fi";
@@ -118,7 +118,7 @@ export const Section3 = ({ onOpenModal }: Section3Props) => {
   if (loading) return <p className="text-gray-600">Đang tải...</p>;
 
   return (
-    <div className="bg-white/90 backdrop-blur-sm p-4 shadow-md">
+    <div className="bg-white/90 backdrop-blur-sm p-4 md:p-6 shadow-md rounded-lg max-w-4xl mx-auto w-full">
       <div className="flex justify-between items-center mb-2">
         <h3 className="text-lg font-semibold text-gray-900">Nhóm</h3>
         <p className="text-sm text-gray-600">Tổng số nhóm: {totalGroups}</p>

@@ -457,6 +457,7 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
     fetchExpenses();
     fetchBalances();
   };
+  const handlePaymentSuccess = () => fetchBalances();
 
   const handleDeleteGroup = async (confirmDeleteExpenses: boolean) => {
     try {
@@ -659,6 +660,10 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
                           isOwed={balance.isOwed}
                           currency={group.defaultCurrency}
                           isLoading={expensesLoading}
+                          groupId={group.groupId}
+                          payerId={userId}
+                          payeeId={balance.userId}
+                          onSuccess={fetchBalances}
                         />
                       </motion.div>
                     ))
@@ -708,7 +713,7 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
                       userId={Number(userId)}
                       showDeleteOptions={false}
                       members={group.members}
-                      onEditSuccess={fetchExpenses}
+                      onEditSuccess={handlePaymentSuccess}
                     />
                   ))}
                 </div>
