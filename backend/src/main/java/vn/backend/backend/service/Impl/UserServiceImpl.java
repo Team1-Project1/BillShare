@@ -11,11 +11,13 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
+import vn.backend.backend.common.FriendshipStatus;
 import vn.backend.backend.common.TokenType;
 import vn.backend.backend.controller.request.EditUserRequest;
 import vn.backend.backend.controller.request.UserCreateRequest;
 import vn.backend.backend.controller.response.EditUserResponse;
 import vn.backend.backend.model.UserEntity;
+import vn.backend.backend.repository.FriendshipRepository;
 import vn.backend.backend.repository.UserRepository;
 import vn.backend.backend.service.JwtService;
 import vn.backend.backend.service.TokenService;
@@ -36,6 +38,7 @@ public class UserServiceImpl implements UserService {
     private final PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
     private final JwtService jwtService; ;
     private final TokenService tokenService;
+    private final FriendshipRepository friendshipRepository;
 
     @Override
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
@@ -106,5 +109,24 @@ public class UserServiceImpl implements UserService {
                 .phone(user.getPhone())
                 .avatarUrl(user.getAvatarUrl())
                 .build();
+    }
+    @Override
+    public String deleteFriendship(HttpServletRequest req, Long userId2) {
+        String token=req.getHeader("Authorization").substring("Bearer ".length());
+        Long userId1=jwtService.extractUserId(token, TokenType.ACCESS_TOKEN);
+        var friendship = friendshipRepository.findByUser1UserIdAndUser2UserIdOrUser1UserIdAndUser2UserId(
+                userId1, userId2, userId2, userId1
+        );
+        if(friendship==null ){
+            return String.format("No friendship exists between user %d and user %d.", userId1, userId2);
+        }
+        if(friendship.getStatus().equals(FriendshipStatus.blocked)){
+            return "You cannot delete this friendship because one of the users is blocked.";
+        }
+        if(friendship.getStatus().equals(FriendshipStatus.pending)){
+            return "You cannot delete this friendship because the friend request is still pending.";
+        }
+        friendshipRepository.delete(friendship);
+        return String.format("Friendship between user %d and user %d has been deleted.", userId1, userId2);
     }
 }

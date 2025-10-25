@@ -1,14 +1,13 @@
 package vn.backend.backend.service.Impl;
 
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.*;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 import vn.backend.backend.common.TokenType;
+import vn.backend.backend.controller.request.FriendClaimsRequest;
 import vn.backend.backend.service.JwtService;
 import vn.backend.backend.model.UserEntity;
 
@@ -31,6 +30,8 @@ public class JwtServiceImpl implements JwtService {
     private String secretKeyAccessToken;
     @Value("${jwt.secretKeyRefreshToken}")
     private String secretKeyRefreshToken;
+    @Value("${jwt.secretKeyFriendship}")
+    private String secretKeyFriendship;
 
 
     @Override
@@ -77,10 +78,11 @@ public class JwtServiceImpl implements JwtService {
         byte[] keyBytes;
         if (ACCESS_TOKEN.equals(type)) {
             keyBytes = Decoders.BASE64.decode(secretKeyAccessToken);
-        }   else {
+        }else if(REFRESH_TOKEN.equals(type)){
             keyBytes = Decoders.BASE64.decode(secretKeyRefreshToken);
+        }else{
+            keyBytes = Decoders.BASE64.decode(secretKeyFriendship);
         }
-
         return Keys.hmacShaKeyFor(keyBytes);
     }
 
@@ -122,6 +124,33 @@ public class JwtServiceImpl implements JwtService {
         return claims.get("userId", Long.class);
     }
 
+    @Override
+    public String generateFriendRequestToken(Long senderId, Long receiverId) {
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("senderId", senderId);
+        claims.put("receiverId", receiverId);
+
+        return Jwts.builder()
+                .setClaims(claims)
+                .setIssuedAt(new Date(System.currentTimeMillis()))
+                .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60 * 24)) // 24h
+                .signWith(getkey(TokenType.FRIENDSHIP_TOKEN), SignatureAlgorithm.HS256)
+                .compact();
+    }
+
+
+    public FriendClaimsRequest decodeFriendRequestToken(String token) {
+        Claims claims = Jwts.parserBuilder()
+                .setSigningKey(getkey(TokenType.FRIENDSHIP_TOKEN))
+                .build()
+                .parseClaimsJws(token)
+                .getBody();
+
+        Long senderId = ((Number) claims.get("senderId")).longValue();
+        Long receiverId = ((Number) claims.get("receiverId")).longValue();
+
+        return new FriendClaimsRequest(senderId, receiverId);
+    }
 
 
 

@@ -37,7 +37,7 @@ import static org.springframework.security.config.http.SessionCreationPolicy.STA
 public class AppConfig {
     private final UserService userService;
     private final Prefilter prefilter; // Filter tự viết để kiểm tra JWT trong request
-    private String[] WHITE_LIST = {"/auth/**","/group-member/**"}; // Các API không cần login (ví dụ: đăng ký, đăng nhập)
+    private String[] WHITE_LIST = {"/auth/**","/group-member/**","/friendship/**"}; // Các API không cần login (ví dụ: đăng ký, đăng nhập)
     @Value("${spring.sendgrid.api-key}")
     private String sendGridApiKey;
 

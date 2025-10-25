@@ -12,5 +12,6 @@ public interface FriendshipRepository extends JpaRepository<FriendshipEntity, Lo
     List<FriendshipEntity> findAllByUser1UserIdOrUser2UserId(Long userId1, Long userId2);
     Optional<FriendshipEntity> findByUser1UserIdAndUser2UserId(Long userId1, Long userId2);
     List<FriendshipEntity> findAllByStatus(String status);
+    FriendshipEntity findByUser1UserIdAndUser2UserIdOrUser1UserIdAndUser2UserId(Long userId1, Long userId2, Long userId3, Long userId4);
 }
 
