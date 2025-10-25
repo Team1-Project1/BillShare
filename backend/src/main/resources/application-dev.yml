@@ -29,7 +29,9 @@ spring:
     name: BillShare
     templateConfirmParticipationId: d-5c76fa0599a24120bcb98560667202a0
     templateSendDebtReminder: d-89de5b8671df48e3b1737482100eeb0a
-    baseUrl: http://localhost:3000/group-member/
+    templateSendFriendRequest: d-3d40192e7a55437c9df68fa8e4ddf87a
+    baseUrlGroupMember: http://localhost:3000/group-member/
+    baseUrlFriendShip: http://localhost:8080/friendship/
 
 
 springdoc:
@@ -49,4 +51,6 @@ jwt:
   timeOutRefreshToken: 1440
   secretKeyAccessToken: ${JWT_SECRET_ACCESS}
   secretKeyRefreshToken: ${JWT_SECRET_REFRESH}
+  secretKeyFriendship: ${JWT_SECRET_FRIENDSHIP};
+
 

@@ -4,20 +4,25 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import vn.backend.backend.controller.request.ConfirmPaticipationRequest;
 import vn.backend.backend.controller.request.EditUserRequest;
 import vn.backend.backend.controller.request.GroupCreateRequest;
 import vn.backend.backend.controller.request.GroupEditRequest;
 import vn.backend.backend.controller.response.ApiResponse;
 import vn.backend.backend.controller.response.EditUserResponse;
 import vn.backend.backend.controller.response.GroupResponse;
+import vn.backend.backend.service.EmailService;
 import vn.backend.backend.service.TokenService;
 import vn.backend.backend.service.UserService;
+
+import java.io.IOException;
 
 @RestController
 @RequestMapping("/users")
@@ -26,6 +31,7 @@ import vn.backend.backend.service.UserService;
 @RequiredArgsConstructor
 public class UserController {
     private final UserService userService;
+    private final EmailService emailService;
 
     @Operation(summary = "get user", description = "API to get information a user to the database")
     @GetMapping(value = "")
@@ -54,6 +60,24 @@ public class UserController {
                 new ApiResponse<>("success",
                         String.format("update user  id: %d successfully!", user.getId()),
                         user)
+        );
+    }
+    @Operation(summary = "Send email friend request", description = "API to send email friend request")
+    @PostMapping("/send-friend-request")
+    public ResponseEntity<ApiResponse<String>> sendFriendRequest(
+            HttpServletRequest req,
+            @RequestParam String email) throws IOException {
+        String message=emailService.sendFriendRequest(email,req);
+        return ResponseEntity.ok(
+                new ApiResponse<>("success",message,null)
+        );
+    }
+    @Operation(summary = "delete friend ship of user", description = "API to delete friend ship of user")
+    @DeleteMapping("/delete/{userId}")
+    public ResponseEntity<ApiResponse<String>> decline(HttpServletRequest req, @PathVariable Long userId) {
+        String message=userService.deleteFriendship(req,userId);
+        return ResponseEntity.ok(
+                new ApiResponse<>("success",message,null)
         );
     }
 }

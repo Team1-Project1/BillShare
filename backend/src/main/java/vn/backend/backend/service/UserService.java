@@ -10,4 +10,5 @@ import vn.backend.backend.controller.response.EditUserResponse;
 public interface UserService extends UserDetailsService {
     EditUserResponse getUser( HttpServletRequest request);
     EditUserResponse editUser( EditUserRequest userRequest, MultipartFile file,HttpServletRequest request) throws Exception;
+    String deleteFriendship(HttpServletRequest req, Long userId2);
 }

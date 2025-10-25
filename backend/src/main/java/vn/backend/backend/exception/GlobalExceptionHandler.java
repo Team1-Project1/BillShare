@@ -1,6 +1,7 @@
 package vn.backend.backend.exception;
 
 import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.MalformedJwtException;
 import io.jsonwebtoken.SignatureException;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -74,7 +75,16 @@ public class GlobalExceptionHandler {
 
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(body);
     }
+    // 4.1. JWT generic (mọi lỗi JWT khác)
+    @ExceptionHandler(JwtException.class)
+    public ResponseEntity<Map<String, Object>> handleGenericJwt(JwtException ex) {
+        Map<String, Object> body = new HashMap<>();
+        body.put("status", HttpStatus.UNAUTHORIZED.value());
+        body.put("message", "Invalid or corrupted token");
+        body.put("details", ex.getMessage());
 
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(body);
+    }
     // 5. Bắt tất cả exception khác
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, Object>> handleAllExceptions(Exception ex) {

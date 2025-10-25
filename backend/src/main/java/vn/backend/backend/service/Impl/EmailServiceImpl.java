@@ -14,23 +14,20 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import vn.backend.backend.common.FriendshipStatus;
 import vn.backend.backend.common.MemberRole;
 import vn.backend.backend.common.TokenType;
 import vn.backend.backend.controller.request.ConfirmPaticipationRequest;
 import vn.backend.backend.model.*;
-import vn.backend.backend.repository.BalanceRepository;
-import vn.backend.backend.repository.GroupMembersRepository;
-import vn.backend.backend.repository.GroupRepository;
-import vn.backend.backend.repository.UserRepository;
+import vn.backend.backend.repository.*;
 import vn.backend.backend.service.EmailService;
 import vn.backend.backend.service.JwtService;
 
 import java.io.IOException;
 import java.math.BigDecimal;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.NoSuchElementException;
+import java.time.LocalDateTime;
+import java.util.*;
 
 
 @Service
@@ -43,6 +40,7 @@ public class EmailServiceImpl implements EmailService {
     private final GroupMembersRepository groupMembersRepository;
     private final JwtService jwtService;
     private final BalanceRepository balanceRepository;
+    private final FriendshipRepository friendshipRepository;
 
     @Value("${spring.sendgrid.from-email}")
     private String emailFrom;
@@ -52,8 +50,12 @@ public class EmailServiceImpl implements EmailService {
     private String templateConfirmParticipationId;
     @Value("${spring.sendgrid.templateSendDebtReminder}")
     private String templateSendDebtReminder;
-    @Value("${spring.sendgrid.baseUrl}")
-    private String baseUrl;
+    @Value("${spring.sendgrid.templateSendFriendRequest}")
+    private String templateSendFriendRequest;
+    @Value("${spring.sendgrid.baseUrlGroupMember}")
+    private String baseUrlGroupMember;
+    @Value("${spring.sendgrid.baseUrlFriendShip}")
+    private String baseUrlFriendShip;
 
     private void sendEmail(String emailTo, String subject, String templateId, Map<String, String> templateData) throws IOException {
         Email fromEmail = new Email(emailFrom, name);
@@ -105,8 +107,8 @@ public class EmailServiceImpl implements EmailService {
         templateData.put("senderName", sender.getFullName());
         templateData.put("receiverName", receiver.getFullName());
         templateData.put("groupName", group.getGroupName());
-        templateData.put("confirmationLink", baseUrl + "confirm?groupId=" + groupId + "&userId=" + receiver.getUserId());
-        templateData.put("declineLink", baseUrl + "decline?groupId=" + groupId + "&userId=" + receiver.getUserId());
+        templateData.put("confirmationLink", baseUrlGroupMember + "confirm?groupId=" + groupId + "&userId=" + receiver.getUserId());
+        templateData.put("declineLink", baseUrlGroupMember + "decline?groupId=" + groupId + "&userId=" + receiver.getUserId());
 
         String subject = "Confirm your participation in group " + group.getGroupName();
 
@@ -168,4 +170,100 @@ public class EmailServiceImpl implements EmailService {
             return String.format("No one owes you anything in group %s,you cannot send debt reminder emails", group.getGroupName());
         }
     }
+    @Transactional
+    @Override
+    public String sendFriendRequest(String email, HttpServletRequest req) throws IOException {
+        log.info("==> [SEND FRIEND REQUEST] Start processing friend request to email: {}", email);
+
+        // Lấy token từ header
+        String token = req.getHeader("Authorization").substring("Bearer ".length());
+        Long userId = jwtService.extractUserId(token, TokenType.ACCESS_TOKEN);
+        log.debug("Extracted userId {} from JWT token", userId);
+
+        // Tìm người gửi
+        UserEntity sender = userRepository.findById(userId)
+                .orElseThrow(() -> {
+                    log.error("User not found with id {}", userId);
+                    return new NoSuchElementException("User not found with id " + userId);
+                });
+        log.info("Sender found: {} (ID: {})", sender.getFullName(), sender.getUserId());
+
+        // Tìm người nhận
+        UserEntity receiver = userRepository.findByEmail(email)
+                .orElseThrow(() -> {
+                    log.error("User not found with email {}", email);
+                    return new NoSuchElementException("User not found with email " + email);
+                });
+        log.info("Receiver found: {} (ID: {})", receiver.getFullName(), receiver.getUserId());
+
+        // Kiểm tra trạng thái bạn bè hiện tại
+        FriendshipEntity isFriend = friendshipRepository
+                .findByUser1UserIdAndUser2UserIdOrUser1UserIdAndUser2UserId(
+                        sender.getUserId(), receiver.getUserId(),
+                        receiver.getUserId(), sender.getUserId()
+                );
+
+        if (isFriend != null) {
+            log.info("Existing friendship record found between {} and {}. Status: {}",
+                    sender.getFullName(), receiver.getFullName(), isFriend.getStatus());
+
+            if (isFriend.getStatus().equals(FriendshipStatus.pending)) {
+                long diffMillis = new Date().getTime() - isFriend.getCreatedAt().getTime();
+                long hours = diffMillis / (1000 * 60 * 60);
+                log.debug("Friend request pending for {} hours", hours);
+
+                if (hours >= 24) {
+                    friendshipRepository.delete(isFriend);
+                    log.info("Previous friend request from {} to {} expired ({} hours) and deleted.",
+                            sender.getFullName(), receiver.getFullName(), hours);
+                } else {
+                    log.warn("Duplicate friend request attempt from {} to {} within 24 hours.",
+                            sender.getFullName(), receiver.getFullName());
+                    return String.format("You have already sent a friend request to %s, you cannot send email",
+                            receiver.getFullName());
+                }
+            } else if (isFriend.getStatus().equals(FriendshipStatus.accepted)) {
+                log.warn("Friend request not sent: {} and {} are already friends.",
+                        sender.getFullName(), receiver.getFullName());
+                return String.format("You are already friends with %s, you cannot send email",
+                        receiver.getFullName());
+            } else {
+                log.warn("Friend request blocked: {} has been blocked by {}.",
+                        sender.getFullName(), receiver.getFullName());
+                return String.format("You have been blocked by %s, you cannot send email",
+                        receiver.getFullName());
+            }
+        }
+
+        // Tạo token kết bạn
+        String friendToken = jwtService.generateFriendRequestToken(sender.getUserId(), receiver.getUserId());
+        log.debug("Generated friend token: {}", friendToken);
+
+        // Tạo dữ liệu template
+        Map<String, String> templateData = new HashMap<>();
+        templateData.put("senderName", sender.getFullName());
+        templateData.put("receiverName", receiver.getFullName());
+        templateData.put("acceptLink", baseUrlFriendShip + "accept/" + friendToken);
+        templateData.put("declineLink", baseUrlFriendShip + "decline/" + friendToken);
+
+        String subject = "Confirm friend request of " + sender.getFullName();
+
+        // Gửi email
+        log.info("Sending friend request email from {} to {}", sender.getEmail(), receiver.getEmail());
+        sendEmail(email, subject, templateSendFriendRequest, templateData);
+        log.info("Email sent successfully to {}", receiver.getEmail());
+
+        // Lưu vào DB
+        friendshipRepository.save(FriendshipEntity.builder()
+                .user1(sender)
+                .user2(receiver)
+                .status(FriendshipStatus.pending)
+                .build());
+        log.info("Friendship entity saved: {} → {} (status: PENDING)",
+                sender.getFullName(), receiver.getFullName());
+
+        log.info("<== [SEND FRIEND REQUEST] Friend request sent successfully to {}", receiver.getFullName());
+        return String.format("Friend request sent successfully to %s", receiver.getFullName());
+    }
+
 }

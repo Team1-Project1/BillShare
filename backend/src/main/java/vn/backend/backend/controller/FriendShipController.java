@@ -1,0 +1,43 @@
+package vn.backend.backend.controller;
+
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+import vn.backend.backend.controller.response.ApiResponse;
+import vn.backend.backend.controller.response.GroupMemberResponse;
+import vn.backend.backend.repository.FriendshipRepository;
+import vn.backend.backend.service.FriendShipService;
+import vn.backend.backend.service.GroupMembersService;
+
+@RestController
+@RequestMapping("/friendship")
+@Tag(name = "friendship controller")
+@Slf4j(topic = "friendship - controller" )
+@RequiredArgsConstructor
+public class FriendShipController {
+    private final FriendShipService friendShipService;
+    @Operation(summary = "user accept friend request", description = "API to accept friend request")
+    @GetMapping("/accept/{token}")
+    public ResponseEntity<ApiResponse<String>> confirm(@PathVariable String token) {
+        log.info("📩 [FRIENDSHIP] accept link triggered with token: {}", token);
+        String message=friendShipService.acceptFriendRequest(token);
+        log.info("✅ [FRIENDSHIP] accept result: {}", message);
+        return ResponseEntity.ok(
+                new ApiResponse<>("success", message, null)
+        );
+    }
+    @Operation(summary = "user decline friend request", description = "API to decline friend request")
+    @GetMapping("/decline/{token}")
+    public ResponseEntity<ApiResponse<String>> decline(@PathVariable String token) {
+        log.info("📩 [FRIENDSHIP] Decline link triggered with token: {}", token);
+        String message=friendShipService.declineFriendRequest(token);
+        log.info("✅ [FRIENDSHIP] Decline result: {}", message);
+        return ResponseEntity.ok(
+                new ApiResponse<>("success",message,null)
+        );
+    }
+}
