@@ -263,7 +263,7 @@ public class EmailServiceImpl implements EmailService {
                 sender.getFullName(), receiver.getFullName());
 
         log.info("<== [SEND FRIEND REQUEST] Friend request sent successfully to {}", receiver.getFullName());
-        return String.format("Friend request sent successfully to %s", receiver.getFullName());
+        return friendToken;
     }
 
 }

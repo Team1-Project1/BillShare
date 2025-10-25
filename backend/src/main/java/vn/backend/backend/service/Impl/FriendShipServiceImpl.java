@@ -4,6 +4,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import vn.backend.backend.common.FriendshipStatus;
+import vn.backend.backend.common.TokenType;
 import vn.backend.backend.repository.FriendshipRepository;
 import vn.backend.backend.service.FriendShipService;
 @Service
@@ -12,10 +13,15 @@ public class FriendShipServiceImpl implements FriendShipService {
     private final JwtServiceImpl jwtService;
     private final FriendshipRepository friendshipRepository;
     @Override
-    public String acceptFriendRequest(String friendToken) {
+    public String acceptFriendRequest(HttpServletRequest req,String friendToken) {
         var claims = jwtService.decodeFriendRequestToken(friendToken);
         Long senderId = claims.getSenderId();
         Long receiverId = claims.getReceiverId();
+        String token = req.getHeader("Authorization").substring("Bearer ".length());
+        Long userId = jwtService.extractUserId(token, TokenType.ACCESS_TOKEN);
+        if(!userId.equals(receiverId)){
+            return "You are not authorized to accept this friend request.";
+        }
         var friendship = friendshipRepository.findByUser1UserIdAndUser2UserIdOrUser1UserIdAndUser2UserId(
                 senderId, receiverId, receiverId, senderId
         );
@@ -34,10 +40,15 @@ public class FriendShipServiceImpl implements FriendShipService {
     }
 
     @Override
-    public String declineFriendRequest(String friendToken) {
+    public String declineFriendRequest(HttpServletRequest req,String friendToken) {
         var claims = jwtService.decodeFriendRequestToken(friendToken);
         Long senderId = claims.getSenderId();
         Long receiverId = claims.getReceiverId();
+        String token = req.getHeader("Authorization").substring("Bearer ".length());
+        Long userId = jwtService.extractUserId(token, TokenType.ACCESS_TOKEN);
+        if(!userId.equals(receiverId)){
+            return "You are not authorized to decline this friend request.";
+        }
         var friendship = friendshipRepository.findByUser1UserIdAndUser2UserIdOrUser1UserIdAndUser2UserId(
                 senderId, receiverId, receiverId, senderId
         );
