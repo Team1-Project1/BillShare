@@ -22,6 +22,7 @@ import vn.backend.backend.controller.response.ApiResponse;
 import vn.backend.backend.controller.response.GroupDetailResponse;
 import vn.backend.backend.controller.response.GroupResponse;
 import vn.backend.backend.controller.response.GroupsOfUserResponse;
+import vn.backend.backend.service.EmailService;
 import vn.backend.backend.service.GroupService;
 
 import java.io.IOException;
@@ -35,6 +36,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class GroupController {
     private final GroupService groupService;
+    private final EmailService emailService;
 
     @Operation(summary = "create new group", description = "API to add a new group to the database")
     @PostMapping(value="/create/{userId}",consumes = {MediaType.MULTIPART_FORM_DATA_VALUE})
@@ -179,6 +181,17 @@ public class GroupController {
         groupService.setSimplifyDebt( groupId, userId, setSimplifyDebt);
         return ResponseEntity.ok(
                 new ApiResponse<>("success", String.format("userId %d set simplify debt groupId %d successfully!",userId, groupId), null)
+        );
+    }
+    @Operation(summary = "Send debt reminder emails", description = "API to send debt reminder emails to all debtors in a group")
+    @PostMapping("/{groupId}/send-debt-reminder")
+    public ResponseEntity<ApiResponse<String>> sendDebtReminders(
+            @PathVariable Long groupId,
+            HttpServletRequest req
+    ) {
+        String resultMessage = emailService.sendDebtReminderForGroup(groupId, req);
+        return ResponseEntity.ok(
+                new ApiResponse<>("success", resultMessage, null)
         );
     }
 }

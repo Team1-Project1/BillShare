@@ -10,8 +10,8 @@ spring:
     password: ${DB_PASSWORD}
     driver-class-name: org.postgresql.Driver
     hikari:
-      minimum-idle: 5
-      maximum-pool-size: 20
+      minimum-idle: 1
+      maximum-pool-size: 3
       idle-timeout: 600000
       max-lifetime: 1800000
       connection-timeout: 30000
@@ -28,6 +28,7 @@ spring:
     from-email: nguyenkimgiang489@gmail.com
     name: BillShare
     templateConfirmParticipationId: d-5c76fa0599a24120bcb98560667202a0
+    templateSendDebtReminder: d-89de5b8671df48e3b1737482100eeb0a
     baseUrl: http://localhost:3000/group-member/
 
 
