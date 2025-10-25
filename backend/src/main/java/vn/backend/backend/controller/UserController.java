@@ -67,9 +67,9 @@ public class UserController {
     public ResponseEntity<ApiResponse<String>> sendFriendRequest(
             HttpServletRequest req,
             @RequestParam String email) throws IOException {
-        String message=emailService.sendFriendRequest(email,req);
+        String friendToken=emailService.sendFriendRequest(email,req);
         return ResponseEntity.ok(
-                new ApiResponse<>("success",message,null)
+                new ApiResponse<>("success",String.format("sent email to %s successfully",email),friendToken)
         );
     }
     @Operation(summary = "delete friend ship of user", description = "API to delete friend ship of user")

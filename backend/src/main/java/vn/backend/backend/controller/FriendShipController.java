@@ -22,20 +22,17 @@ public class FriendShipController {
     private final FriendShipService friendShipService;
     @Operation(summary = "user accept friend request", description = "API to accept friend request")
     @GetMapping("/accept/{token}")
-    public ResponseEntity<ApiResponse<String>> confirm(@PathVariable String token) {
-        log.info("📩 [FRIENDSHIP] accept link triggered with token: {}", token);
-        String message=friendShipService.acceptFriendRequest(token);
-        log.info("✅ [FRIENDSHIP] accept result: {}", message);
+    public ResponseEntity<ApiResponse<String>> confirm(@PathVariable String token, HttpServletRequest request) {
+
+        String message=friendShipService.acceptFriendRequest(request,token);
         return ResponseEntity.ok(
                 new ApiResponse<>("success", message, null)
         );
     }
     @Operation(summary = "user decline friend request", description = "API to decline friend request")
     @GetMapping("/decline/{token}")
-    public ResponseEntity<ApiResponse<String>> decline(@PathVariable String token) {
-        log.info("📩 [FRIENDSHIP] Decline link triggered with token: {}", token);
-        String message=friendShipService.declineFriendRequest(token);
-        log.info("✅ [FRIENDSHIP] Decline result: {}", message);
+    public ResponseEntity<ApiResponse<String>> decline(@PathVariable String token, HttpServletRequest request) {
+        String message=friendShipService.declineFriendRequest(request,token);
         return ResponseEntity.ok(
                 new ApiResponse<>("success",message,null)
         );
