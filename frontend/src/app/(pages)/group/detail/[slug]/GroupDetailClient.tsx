@@ -138,18 +138,16 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
   const [isViewAllExpensesOpen, setIsViewAllExpensesOpen] = useState(false);
   const [isAddExpenseModalOpen, setIsAddExpenseModalOpen] = useState(false);
   const [balances, setBalances] = useState<Balances[]>([]);
-  const [simplifiedBalances, setSimplifiedBalances] = useState<Balances[]>([]);
   const [isSimplified, setIsSimplified] = useState(false);
   const [activities, setActivities] = useState<Activity[]>([]);
   const [activitiesLoading, setActivitiesLoading] = useState(false);
   const [showActivities, setShowActivities] = useState(false);
-  const [hasExported, setHasExported] = useState(false); // State để theo dõi đã export chưa
+  const [hasExported, setHasExported] = useState(false);
   const canShowDelete = userId === group.createdBy;
   const menuRef = useRef<HTMLDivElement>(null);
 
   const fetchGroupDetails = async () => {
     if (!slug || isNaN(Number(slug))) {
-      console.error("Invalid groupId:", slug);
       toast.error("ID nhóm không hợp lệ!", { position: "top-center" });
       setLoading(false);
       return;
@@ -169,9 +167,7 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
 
       if (!response.ok) {
         if (response.status === 401) {
-          toast.error("Phiên đăng nhập hết hạn, vui lòng đăng nhập lại!", {
-            position: "top-center",
-          });
+          toast.error("Phiên đăng nhập hết hạn!", { position: "top-center" });
           return;
         }
         throw new Error("Không thể tải chi tiết nhóm");
@@ -200,13 +196,10 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
             name: member.fullName,
             email: member.email,
             avatar: member.avatarUrl || undefined,
-            debt: 0,
           })),
           createdBy: apiGroup.createdBy,
         }));
-        toast.success("Tải chi tiết nhóm thành công!", {
-          position: "top-center",
-        });
+        toast.success("Tải chi tiết nhóm thành công!", { position: "top-center" });
       }
       setLoading(false);
     } catch (err) {
@@ -217,13 +210,7 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
   };
 
   const fetchExpenses = async () => {
-    if (!slug || isNaN(Number(slug))) {
-      console.error("Invalid groupId:", slug);
-      toast.error("ID nhóm không hợp lệ!", { position: "top-center" });
-      setLoading(false);
-      return;
-    }
-
+    if (!slug || isNaN(Number(slug))) return;
     setExpensesLoading(true);
 
     try {
@@ -238,22 +225,9 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
         }
       );
 
-      if (!response.ok) {
-        if (response.status === 401) {
-          toast.error("Phiên đăng nhập hết hạn, vui lòng đăng nhập lại!", {
-            position: "top-center",
-          });
-          return;
-        }
-        throw new Error("Không thể tải các khoản chi");
-      }
+      if (!response.ok) throw new Error("Không thể tải các khoản chi");
 
       const data = await response.json();
-      if (data.code === "error") {
-        toast.error(data.message, { position: "top-center" });
-        return;
-      }
-
       if (data.code === "success" && Array.isArray(data.data)) {
         const mappedExpenses: Expense[] = data.data.map((item: any) => ({
           expenseId: item.expenseId,
@@ -264,41 +238,24 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
           currency: group.defaultCurrency,
         }));
 
-        const totalCost = data.data.reduce(
-          (sum: number, item: any) => sum + item.totalAmount,
-          0
-        );
+        const totalCost = data.data.reduce((sum: number, item: any) => sum + item.totalAmount, 0);
 
         setGroup((prev) => ({
           ...prev,
           expenses: mappedExpenses,
           totalCost,
-          members: prev.members.map((member) => ({
-            ...member,
-          })),
         }));
-
-        toast.success("Tải các chi tiêu thành công!", {
-          position: "top-center",
-        });
       }
-      setLoading(false);
     } catch (err) {
       console.error("Fetch error:", err);
       toast.error("Không thể tải các chi tiêu!", { position: "top-center" });
-      setLoading(false);
     } finally {
       setExpensesLoading(false);
     }
   };
 
   const fetchBalances = async () => {
-    if (!slug || isNaN(Number(slug))) {
-      console.error("Invalid groupId:", slug);
-      toast.error("ID nhóm không hợp lệ!", { position: "top-center" });
-      setLoading(false);
-      return;
-    }
+    if (!slug || !userId) return;
 
     try {
       const response = await fetchWithAuth(
@@ -311,17 +268,10 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
           },
         }
       );
-      if (!response.ok) {
-        if (response.status === 401) {
-          toast.error("Phiên đăng nhập hết hạn, vui lòng đăng nhập lại!", {
-            position: "top-center",
-          });
-          return;
-        }
-        throw new Error("Không thể tải số dư");
-      }
-      const data = await response.json();
 
+      if (!response.ok) throw new Error("Không thể tải số dư");
+
+      const data = await response.json();
       if (Array.isArray(data.balances)) {
         const mappedBalances: Balances[] = data.balances.map((item: any) => ({
           userId: item.userId,
@@ -332,91 +282,22 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
 
         let netAmount = 0;
         mappedBalances.forEach((b) => {
-          if (b.isOwed) {
-            netAmount += b.amount;
-          } else {
-            netAmount -= b.amount;
-          }
+          netAmount += b.isOwed ? b.amount : -b.amount;
         });
 
-        setGroup((prev) => ({
-          ...prev,
-          netAmount: netAmount,
-        }));
-
+        setGroup((prev) => ({ ...prev, netAmount }));
         setBalances(mappedBalances);
-        toast.success("Tải số dư thành công!", { position: "top-center" });
-      } else {
-        toast.error("Không thể tải số dư!", { position: "top-center" });
-      }
-      setLoading(false);
-    } catch (err) {
-      console.error("Fetch error:", err);
-      toast.error("Không thể tải số dư!", { position: "top-center" });
-      setLoading(false);
-    }
-  };
-
-  const fetchSimplifiedBalances = async () => {
-    if (!slug || isNaN(Number(slug))) {
-      console.error("Invalid groupId:", slug);
-      toast.error("ID nhóm không hợp lệ!", { position: "top-center" });
-      return;
-    }
-
-    try {
-      const response = await fetchWithAuth(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/groups/${slug}/users/${userId}/balances/simplified`,
-        {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-            Accept: "*/*",
-          },
-        }
-      );
-      if (!response.ok) {
-        if (response.status === 401) {
-          toast.error("Phiên đăng nhập hết hạn, vui lòng đăng nhập lại!", {
-            position: "top-center",
-          });
-          return;
-        }
-        throw new Error("Không thể tải số dư đơn giản hóa");
-      }
-      const data = await response.json();
-
-      if (Array.isArray(data.balances)) {
-        const mappedSimplifiedBalances: Balances[] = data.balances.map((item: any) => ({
-          userId: item.userId,
-          userName: item.userName,
-          amount: item.amount,
-          isOwed: item.isOwed,
-        }));
-
-        setSimplifiedBalances(mappedSimplifiedBalances);
-        toast.success("Đơn giản hóa nợ thành công!", { position: "top-center" });
-      } else {
-        toast.error("Không thể tải số dư đơn giản hóa!", { position: "top-center" });
       }
     } catch (err) {
       console.error("Fetch error:", err);
-      toast.error("Không thể tải số dư đơn giản hóa!", { position: "top-center" });
+      toast.error("Não thể tải số dư!", { position: "top-center" });
     }
   };
 
   const fetchActivities = async () => {
-    if (!slug || isNaN(Number(slug))) {
-      console.error("Invalid groupId:", slug);
-      toast.error("ID nhóm không hợp lệ!", { position: "top-center" });
-      return;
-    }
-
+    if (!slug || !userId) return;
     setActivitiesLoading(true);
-    if (!userId) {
-      toast.error("Bạn cần đăng nhập để xem giao dịch!");
-      return;
-    }
+
     try {
       const response = await fetchWithAuth(
         `${process.env.NEXT_PUBLIC_API_URL}/api/groups/${slug}/transactions`,
@@ -425,29 +306,16 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
           headers: {
             "Content-Type": "application/json",
             Accept: "*/*",
-            "userId": userId.toString(),
+            userId: userId.toString(),
           },
         }
       );
 
-      if (!response.ok) {
-        if (response.status === 401) {
-          toast.error("Phiên đăng nhập hết hạn, vui lòng đăng nhập lại!", {
-            position: "top-center",
-          });
-          return;
-        }
-        throw new Error("Không thể tải hoạt động");
-      }
+      if (!response.ok) throw new Error("Không thể tải hoạt động");
 
       const data = await response.json();
-      if (data.code === "error") {
-        toast.error(data.message, { position: "top-center" });
-        return;
-      }
-
       if (data.code === "success" && Array.isArray(data.data)) {
-        const mappedActivities: Activity[] = data.data.map((item: any) => ({
+        const mapped: Activity[] = data.data.map((item: any) => ({
           transactionId: item.transactionId,
           groupId: item.groupId,
           userId: item.userId,
@@ -457,10 +325,7 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
           timestamp: item.timestamp,
           userName: group.members.find((m) => m.id === item.userId)?.name || "Người dùng",
         }));
-        setActivities(mappedActivities);
-        toast.success("Tải hoạt động thành công!", { position: "top-center" });
-      } else {
-        toast.error("Không thể tải hoạt động!", { position: "top-center" });
+        setActivities(mapped);
       }
     } catch (err) {
       console.error("Fetch error:", err);
@@ -470,9 +335,8 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
     }
   };
 
-  // Hàm xử lý export CSV với parsing filename từ header
   const handleExportCSV = async () => {
-    if (hasExported) return; // Ngăn gọi lại nếu đã export
+    if (hasExported) return;
 
     try {
       const response = await fetchWithAuth(
@@ -480,30 +344,21 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
         {
           method: "GET",
           headers: {
-            Accept: "text/csv, application/vnd.ms-excel, /", // ← FIX 2: Thêm cả 2 types
+            Accept: "text/csv, application/vnd.ms-excel, */*",
           },
-          credentials: 'include', // ← FIX 3: Thêm credentials
+          credentials: "include",
         }
       );
 
-      if (!response.ok) {
-        console.error("Response not ok:", response.status, await response.text());
-        throw new Error("Lỗi khi xuất CSV");
-      }
+      if (!response.ok) throw new Error("Lỗi khi xuất CSV");
 
-      // Parse filename từ Content-Disposition
       const disposition = response.headers.get("Content-Disposition");
       let filename = `group_${group.groupId}_report.csv`;
-      
-      if (disposition && disposition.includes("attachment")) {
-        const filenameRegex = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/;
-        const matches = filenameRegex.exec(disposition);
-        if (matches != null && matches[1]) {
-          filename = matches[1].replace(/['"]/g, "");
-        }
+      if (disposition?.includes("attachment")) {
+        const match = disposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+        if (match?.[1]) filename = match[1].replace(/['"]/g, "");
       }
 
-      // Lấy blob và download
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement("a");
@@ -514,32 +369,56 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
 
-      toast.success("Xuất CSV thành công và đã tải về!", {
-        position: "top-center",
-      });
-      setHasExported(true); // Disable nút sau khi thành công
+      toast.success("Xuất CSV thành công!", { position: "top-center" });
+      setHasExported(true);
     } catch (err) {
       console.error("Export error:", err);
-      toast.error("Không thể xuất CSV! Kiểm tra console để debug.", {
-        position: "top-center",
-      });
+      toast.error("Không thể xuất CSV!", { position: "top-center" });
     }
   };
 
   const handleSimplifyToggle = async () => {
-    if (isSimplified) {
-      setIsSimplified(false);
-      toast.info("Đã hoàn tác đơn giản hóa!", { position: "top-center" });
-    } else {
-      await fetchSimplifiedBalances();
-      setIsSimplified(true);
+    const newMode = !isSimplified;
+    const groupId = group.groupId;
+
+    try {
+      const response = await fetchWithAuth(
+        `${process.env.NEXT_PUBLIC_API_URL}/group/${groupId}/set-simplify-debt?setSimplifyDebt=${newMode}`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "*/*",
+            userId: userId?.toString() || "",
+          },
+        }
+      );
+
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.message || "Không thể thay đổi chế độ");
+      }
+
+      const data = await response.json();
+      if (data.code === "success") {
+        setIsSimplified(newMode);
+        localStorage.setItem(`simplifyMode_${slug}`, JSON.stringify(newMode));
+        toast.success(newMode ? "Đã bật đơn giản hóa nợ!" : "Đã tắt đơn giản hóa!", {
+          position: "top-center",
+        });
+        await fetchBalances();
+      }
+    } catch (err: any) {
+      console.error("Toggle simplify error:", err);
+      toast.error(err.message || "Lỗi khi thay đổi chế độ đơn giản hóa!", {
+        position: "top-center",
+      });
     }
   };
 
   const handleShowActivities = () => {
     if (!showActivities) {
       fetchActivities();
-      // Cuộn mượt mà đến section Hoạt động gần đây
       activitiesRef.current?.scrollIntoView({ behavior: "smooth" });
     }
     setShowActivities(!showActivities);
@@ -554,12 +433,13 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
   }, [slug]);
 
   useEffect(() => {
-    console.log("UserID in GroupDetailClient:", userId);
-    const loadData = async () => {
-      if (!userId) return;
-      await fetchBalances();
-    };
-    loadData();
+    if (slug && userId) {
+      const storedMode = localStorage.getItem(`simplifyMode_${slug}`);
+      if (storedMode !== null) {
+        setIsSimplified(JSON.parse(storedMode));
+      }
+      fetchBalances();
+    }
   }, [slug, userId]);
 
   useEffect(() => {
@@ -572,19 +452,16 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const handleInviteSuccess = () => {
-    fetchGroupDetails();
-  };
-
+  const handleInviteSuccess = () => fetchGroupDetails();
   const handleEditExpenseSuccess = () => {
     fetchExpenses();
     fetchBalances();
   };
 
-  const handleDeleteGroup = async (confirmDeleteWithExpenses: boolean) => {
+  const handleDeleteGroup = async (confirmDeleteExpenses: boolean) => {
     try {
       const response = await fetchWithAuth(
-        `${process.env.NEXT_PUBLIC_API_URL}/group/${group.groupId}/delete?confirmDeleteWithExpenses=${confirmDeleteWithExpenses}`,
+        `${process.env.NEXT_PUBLIC_API_URL}/group/${group.groupId}/delete?confirmDeleteWithExpenses=${confirmDeleteExpenses}`,
         {
           method: "PUT",
           headers: {
@@ -596,36 +473,25 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
 
       if (response.ok) {
         toast.success("Xóa nhóm thành công!", { position: "top-center" });
-        setIsConfirmDeleteOpen(false);
         router.push("/");
       } else {
-        const errorData = await response.json();
-
-        if (!confirmDeleteWithExpenses && response.status === 500) {
+        const err = await response.json();
+        if (!confirmDeleteExpenses && response.status === 500) {
           setIsConfirmDeleteOpen(true);
         } else {
-          toast.error(errorData.message || "Không thể xóa nhóm!", {
-            position: "top-center",
-          });
+          toast.error(err.message || "Không thể xóa nhóm!", { position: "top-center" });
         }
       }
     } catch (err) {
-      console.error("Fetch error:", err);
       toast.error("Không thể xóa nhóm!", { position: "top-center" });
-      setLoading(false);
-    } finally {
-      setLoading(false);
     }
   };
 
-  // Variants cho stagger effect
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
       opacity: 1,
-      transition: {
-        staggerChildren: 0.1,
-      },
+      transition: { staggerChildren: 0.1 },
     },
   };
 
@@ -635,8 +501,9 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
     <>
       <Head>
         <title>Chi tiết nhóm</title>
-        <meta name="description" content="Mô tả trang chi tiết nhóm..." />
+        <meta name="description" content="Chi tiết nhóm chi tiêu" />
       </Head>
+
       <div
         className="min-h-screen bg-[radial-gradient(circle_at_right_center,rgba(91,197,167,0.8),rgba(0,0,0,0)_70%)] flex flex-col items-center justify-start p-4 pb-20"
         style={{
@@ -655,27 +522,17 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
         <div className="w-full max-w-[576px] mx-auto">
           <SearchBar groupId={group.groupId} members={group.members} />
           <div className="bg-white rounded-lg p-6 shadow-md border border-gray-200 mb-6">
+            {/* Header nhóm */}
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center">
-                <img
-                  src={group.avatar}
-                  alt="Avatar nhóm"
-                  className="w-12 h-12 rounded-full mr-4"
-                />
-                <div className="flex flex-col">
-                  <h1 className="text-xl font-bold text-[#5BC5A7]">
-                    {group.name}
-                  </h1>
+                <img src={group.avatar} alt="Avatar nhóm" className="w-12 h-12 rounded-full mr-4" />
+                <div>
+                  <h1 className="text-xl font-bold text-[#5BC5A7]">{group.name}</h1>
                   <p className="text-sm text-gray-600 flex items-center">
-                    <FiUsers className="mr-1" />{" "}
-                    {loading ? "Đang tải..." : `${group.memberCount} thành viên`}
+                    <FiUsers className="mr-1" /> {group.memberCount} thành viên
                   </p>
-                  <p
-                    className={`text-md text-gray-600 mt-2 line-clamp-2 ${
-                      group.description === "Không có mô tả" ? "italic" : ""
-                    }`}
-                  >
-                    Mô tả: {loading ? "Đang tải..." : group.description}
+                  <p className={`text-md text-gray-600 mt-2 line-clamp-2 ${group.description === "Không có mô tả" ? "italic" : ""}`}>
+                    Mô tả: {group.description}
                   </p>
                 </div>
               </div>
@@ -686,14 +543,14 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
                   onClick={() => setIsMenuOpen(!isMenuOpen)}
                 />
                 {isMenuOpen && (
-                  <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg">
+                  <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
                     {canShowDelete && (
                       <button
                         onClick={() => {
                           handleDeleteGroup(false);
                           setIsMenuOpen(false);
                         }}
-                        className="flex items-center px-4 py-2 text-sm text-red-500 cursor-pointer hover:bg-[rgba(227,76,76,0.2)] w-full text-left"
+                        className="flex items-center px-4 py-2 text-sm text-red-500 hover:bg-red-50 w-full text-left"
                       >
                         <FiTrash2 className="mr-2" /> Xóa
                       </button>
@@ -703,16 +560,18 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
                         setIsEditGroupInfoOpen(true);
                         setIsMenuOpen(false);
                       }}
-                      className="flex items-center px-4 py-2 text-sm text-gray-700 cursor-pointer hover:bg-[rgba(91,197,167,0.2)] w-full text-left"
+                      className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-green-50 w-full text-left"
                     >
-                      <FiEdit className="mr-2" /> Đổi thông tin nhóm
+                      <FiEdit className="mr-2" /> Đổi thông tin
                     </button>
                     <button
                       onClick={() => {
                         handleExportCSV();
                         setIsMenuOpen(false);
                       }}
-                      className={`flex items-center px-4 py-2 text-sm text-gray-700 w-full text-left ${hasExported ? 'pointer-events-none opacity-50 cursor-not-allowed' : 'cursor-pointer hover:bg-[rgba(91,197,167,0.2)]'}`}
+                      className={`flex items-center px-4 py-2 text-sm text-gray-700 w-full text-left ${
+                        hasExported ? "opacity-50 cursor-not-allowed" : "hover:bg-green-50"
+                      }`}
                     >
                       <FiDownload className="mr-2" /> Xuất CSV
                     </button>
@@ -721,45 +580,31 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
               </div>
             </div>
 
+            {/* Tổng chi phí & trạng thái */}
             <div className="text-center mb-6">
               <div className="mb-4">
-                <h2 className="text-2xl font-bold text-[#5BC5A7]">
-                  Tổng chi phí
-                </h2>
-                <p className="text-2xl font-[700] text-gray-700">
-                  {loading || expensesLoading
-                    ? "Đang tải..."
-                    : `${group.totalCost.toLocaleString()} ${group.defaultCurrency}`}
+                <h2 className="text-2xl font-bold text-[#5BC5A7]">Tổng chi phí</h2>
+                <p className="text-2xl font-bold text-gray-700">
+                  {expensesLoading ? "Đang tải..." : `${group.totalCost.toLocaleString()} ${group.defaultCurrency}`}
                 </p>
               </div>
               <div>
-                <h2 className="text-2xl font-bold text-[#5BC5A7]">
-                  Trạng thái của bạn
-                </h2>
+                <h2 className="text-2xl font-bold text-[#5BC5A7]">Trạng thái của bạn</h2>
                 <p
-                  className={`text-2xl font-[700] ${
-                    loading || expensesLoading
-                      ? "text-gray-700"
-                      : group.netAmount >= 0
-                      ? "text-green-700"
-                      : "text-red-700"
+                  className={`text-2xl font-bold ${
+                    group.netAmount >= 0 ? "text-green-700" : "text-red-700"
                   }`}
                 >
-                  {loading || expensesLoading
-                    ? "Đang tải..."
-                    : group.netAmount === 0
-                    ? "Bạn không nợ ai trong nhóm này"
+                  {group.netAmount === 0
+                    ? "Bạn không nợ ai"
                     : group.netAmount > 0
-                    ? `Bạn được nhận: ${group.netAmount.toLocaleString()} ${
-                        group.defaultCurrency
-                      }`
-                    : `Bạn đang nợ: ${Math.abs(
-                        group.netAmount
-                      ).toLocaleString()} ${group.defaultCurrency}`}
+                    ? `Bạn được nhận: ${group.netAmount.toLocaleString()} ${group.defaultCurrency}`
+                    : `Bạn đang nợ: ${Math.abs(group.netAmount).toLocaleString()} ${group.defaultCurrency}`}
                 </p>
               </div>
             </div>
 
+            {/* Thành viên & Toggle Simplify */}
             <div>
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-lg font-semibold text-[#5BC5A7] flex items-center">
@@ -772,6 +617,7 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
                   Xem tất cả
                 </button>
               </div>
+
               <div className="flex items-center mb-4">
                 <div className="group relative flex items-center">
                   <FiHelpCircle className="text-gray-500 mr-2" size={16} />
@@ -795,61 +641,44 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
                   {isSimplified ? "Đơn giản hóa: Bật" : "Đơn giản hóa: Tắt"}
                 </span>
               </div>
+
               <div className="space-y-4">
                 <AnimatePresence>
-                  {loading ? (
-                    <motion.p
-                      key="loading"
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -20 }}
-                      transition={{ duration: 0.3 }}
-                      className="text-gray-600 italic text-center"
-                    >
-                      Đang tải...
-                    </motion.p>
-                  ) : (isSimplified ? simplifiedBalances : balances).length > 0 ? (
-                    (isSimplified ? simplifiedBalances : balances).map(
-                      (balance) => (
-                        <motion.div
-                          key={balance.userId}
-                          initial={{ opacity: 0, y: 20 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: -20 }}
-                          transition={{ duration: 0.3 }}
-                        >
-                          <CardFriendEnhanced
-                            name={balance.userName}
-                            debt={balance.amount}
-                            isOwed={balance.isOwed}
-                            currency={group.defaultCurrency}
-                            isLoading={expensesLoading}
-                          />
-                        </motion.div>
-                      )
-                    )
+                  {balances.length > 0 ? (
+                    balances.map((balance) => (
+                      <motion.div
+                        key={balance.userId}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -20 }}
+                        transition={{ duration: 0.3 }}
+                      >
+                        <CardFriendEnhanced
+                          name={balance.userName}
+                          debt={balance.amount}
+                          isOwed={balance.isOwed}
+                          currency={group.defaultCurrency}
+                          isLoading={expensesLoading}
+                        />
+                      </motion.div>
+                    ))
                   ) : (
-                    <motion.p
-                      key="no-members"
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -20 }}
-                      transition={{ duration: 0.3 }}
-                      className="text-gray-600 italic text-center"
-                    >
+                    <motion.p className="text-gray-600 italic text-center">
                       Chưa có thành viên nào.
                     </motion.p>
                   )}
                 </AnimatePresence>
               </div>
+
               <button
                 onClick={() => setIsModalOpen(true)}
-                className="w-full h-12 bg-[#5BC5A7] text-white rounded-md text-base font-semibold hover:bg-[#4AA88C] transition-colors duration-300 flex items-center justify-center pt-2 mt-4"
+                className="w-full h-12 bg-[#5BC5A7] text-white rounded-md font-semibold hover:bg-[#4AA88C] transition-colors mt-4 flex items-center justify-center"
               >
                 <FiUserPlus className="mr-2" /> Thêm thành viên
               </button>
             </div>
 
+            {/* Khoản chi gần đây */}
             <div className="mt-6 mb-8">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-lg font-semibold text-[#5BC5A7] flex items-center">
@@ -862,72 +691,57 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
                   Xem tất cả
                 </button>
               </div>
+
               {expensesLoading ? (
-                <p className="text-gray-600 italic animate-pulse text-center">
-                  Đang tải khoản chi...
-                </p>
-              ) : (
+                <p className="text-gray-600 italic text-center animate-pulse">Đang tải...</p>
+              ) : group.expenses.length > 0 ? (
                 <div className="space-y-4">
-                  {group.expenses.length > 0 ? (
-                    group.expenses.map((expense, index) => (
-                      <CardExpense
-                        key={index}
-                        expenseId={expense.expenseId}
-                        groupId={expense.groupId}
-                        name={expense.name}
-                        date={expense.date}
-                        amount={expense.amount}
-                        currency={group.defaultCurrency}
-                        userId={Number(userId)}
-                        showDeleteOptions={false}
-                        members={group.members}
-                        onEditSuccess={fetchExpenses}
-                      />
-                    ))
-                  ) : (
-                    <p className="text-gray-600 italic text-center">
-                      Chưa có khoản chi nào.
-                    </p>
-                  )}
+                  {group.expenses.map((expense) => (
+                    <CardExpense
+                      key={expense.expenseId}
+                      expenseId={expense.expenseId}
+                      groupId={expense.groupId}
+                      name={expense.name}
+                      date={expense.date}
+                      amount={expense.amount}
+                      currency={group.defaultCurrency}
+                      userId={Number(userId)}
+                      showDeleteOptions={false}
+                      members={group.members}
+                      onEditSuccess={fetchExpenses}
+                    />
+                  ))}
                 </div>
+              ) : (
+                <p className="text-gray-600 italic text-center">Chưa có khoản chi nào.</p>
               )}
+
               <button
                 onClick={() => setIsAddExpenseModalOpen(true)}
-                className="w-full h-12 bg-[#5BC5A7] text-white rounded-md text-base font-semibold hover:bg-[#4AA88C] transition-colors duration-300 flex items-center justify-center pt-2 mt-4"
+                className="w-full h-12 bg-[#5BC5A7] text-white rounded-md font-semibold hover:bg-[#4AA88C] transition-colors mt-4 flex items-center justify-center"
               >
                 <FiEdit2 className="mr-2" /> Thêm chi tiêu
               </button>
+
+              {/* Hoạt động - CHỈ CÒN 1 NÚT MỞ RỘNG */}
               <div className="mt-6" ref={activitiesRef}>
-                <div className="flex items-center justify-between mb-2">
-                  <h2
-                    className="text-lg font-semibold text-[#5BC5A7] flex items-center cursor-pointer hover:underline"
-                    onClick={handleShowActivities}
-                  >
-                    <FiActivity className="mr-2" /> Hoạt động gần đây
-                  </h2>
-                  <button
-                    onClick={handleShowActivities}
-                    className="text-sm text-[#5BC5A7] hover:underline"
-                  >
-                    {showActivities ? "Ẩn" : "Xem tất cả"}
-                  </button>
-                </div>
+                <h2 className="text-lg font-semibold text-[#5BC5A7] flex items-center mb-2">
+                  <FiActivity className="mr-2" /> Hoạt động gần đây
+                </h2>
                 <div className="flex justify-center">
                   <motion.button
                     onClick={handleShowActivities}
-                    className="flex items-center justify-center px-4 py-2 bg-[#E6F4F1] text-[#5BC5A7] rounded-md text-sm font-semibold border border-[#5BC5A7]/50 hover:bg-[#D1E9E3] transition-colors duration-300"
-                    whileHover={{ scale: 1.05, transition: { duration: 0.2 } }}
+                    className="flex items-center px-4 py-2 bg-[#E6F4F1] text-[#5BC5A7] rounded-md text-sm font-semibold border border-[#5BC5A7]/50 hover:bg-[#D1E9E3]"
+                    whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                   >
-                    <motion.span
-                      animate={{ rotate: showActivities ? 180 : 0 }}
-                      transition={{ duration: 0.3 }}
-                    >
+                    <motion.span animate={{ rotate: showActivities ? 180 : 0 }} transition={{ duration: 0.3 }}>
                       <FiChevronDown className="mr-2" />
                     </motion.span>
                     {showActivities ? "Thu gọn" : "Mở rộng"}
                   </motion.button>
                 </div>
+
                 <AnimatePresence>
                   {showActivities && (
                     <motion.div
@@ -938,31 +752,13 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
                       className="space-y-4 mt-4"
                     >
                       {activitiesLoading ? (
-                        <motion.p
-                          key="loading-activities"
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: 1 }}
-                          exit={{ opacity: 0 }}
-                          transition={{ duration: 0.3 }}
-                          className="text-gray-600 italic animate-pulse text-center"
-                        >
-                          Đang tải hoạt động...
-                        </motion.p>
+                        <p className="text-gray-600 italic text-center animate-pulse">Đang tải...</p>
                       ) : activities.length > 0 ? (
                         activities.map((activity) => (
                           <CardActivity key={activity.transactionId} activity={activity} />
                         ))
                       ) : (
-                        <motion.p
-                          key="no-activities"
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: 1 }}
-                          exit={{ opacity: 0 }}
-                          transition={{ duration: 0.3 }}
-                          className="text-gray-600 italic text-center"
-                        >
-                          Chưa có hoạt động nào.
-                        </motion.p>
+                        <p className="text-gray-600 italic text-center">Chưa có hoạt động nào.</p>
                       )}
                     </motion.div>
                   )}
@@ -974,32 +770,11 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
         <BottomNav />
       </div>
 
-      <ModalAddMember
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        groupId={group.groupId}
-        createdBy={group.createdBy}
-        onInviteSuccess={handleInviteSuccess}
-      />
-      <ModalViewAllMembers
-        isOpen={isViewAllModalOpen}
-        onClose={() => setIsViewAllModalOpen(false)}
-        onDeleteMemberSuccess={fetchGroupDetails}
-        groupId={group.groupId}
-        members={group.members}
-        createdBy={group.createdBy}
-      />
-      <ModalConfirmDelete
-        isOpen={isConfirmDeleteOpen}
-        onClose={() => setIsConfirmDeleteOpen(false)}
-        onConfirm={() => handleDeleteGroup(true)}
-      />
-      <ModalEditGroupInfo
-        isOpen={isEditGroupInfoOpen}
-        onClose={() => setIsEditGroupInfoOpen(false)}
-        group={group}
-        onUpdateSuccess={fetchGroupDetails}
-      />
+      {/* Modals */}
+      <ModalAddMember isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} groupId={group.groupId} createdBy={group.createdBy} onInviteSuccess={handleInviteSuccess} />
+      <ModalViewAllMembers isOpen={isViewAllModalOpen} onClose={() => setIsViewAllModalOpen(false)} onDeleteMemberSuccess={fetchGroupDetails} groupId={group.groupId} members={group.members} createdBy={group.createdBy} />
+      <ModalConfirmDelete isOpen={isConfirmDeleteOpen} onClose={() => setIsConfirmDeleteOpen(false)} onConfirm={() => handleDeleteGroup(true)} />
+      <ModalEditGroupInfo isOpen={isEditGroupInfoOpen} onClose={() => setIsEditGroupInfoOpen(false)} group={group} onUpdateSuccess={fetchGroupDetails} />
       <ModalViewAllExpense
         isOpen={isViewAllExpensesOpen}
         onClose={() => setIsViewAllExpensesOpen(false)}
