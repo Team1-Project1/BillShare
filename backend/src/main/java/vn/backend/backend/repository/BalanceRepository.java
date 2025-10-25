@@ -13,4 +13,7 @@ public interface BalanceRepository extends JpaRepository<BalanceEntity, Long> {
     Optional<BalanceEntity> findByGroupGroupIdAndUser1UserIdAndUser2UserId(Long groupId, Long userId1, Long userId2);
     void deleteByGroup_GroupIdAndUser1_UserIdOrGroup_GroupIdAndUser2_UserId(Long groupId1, Long userId1, Long groupId2, Long userId2);
     void deleteByGroup_GroupId(Long groupId);
+    List<BalanceEntity> findAllByGroup_GroupIdAndUser1_UserIdOrGroup_GroupIdAndUser2_UserId(
+            Long groupId1, Long userId1, Long groupId2, Long userId2
+    );
 }

@@ -8,24 +8,27 @@ import com.sendgrid.helpers.mail.Mail;
 import com.sendgrid.helpers.mail.objects.Email;
 import com.sendgrid.helpers.mail.objects.Personalization;
 import jakarta.persistence.EntityNotFoundException;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import vn.backend.backend.common.MemberRole;
+import vn.backend.backend.common.TokenType;
 import vn.backend.backend.controller.request.ConfirmPaticipationRequest;
-import vn.backend.backend.model.GroupEntity;
-import vn.backend.backend.model.GroupMembersEntity;
-import vn.backend.backend.model.GroupMembersId;
-import vn.backend.backend.model.UserEntity;
+import vn.backend.backend.model.*;
+import vn.backend.backend.repository.BalanceRepository;
 import vn.backend.backend.repository.GroupMembersRepository;
 import vn.backend.backend.repository.GroupRepository;
 import vn.backend.backend.repository.UserRepository;
 import vn.backend.backend.service.EmailService;
+import vn.backend.backend.service.JwtService;
 
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 
@@ -38,6 +41,8 @@ public class EmailServiceImpl implements EmailService {
     private final UserRepository userRepository;
     private final GroupRepository groupRepository;
     private final GroupMembersRepository groupMembersRepository;
+    private final JwtService jwtService;
+    private final BalanceRepository balanceRepository;
 
     @Value("${spring.sendgrid.from-email}")
     private String emailFrom;
@@ -45,6 +50,8 @@ public class EmailServiceImpl implements EmailService {
     private String name;
     @Value("${spring.sendgrid.templateConfirmParticipationId}")
     private String templateConfirmParticipationId;
+    @Value("${spring.sendgrid.templateSendDebtReminder}")
+    private String templateSendDebtReminder;
     @Value("${spring.sendgrid.baseUrl}")
     private String baseUrl;
 
@@ -104,5 +111,61 @@ public class EmailServiceImpl implements EmailService {
         String subject = "Confirm your participation in group " + group.getGroupName();
 
         sendEmail(request.getEmailTo(), subject, templateConfirmParticipationId, templateData);
+    }
+
+    @Override
+    public String sendDebtReminderForGroup(Long groupId, HttpServletRequest req) {
+        String token=req.getHeader("Authorization").substring("Bearer ".length());
+        Long userId=jwtService.extractUserId(token, TokenType.ACCESS_TOKEN);
+        UserEntity user = userRepository.findById(userId)
+                .orElseThrow(() -> new NoSuchElementException("User not found with id " + userId));
+        GroupEntity group = groupRepository.findByGroupIdAndIsActiveTrue(groupId)
+                .orElseThrow(() -> new NoSuchElementException("Group not found with id " + groupId));
+        Boolean membership = groupMembersRepository.existsById_GroupIdAndId_UserIdAndIsActiveTrue(groupId,userId);
+        if (!membership) {
+            throw new AccessDeniedException("You are not a member of this group");
+        }
+        List<BalanceEntity>balances=balanceRepository.findAllByGroup_GroupIdAndUser1_UserIdOrGroup_GroupIdAndUser2_UserId(groupId, userId, groupId, userId);
+        if (balances.isEmpty()) {
+            return String.format("You have no debit records in group %s,you cannot send debt reminder emails", group.getGroupName());
+        }
+        int emailSentCount = 0;
+        for(var balance:balances){
+            BigDecimal amount = balance.getBalance();
+            if (amount == null || amount.compareTo(BigDecimal.ZERO) == 0) continue;
+            Long debtorId, creditorId;
+            if(amount.compareTo(BigDecimal.ZERO) < 0){
+                debtorId = balance.getUser2().getUserId();
+                creditorId = balance.getUser1().getUserId();
+            } else {
+                debtorId = balance.getUser1().getUserId();
+                creditorId = balance.getUser2().getUserId();
+            }
+            log.info("Processing balance: debtorId={}, creditorId={}, amount={}", debtorId, creditorId, amount);
+            if(creditorId.equals(userId)){
+                UserEntity debtor = userRepository.findById(debtorId)
+                        .orElseThrow(() -> new NoSuchElementException("User not found with id " + debtorId));
+                Map<String, String> templateData = new HashMap<>();
+                String subject = "Nhắc nợ trong nhóm " + group.getGroupName();
+                templateData.put("senderName", user.getFullName());
+                templateData.put("receiverName",debtor.getFullName());
+                templateData.put("groupName", group.getGroupName());
+                templateData.put("amount", String.format("%,.0f", amount.abs()));
+                templateData.put("currency", group.getDefaultCurrency());
+                try {
+                    sendEmail(debtor.getEmail(), subject, templateSendDebtReminder, templateData);
+                    emailSentCount++;
+                } catch (IOException e) {
+                    return String.format("Failed to send debt reminder email to %s", debtor.getEmail());
+                }
+            }
+
+        }
+        if (emailSentCount > 0) {
+            return String.format(" Sent %d debt reminder emails to %s group members",
+                    emailSentCount, group.getGroupName());
+        } else {
+            return String.format("No one owes you anything in group %s,you cannot send debt reminder emails", group.getGroupName());
+        }
     }
 }
