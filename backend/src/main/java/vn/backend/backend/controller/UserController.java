@@ -7,6 +7,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -17,6 +18,7 @@ import vn.backend.backend.controller.request.GroupCreateRequest;
 import vn.backend.backend.controller.request.GroupEditRequest;
 import vn.backend.backend.controller.response.ApiResponse;
 import vn.backend.backend.controller.response.EditUserResponse;
+import vn.backend.backend.controller.response.FriendResponse;
 import vn.backend.backend.controller.response.GroupResponse;
 import vn.backend.backend.service.EmailService;
 import vn.backend.backend.service.TokenService;
@@ -78,6 +80,17 @@ public class UserController {
         String message=userService.deleteFriendship(req,userId);
         return ResponseEntity.ok(
                 new ApiResponse<>("success",message,null)
+        );
+    }
+    @Operation(summary = "get list friend of user", description = "API to get list friend of user")
+    @GetMapping("/friends")
+    public ResponseEntity<ApiResponse<Page<FriendResponse>>> getFriends(HttpServletRequest req,
+                                                                     @RequestParam(defaultValue = "0") int page,
+                                                                     @RequestParam(defaultValue = "10") int size,
+                                                                     @RequestParam(defaultValue = "desc") String sortDirection) {
+        Page<FriendResponse> data=userService.getFriends(req, page, size, sortDirection);
+        return ResponseEntity.ok(
+                new ApiResponse<>("success","get list friend successfully",data)
         );
     }
 }
