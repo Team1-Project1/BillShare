@@ -71,19 +71,4 @@ public class GroupMembersServiceImpl implements GroupMembersService {
         GroupEntity group=groupRepository.findByGroupId(groupId).orElseThrow(() -> new RuntimeException("group not found with id " + groupId));
         return String.format("người dùng %s đã từ chối lời mời vào nhóm %s!",user.getFullName(),group.getGroupName());
     }
-    @Override
-    public boolean existsByGroupIdAndUserId(Long groupId, Long userId) {
-        // Check if an active group member record exists with the given groupId and userId
-
-        //tạo transaction cho việc rời nhóm
-        transactionService.createTransaction(
-                groupId,
-                userId,
-                ActionType.leave,
-                EntityType.group,
-                groupId
-        );
-        return groupMembersRepository.existsById_GroupIdAndId_UserIdAndIsActiveTrue(groupId, userId);
-    }
-
 }
