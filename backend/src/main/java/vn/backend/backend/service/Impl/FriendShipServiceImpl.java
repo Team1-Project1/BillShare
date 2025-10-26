@@ -17,11 +17,11 @@ public class FriendShipServiceImpl implements FriendShipService {
         var claims = jwtService.decodeFriendRequestToken(friendToken);
         Long senderId = claims.getSenderId();
         Long receiverId = claims.getReceiverId();
-        String token = req.getHeader("Authorization").substring("Bearer ".length());
-        Long userId = jwtService.extractUserId(token, TokenType.ACCESS_TOKEN);
-        if(!userId.equals(receiverId)){
-            return "You are not authorized to accept this friend request.";
-        }
+//        String token = req.getHeader("Authorization").substring("Bearer ".length());
+//        Long userId = jwtService.extractUserId(token, TokenType.ACCESS_TOKEN);
+//        if(!userId.equals(receiverId)){
+//            return "You are not authorized to accept this friend request.";
+//        }
         var friendship = friendshipRepository.findByUser1UserIdAndUser2UserIdOrUser1UserIdAndUser2UserId(
                 senderId, receiverId, receiverId, senderId
         );
@@ -44,11 +44,11 @@ public class FriendShipServiceImpl implements FriendShipService {
         var claims = jwtService.decodeFriendRequestToken(friendToken);
         Long senderId = claims.getSenderId();
         Long receiverId = claims.getReceiverId();
-        String token = req.getHeader("Authorization").substring("Bearer ".length());
-        Long userId = jwtService.extractUserId(token, TokenType.ACCESS_TOKEN);
-        if(!userId.equals(receiverId)){
-            return "You are not authorized to decline this friend request.";
-        }
+//        String token = req.getHeader("Authorization").substring("Bearer ".length());
+//        Long userId = jwtService.extractUserId(token, TokenType.ACCESS_TOKEN);
+//        if(!userId.equals(receiverId)){
+//            return "You are not authorized to decline this friend request.";
+//        }
         var friendship = friendshipRepository.findByUser1UserIdAndUser2UserIdOrUser1UserIdAndUser2UserId(
                 senderId, receiverId, receiverId, senderId
         );
