@@ -53,7 +53,7 @@ export default function Home() {
         <BottomNav />
       </div>
       <ModalCreateGroup isOpen={isGroupModalOpen} onClose={() => setIsGroupModalOpen(false)} />
-      <ModalAddFriend isOpen={isFriendModalOpen} onClose={() => setIsFriendModalOpen(false)} />
+      <ModalAddFriend isOpen={isFriendModalOpen} onClose={() => setIsFriendModalOpen(false)} onSuccess={() => {console.log("Thêm bạn thành công!");}} />
     </>
   );
 }
