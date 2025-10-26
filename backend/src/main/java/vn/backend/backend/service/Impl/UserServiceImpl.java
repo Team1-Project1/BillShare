@@ -6,6 +6,10 @@ import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -16,6 +20,8 @@ import vn.backend.backend.common.TokenType;
 import vn.backend.backend.controller.request.EditUserRequest;
 import vn.backend.backend.controller.request.UserCreateRequest;
 import vn.backend.backend.controller.response.EditUserResponse;
+import vn.backend.backend.controller.response.FriendResponse;
+import vn.backend.backend.model.FriendshipEntity;
 import vn.backend.backend.model.UserEntity;
 import vn.backend.backend.repository.FriendshipRepository;
 import vn.backend.backend.repository.UserRepository;
@@ -128,5 +134,32 @@ public class UserServiceImpl implements UserService {
         }
         friendshipRepository.delete(friendship);
         return String.format("Friendship between user %d and user %d has been deleted.", userId1, userId2);
+    }
+
+    @Override
+    public Page<FriendResponse> getFriends(HttpServletRequest req, int page, int size, String sortDirection) {
+        String token=req.getHeader("Authorization").substring("Bearer ".length());
+        Long userId=jwtService.extractUserId(token, TokenType.ACCESS_TOKEN);
+        Sort.Direction direction;
+        if ("asc".equalsIgnoreCase(sortDirection)) {
+            direction = Sort.Direction.ASC;
+        } else if ("desc".equalsIgnoreCase(sortDirection)) {
+            direction = Sort.Direction.DESC;
+        } else {
+            direction = Sort.Direction.DESC;
+        }
+        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, "createdAt"));
+        Page<FriendshipEntity> friendships = friendshipRepository.findAllByUser1UserIdAndStatusOrUser2UserIdAndStatus(userId, FriendshipStatus.accepted, userId, FriendshipStatus.accepted, pageable);
+        return friendships.map(friend->{
+            UserEntity friendUser=friend.getUser1().getUserId().equals(userId) ? friend.getUser2() : friend.getUser1();
+            return  FriendResponse.builder()
+                    .id(friendUser.getUserId())
+                    .fullName(friendUser.getFullName())
+                    .email(friendUser.getEmail())
+                    .phone(friendUser.getPhone())
+                    .avatarUrl(friendUser.getAvatarUrl())
+                    .createdAt(friend.getCreatedAt())
+                    .build();
+        });
     }
 }
