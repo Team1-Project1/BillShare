@@ -3,6 +3,8 @@ package vn.backend.backend.service.Impl;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import vn.backend.backend.controller.response.TransactionResponse;
 import vn.backend.backend.model.TransactionEntity;
 import vn.backend.backend.model.GroupEntity;
@@ -10,6 +12,7 @@ import vn.backend.backend.model.UserEntity;
 import vn.backend.backend.repository.TransactionRepository;
 import vn.backend.backend.repository.GroupRepository;
 import vn.backend.backend.repository.UserRepository;
+import vn.backend.backend.repository.GroupMembersRepository;
 import vn.backend.backend.service.TransactionService;
 import vn.backend.backend.common.ActionType;
 import vn.backend.backend.common.EntityType;
@@ -24,6 +27,7 @@ public class TransactionServiceImpl implements TransactionService {
     private final TransactionRepository transactionRepository;
     private final GroupRepository groupRepository;
     private final UserRepository userRepository;
+    private final GroupMembersRepository groupMembersRepository;
 
     @Override
     @Transactional
@@ -46,15 +50,18 @@ public class TransactionServiceImpl implements TransactionService {
     }
 
     @Override
-    public List<TransactionResponse> getTransactionsByGroupId(Long groupId) {
-        return transactionRepository.findAllByGroupGroupId(groupId)
-                .stream()
-                .map(this::toResponse)
-                .collect(Collectors.toList());
+    public Page<TransactionResponse> getTransactionsByGroupId(Long userId, Long groupId, Pageable pageable) {
+        Boolean isMemberOfGroup = groupMembersRepository.existsById_GroupIdAndId_UserIdAndIsActiveTrue(groupId, userId);
+        if (!isMemberOfGroup) {
+            throw new RuntimeException("User is not a member of the group");
+        }
+        return transactionRepository.findAllByGroupGroupId(groupId, pageable)
+                .map(this::toResponse);
     }
 
     @Override
     public List<TransactionResponse> getTransactionsByUserId(Long userId) {
+
         return transactionRepository.findAllByUserUserId(userId)
                 .stream()
                 .map(this::toResponse)
