@@ -31,7 +31,7 @@ spring:
     templateSendDebtReminder: d-89de5b8671df48e3b1737482100eeb0a
     templateSendFriendRequest: d-3d40192e7a55437c9df68fa8e4ddf87a
     baseUrlGroupMember: http://localhost:3000/group-member/
-    baseUrlFriendShip: http://localhost:8080/friendship/
+    baseUrlFriendShip: http://localhost:3000/friends/
 
 
 springdoc:

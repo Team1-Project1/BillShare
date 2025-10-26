@@ -15,11 +15,15 @@ import vn.backend.backend.service.GroupMembersService;
 
 @RestController
 @RequestMapping("/friendship")
+@CrossOrigin(origins = "http://localhost:3000", allowCredentials = "true")
 @Tag(name = "friendship controller")
 @Slf4j(topic = "friendship - controller" )
 @RequiredArgsConstructor
 public class FriendShipController {
     private final FriendShipService friendShipService;
+
+    private static final String FRONTEND_BASE_URL = "http://localhost:3000";
+
     @Operation(summary = "user accept friend request", description = "API to accept friend request")
     @GetMapping("/accept/{token}")
     public ResponseEntity<ApiResponse<String>> confirm(@PathVariable String token, HttpServletRequest request) {
