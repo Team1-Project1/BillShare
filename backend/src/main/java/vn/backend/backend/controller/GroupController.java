@@ -183,10 +183,10 @@ public class GroupController {
     @PostMapping("/{groupId}/set-simplify-debt")
     public ResponseEntity<ApiResponse<String>> setSimplifyDebt(
             @RequestParam("setSimplifyDebt") Boolean setSimplifyDebt,
-            @RequestHeader("userId") Long userId,
+            @PathVariable Long groupId,
             HttpServletRequest req
     ) throws Exception {
-        Long groupId = (Long) req.getAttribute("groupId");
+        Long userId = (Long) req.getAttribute("userId");
         groupService.setSimplifyDebt( groupId, userId, setSimplifyDebt);
         return ResponseEntity.ok(
                 new ApiResponse<>("success", String.format("userId %d set simplify debt groupId %d successfully!",userId, groupId), null)
