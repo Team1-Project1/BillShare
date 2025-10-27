@@ -92,11 +92,12 @@ public class EmailServiceImpl implements EmailService {
         GroupEntity group = groupRepository.findByGroupIdAndIsActiveTrue(groupId)
                 .orElseThrow(() -> new NoSuchElementException("Group not found with id " + groupId));
         GroupMembersEntity membership = groupMembersRepository
-                .findById_GroupIdAndId_UserId(groupId, userId)
-                .orElseThrow(() -> new NoSuchElementException("You is not a member of this group"));
-
+                .findById_GroupIdAndId_UserIdAndIsActiveTrue(groupId, userId);
+        if (membership == null) {
+            throw new RuntimeException("Membership not found for user id " + userId + " in group id " + groupId);
+        }
         if (!MemberRole.admin.equals(membership.getRole())) {
-            throw new AccessDeniedException("Only admins can confirm participation in this group");
+            throw new RuntimeException("Only admins can confirm participation in this group");
         }
         boolean alreadyMember = groupMembersRepository.existsById_GroupIdAndId_UserIdAndIsActiveTrue(groupId,receiver.getUserId());
         if (alreadyMember) {
@@ -116,60 +117,50 @@ public class EmailServiceImpl implements EmailService {
     }
 
     @Override
-    public String sendDebtReminderForGroup(Long groupId, HttpServletRequest req) {
+    public String sendDebtReminderForGroup(Long groupId,Long receiverId, HttpServletRequest req) throws IOException {
         String token=req.getHeader("Authorization").substring("Bearer ".length());
         Long userId=jwtService.extractUserId(token, TokenType.ACCESS_TOKEN);
         UserEntity user = userRepository.findById(userId)
                 .orElseThrow(() -> new NoSuchElementException("User not found with id " + userId));
         GroupEntity group = groupRepository.findByGroupIdAndIsActiveTrue(groupId)
                 .orElseThrow(() -> new NoSuchElementException("Group not found with id " + groupId));
+        UserEntity receiver = userRepository.findById(receiverId)
+                .orElseThrow(() -> new NoSuchElementException("User not found with id " + receiverId));
         Boolean membership = groupMembersRepository.existsById_GroupIdAndId_UserIdAndIsActiveTrue(groupId,userId);
         if (!membership) {
-            throw new AccessDeniedException("You are not a member of this group");
+            throw new RuntimeException("You are not a member of this group");
         }
-        List<BalanceEntity>balances=balanceRepository.findAllByGroup_GroupIdAndUser1_UserIdOrGroup_GroupIdAndUser2_UserId(groupId, userId, groupId, userId);
-        if (balances.isEmpty()) {
-            return String.format("You have no debit records in group %s,you cannot send debt reminder emails", group.getGroupName());
+        Boolean membershipOfReceiver = groupMembersRepository.existsById_GroupIdAndId_UserIdAndIsActiveTrue(groupId,receiverId);
+        if (!membershipOfReceiver) {
+            throw new RuntimeException("receiver are not a member of this group");
         }
-        int emailSentCount = 0;
-        for(var balance:balances){
-            BigDecimal amount = balance.getBalance();
-            if (amount == null || amount.compareTo(BigDecimal.ZERO) == 0) continue;
-            Long debtorId, creditorId;
-            if(amount.compareTo(BigDecimal.ZERO) < 0){
-                debtorId = balance.getUser2().getUserId();
-                creditorId = balance.getUser1().getUserId();
-            } else {
-                debtorId = balance.getUser1().getUserId();
-                creditorId = balance.getUser2().getUserId();
-            }
-            log.info("Processing balance: debtorId={}, creditorId={}, amount={}", debtorId, creditorId, amount);
-            if(creditorId.equals(userId)){
-                UserEntity debtor = userRepository.findById(debtorId)
-                        .orElseThrow(() -> new NoSuchElementException("User not found with id " + debtorId));
-                Map<String, String> templateData = new HashMap<>();
-                String subject = "Nhắc nợ trong nhóm " + group.getGroupName();
-                templateData.put("senderName", user.getFullName());
-                templateData.put("receiverName",debtor.getFullName());
-                templateData.put("groupName", group.getGroupName());
-                templateData.put("amount", String.format("%,.0f", amount.abs()));
-                templateData.put("currency", group.getDefaultCurrency());
-                try {
-                    sendEmail(debtor.getEmail(), subject, templateSendDebtReminder, templateData);
-                    emailSentCount++;
-                } catch (IOException e) {
-                    return String.format("Failed to send debt reminder email to %s", debtor.getEmail());
-                }
-            }
-
+        BalanceEntity balance=balanceRepository.findByGroup_GroupIdAndUser1_UserIdAndUser2_UserIdOrGroup_GroupIdAndUser2_UserIdAndUser1_UserId(groupId, userId,receiverId, groupId,userId, receiverId);
+        if (balance==null||balance.getBalance().compareTo(BigDecimal.ZERO)==0) {
+            return String.format("You have no debit records in group %s with %s,you cannot send debt reminder emails", group.getGroupName(), receiver.getFullName());
         }
-        if (emailSentCount > 0) {
-            return String.format(" Sent %d debt reminder emails to %s group members",
-                    emailSentCount, group.getGroupName());
+        BigDecimal amount = balance.getBalance();
+        Long debtorId, creditorId;
+        if (amount.compareTo(BigDecimal.ZERO) < 0) {
+            debtorId = balance.getUser2().getUserId();
+            creditorId = balance.getUser1().getUserId();
         } else {
-            return String.format("No one owes you anything in group %s,you cannot send debt reminder emails", group.getGroupName());
+            debtorId = balance.getUser1().getUserId();
+            creditorId = balance.getUser2().getUserId();
         }
+        if (!creditorId.equals(userId)) {
+            throw new RuntimeException("You are not the creditor in this debt record");
+        }
+        Map<String, String> templateData = new HashMap<>();
+        String subject = "Nhắc nợ trong nhóm " + group.getGroupName();
+        templateData.put("senderName", user.getFullName());
+        templateData.put("receiverName", receiver.getFullName());
+        templateData.put("groupName", group.getGroupName());
+        templateData.put("amount", String.format("%,.0f", amount.abs()));
+        templateData.put("currency", group.getDefaultCurrency());
+        sendEmail(receiver.getEmail(), subject, templateSendDebtReminder, templateData);
+        return String.format("Sent debt reminder email to %s successfully", receiver.getFullName());
     }
+
     @Transactional
     @Override
     public String sendFriendRequest(String email, HttpServletRequest req) throws IOException {

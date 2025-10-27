@@ -6,6 +6,7 @@ import jakarta.validation.Valid;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -36,8 +37,8 @@ public class ExpenseController {
     public ResponseEntity<ApiResponse<ExpenseDetailResponse>> createExpense(
             @PathVariable Long groupId,
             @Valid @RequestBody CreateExpenseRequest request,
-            @RequestHeader("userId") Long userId) {
-
+            HttpServletRequest req) {
+        Long userId = (Long) req.getAttribute("userId");
         ExpenseDetailResponse expense = expenseService.createExpense(groupId, request, userId);
 
         return ResponseEntity.status(HttpStatus.CREATED)
@@ -49,20 +50,21 @@ public class ExpenseController {
     public ResponseEntity<ApiResponse<String>> deleteExpense(
             @PathVariable Long groupId,
             @PathVariable Long expenseId,
-            @RequestHeader("userId") Long userId) {
-
+            HttpServletRequest req) {
+        Long userId = (Long) req.getAttribute("userId");
         expenseService.deleteExpense(expenseId, userId, groupId);
         return ResponseEntity.ok(new ApiResponse<>("success", "Expense deleted successfully", null));
     }
 
     @Operation(summary = "Get all expenses in group", description = "API to retrieve all expenses for a specific group")
     @GetMapping
-    public ResponseEntity<ApiResponse<List<ExpenseResponse>>> getGroupExpenses(
+    public ResponseEntity<ApiResponse<Page<ExpenseResponse>>> getGroupExpenses(
             @PathVariable Long groupId,
+            @RequestParam (defaultValue = "0") int page,
+            @RequestParam (defaultValue = "10") int size,
             HttpServletRequest request) {
         Long userId = (Long) request.getAttribute("userId");
-
-        List<ExpenseResponse> expenses = expenseService.getExpensesByGroupId(groupId, userId);
+        Page<ExpenseResponse> expenses = expenseService.getExpensesByGroupId(groupId, userId,page,size);
 
         return ResponseEntity.ok(
                 new ApiResponse<>("success", "Lấy danh sách chi tiêu thành công", expenses)
@@ -91,8 +93,8 @@ public class ExpenseController {
             @PathVariable Long expenseId,
             @PathVariable Long groupId,
             @Valid @RequestBody UpdateExpenseRequest request,
-            @RequestHeader("userId") Long userId) {
-
+            HttpServletRequest req) {
+        Long userId = (Long) req.getAttribute("userId");
         ExpenseDetailResponse expense = expenseService.updateExpenseByExpenseId(expenseId,userId,groupId, request);
 
         return ResponseEntity.ok(
@@ -107,9 +109,10 @@ public class ExpenseController {
             @RequestParam(required = false) String expenseName,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) Date expenseDateFrom,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) Date expenseDateTo,
-            @RequestHeader("userId") Long userId,
+            HttpServletRequest req,
             @PathVariable Long groupId
     ){
+        Long userId = (Long) req.getAttribute("userId");
         List<ExpenseSimpleResponse> expenses = expenseService.getExpensesByConditions(categoryId, expenseName, expenseDateFrom, expenseDateTo, userId, groupId);
         return ResponseEntity.ok(
                 new ApiResponse<>("success", String.format("get expenses of userId %d in groupId %d successfully!", userId,groupId), expenses)

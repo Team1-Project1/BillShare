@@ -1,5 +1,6 @@
 package vn.backend.backend.service;
 
+import org.springframework.data.domain.Page;
 import vn.backend.backend.controller.request.UpdateExpenseRequest;
 import vn.backend.backend.controller.response.ExpenseSimpleResponse;
 import vn.backend.backend.model.ExpenseEntity;
@@ -17,7 +18,7 @@ public interface ExpenseService {
                                 String currency, Long categoryId, Date expenseDate,
                                 String description, SplitMethod splitMethod);
     void deleteExpense(Long expenseId, Long requestingUserId, Long groupId);
-    List<ExpenseResponse> getExpensesByGroupId(Long groupId, Long userId);
+    Page<ExpenseResponse> getExpensesByGroupId(Long groupId, Long userId, int page, int size);
     ExpenseDetailResponse getExpenseDetail(Long expenseId, Long userId, Long groupId);
     List<ExpenseEntity> getExpensesByPayerId(Long payerId);
     ExpenseDetailResponse updateExpenseByExpenseId(Long expenseId,Long userId, Long groupId,UpdateExpenseRequest request);

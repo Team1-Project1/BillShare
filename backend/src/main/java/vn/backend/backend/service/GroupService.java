@@ -2,6 +2,7 @@ package vn.backend.backend.service;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.data.domain.Page;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.multipart.MultipartFile;
 import vn.backend.backend.controller.request.GroupCreateRequest;
@@ -16,8 +17,8 @@ import java.util.List;
 public interface GroupService {
     GroupResponse createGroup(GroupCreateRequest request,MultipartFile file, Long userId) throws Exception;
     GroupResponse editGroup(HttpServletRequest req,GroupEditRequest request, MultipartFile file, Long groupId) throws Exception;
-    GroupsOfUserResponse getAllGroupsByUserId(Long userId);
-    GroupDetailResponse getGroupDetailById(Long groupId);
+    Page<GroupResponse> getAllGroupsByUserId(Long userId,int page,int size);
+    GroupDetailResponse getGroupDetailById(Long groupId,Long userId,int page,int size);
     String deleteGroup(Long groupId, HttpServletRequest request, boolean confirmDeleteWithExpenses);
     String deleteMemberFromGroup(Long groupId, Long memberId, HttpServletRequest request);
     String uploadImageGroup(MultipartFile file,Long groupId, Long userId) throws Exception;

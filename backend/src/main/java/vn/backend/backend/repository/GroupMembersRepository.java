@@ -1,5 +1,7 @@
 package vn.backend.backend.repository;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 import vn.backend.backend.model.GroupMembersEntity;
@@ -15,6 +17,7 @@ public interface GroupMembersRepository extends JpaRepository<GroupMembersEntity
     GroupMembersEntity findById_GroupIdAndId_UserIdAndIsActiveTrue(Long groupId, Long userId);
     Boolean existsById_GroupIdAndId_UserIdAndIsActiveTrue(Long groupId, Long userId);
     Boolean existsById_GroupIdAndId_UserIdAndIsActiveFalse(Long groupId, Long userId);
-    List<GroupMembersEntity> findAllById_UserIdAndIsActiveTrue(Long userId);
+    Page<GroupMembersEntity> findAllById_UserIdAndIsActiveTrue(Long userId, Pageable pageable);
     List<GroupMembersEntity> findAllById_GroupIdAndIsActiveTrue(Long groupId);
+    Page<GroupMembersEntity> findAllById_GroupIdAndIsActiveTrue(Long groupId, Pageable pageable);
 }
