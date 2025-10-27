@@ -2,6 +2,7 @@ package vn.backend.backend.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -23,18 +24,31 @@ public class GroupMembersController {
     private final GroupMembersService groupMembersService;
     @Operation(summary = "user accept invitation join group", description = "API to add a new user in group")
     @GetMapping("/{groupId}/confirm/{userId}")
-    public ResponseEntity<ApiResponse<GroupMemberResponse>> confirm(@PathVariable Long groupId, @PathVariable Long userId) {
-        GroupMemberResponse groupMembers=groupMembersService.confirm( groupId, userId);
+    public ResponseEntity<ApiResponse<GroupMemberResponse>> confirm(@PathVariable Long groupId, @PathVariable Long userId, HttpServletRequest req) {
+        Long confirmerId = (Long) req.getAttribute("userId");
+        GroupMemberResponse groupMembers=groupMembersService.confirm( groupId, userId,confirmerId);
         return ResponseEntity.ok(
                 new ApiResponse<>("success", String.format("người dùng id : %d đã được thêm vào nhóm id : %d!",userId,groupId), groupMembers)
         );
     }
     @Operation(summary = "user decline invitation join group", description = "API to notification user decline invitation join group")
     @GetMapping("/{groupId}/decline/{userId}")
-    public ResponseEntity<ApiResponse<String>> decline(@PathVariable Long groupId, @PathVariable Long userId) {
-        String message=groupMembersService.decline( groupId, userId);
+    public ResponseEntity<ApiResponse<String>> decline(@PathVariable Long groupId, @PathVariable Long userId, HttpServletRequest req) {
+        Long confirmerId = (Long) req.getAttribute("userId");
+        String message=groupMembersService.decline( groupId, userId, confirmerId);
         return ResponseEntity.ok(
                 new ApiResponse<>("success",message,null)
+        );
+    }
+    @Operation(summary = "add friend to group", description = "API to add friend to group")
+    @PostMapping("/{groupId}/add-friend/{userId}")
+    public ResponseEntity<ApiResponse<String>> addFriendToGroup(@PathVariable Long groupId,
+                                                                @PathVariable Long userId,
+                                                                HttpServletRequest req) {
+        Long adderId = (Long) req.getAttribute("userId");
+        String message = groupMembersService.addFriendToGroup(groupId, userId,adderId);
+        return ResponseEntity.ok(
+                new ApiResponse<>("success", message, null)
         );
     }
 }

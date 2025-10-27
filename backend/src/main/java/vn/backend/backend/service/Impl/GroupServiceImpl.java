@@ -5,6 +5,10 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -139,45 +143,47 @@ public class GroupServiceImpl implements GroupService {
     }
 
     @Override
-    public GroupsOfUserResponse getAllGroupsByUserId(Long userId) {
-        List<GroupMembersEntity>groupMembers=groupMembersRepository.findAllById_UserIdAndIsActiveTrue(userId);
-        List<GroupResponse>responses=new ArrayList<>();
-        for(var groupMember:groupMembers){
-                responses.add(GroupResponse.builder().
-                        groupId(groupMember.getGroup().getGroupId()).
-                        groupName(groupMember.getGroup().getGroupName()).
-                        description(groupMember.getGroup().getDescription()).
-                        createdBy(groupMember.getGroup().getCreatedBy()).
-                        defaultCurrency(groupMember.getGroup().getDefaultCurrency()).
-                        createdAt(groupMember.getGroup().getCreatedAt()).
-                        updatedAt(groupMember.getGroup().getUpdatedAt()).
-                        isActive(groupMember.getGroup().getIsActive()).
-                        avatarUrl(groupMember.getGroup().getAvatarUrl()).
-                        build());
-        }
-        return GroupsOfUserResponse.builder()
-                .groups(responses)
-                .totalGroups(responses.size())
-                .build();
+    public Page<GroupResponse> getAllGroupsByUserId(Long userId,int page,int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        Page<GroupMembersEntity>groupMembers=groupMembersRepository.findAllById_UserIdAndIsActiveTrue(userId,pageable);
+        return groupMembers.map(groupMember->{
+            GroupEntity group=groupRepository.findByGroupId(groupMember.getGroup().getGroupId()).orElseThrow(()->new RuntimeException("Group not found with id " + groupMember.getGroup().getGroupId()));
+            return GroupResponse.builder()
+                    .groupId(group.getGroupId())
+                    .groupName(group.getGroupName())
+                    .description(group.getDescription())
+                    .createdBy(group.getCreatedBy())
+                    .defaultCurrency(group.getDefaultCurrency())
+                    .createdAt(group.getCreatedAt())
+                    .updatedAt(group.getUpdatedAt())
+                    .isActive(group.getIsActive())
+                    .avatarUrl(group.getAvatarUrl())
+                    .build();
+        });
     }
 
     @Override
-    public GroupDetailResponse getGroupDetailById(Long groupId) {
+    public GroupDetailResponse getGroupDetailById(Long groupId,Long userId,int page,int size) {
         GroupEntity group = groupRepository.findByGroupIdAndIsActiveTrue(groupId)
                 .orElseThrow(() -> new RuntimeException("Group not found with id " + groupId));
-        List<UserDetailResponse>members=new ArrayList<>();
-        List<GroupMembersEntity>groupMembers=groupMembersRepository.findAllById_GroupIdAndIsActiveTrue(groupId);
-        for(var groupMember:groupMembers ){
-            members.add(UserDetailResponse.builder()
-                            .userId(groupMember.getMember().getUserId())
-                            .email(groupMember.getMember().getEmail())
-                            .fullName(groupMember.getMember().getFullName())
-                            .phone(groupMember.getMember().getPhone())
-                            .joinAt(groupMember.getJoinedAt())
-                            .avatarUrl(groupMember.getMember().getAvatarUrl())
-                            .role(groupMember.getRole())
-                    .build());
+        GroupMembersEntity isGroupMember=groupMembersRepository.findById_GroupIdAndId_UserIdAndIsActiveTrue(groupId,userId);
+        if(isGroupMember==null){
+            throw new RuntimeException("User is not member of group");
         }
+        Pageable pageable = PageRequest.of(page, size, Sort.by("joinedAt").descending());
+        Page<GroupMembersEntity> membersPage = groupMembersRepository.findAllById_GroupIdAndIsActiveTrue(groupId, pageable);
+        var members=membersPage.map(member -> {
+            UserEntity user = member.getMember();
+            return UserDetailResponse.builder()
+                    .userId(user.getUserId())
+                    .fullName(user.getFullName())
+                    .email(user.getEmail())
+                    .phone(user.getPhone())
+                    .avatarUrl(user.getAvatarUrl())
+                    .role(member.getRole())
+                    .joinAt(member.getJoinedAt())
+                    .build();
+        });
         return GroupDetailResponse.builder()
                 .groupId(group.getGroupId())
                 .groupName(group.getGroupName())
@@ -187,9 +193,9 @@ public class GroupServiceImpl implements GroupService {
                 .createdAt(group.getCreatedAt())
                 .isActive(group.getIsActive())
                 .avatar(group.getAvatarUrl())
-                .simplifyDebtOn(group.getSimplifyDebtOn())
                 .members(members)
-                .totalMembers(members.size())
+                .totalMembers((int) members.getTotalElements())
+                .simplifyDebtOn(group.getSimplifyDebtOn())
                 .build();
     }
     @Transactional

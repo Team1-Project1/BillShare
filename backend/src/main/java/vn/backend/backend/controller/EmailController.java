@@ -2,6 +2,7 @@ package vn.backend.backend.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -24,9 +25,10 @@ public class EmailController {
     @Operation(summary = "confirm participation", description = "API to confirm participation of users in group")
     @PostMapping("/confirm-participation")
     public ResponseEntity<String> mailVerifyCation(@RequestParam Long groupId,
-                                                   @RequestParam Long userId,
+                                                   HttpServletRequest req,
                                                    @Valid  @RequestBody ConfirmPaticipationRequest emailTo) throws IOException {
-            emailService.confirmParticipation(groupId, userId, emailTo);
+        Long userId = (Long) req.getAttribute("userId");
+        emailService.confirmParticipation(groupId, userId, emailTo);
             return ResponseEntity.ok("Email sent successfully to " + emailTo.getEmailTo());
     }
 

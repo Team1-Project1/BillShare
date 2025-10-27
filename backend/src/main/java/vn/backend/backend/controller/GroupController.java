@@ -11,6 +11,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -39,12 +40,12 @@ public class GroupController {
     private final EmailService emailService;
 
     @Operation(summary = "create new group", description = "API to add a new group to the database")
-    @PostMapping(value="/create/{userId}",consumes = {MediaType.MULTIPART_FORM_DATA_VALUE})
+    @PostMapping(value="/create",consumes = {MediaType.MULTIPART_FORM_DATA_VALUE})
     public ResponseEntity<ApiResponse<GroupResponse>> register(
             @RequestPart("group") String groupJson,
             @RequestPart(value = "file", required = false) MultipartFile file,
-            @PathVariable Long userId) throws Exception {
-
+            HttpServletRequest req) throws Exception {
+        Long userId = (Long) req.getAttribute("userId");
         ObjectMapper mapper = new ObjectMapper();
         GroupCreateRequest request = mapper.readValue(groupJson, GroupCreateRequest.class);
 
@@ -73,17 +74,24 @@ public class GroupController {
     }
 
     @Operation(summary = "get list group by userId", description = "API to get list group by userId into the database")
-    @GetMapping("/list-group/{userId}")
-    public ResponseEntity<ApiResponse<GroupsOfUserResponse>> getListGroupByUserId(@PathVariable Long userId) {
-        GroupsOfUserResponse groups = groupService.getAllGroupsByUserId(userId);
+    @GetMapping("/list-group")
+    public ResponseEntity<ApiResponse<Page<GroupResponse>>> getListGroupByUserId(HttpServletRequest req,
+                                                                    @RequestParam(defaultValue = "0") int page,
+                                                                    @RequestParam(defaultValue = "10") int size) {
+        Long userId = (Long) req.getAttribute("userId");
+        Page<GroupResponse> groups = groupService.getAllGroupsByUserId(userId,page,size);
         return ResponseEntity.ok(
                 new ApiResponse<>("success","get all group into database successfull", groups)
         );
     }
     @Operation(summary = "get detail group by group id", description = "API to get detail group by group id into the database")
     @GetMapping("/{groupId}")
-    public ResponseEntity<ApiResponse<GroupDetailResponse>> getListGroupByGroupId(@PathVariable Long groupId) {
-        GroupDetailResponse group = groupService.getGroupDetailById(groupId);
+    public ResponseEntity<ApiResponse<GroupDetailResponse>> getListGroupByGroupId(@PathVariable Long groupId,
+                                                                                  HttpServletRequest req,
+                                                                                  @RequestParam(defaultValue = "0") int page,
+                                                                                  @RequestParam(defaultValue = "10") int size) {
+        Long userId = (Long) req.getAttribute("userId");
+        GroupDetailResponse group = groupService.getGroupDetailById(groupId,userId,page,size);
         return ResponseEntity.ok(
                 new ApiResponse<>("success",String.format("get detail group %d into database successfull",groupId), group)
         );
@@ -176,20 +184,22 @@ public class GroupController {
     public ResponseEntity<ApiResponse<String>> setSimplifyDebt(
             @RequestParam("setSimplifyDebt") Boolean setSimplifyDebt,
             @RequestHeader("userId") Long userId,
-            @PathVariable Long groupId
+            HttpServletRequest req
     ) throws Exception {
+        Long groupId = (Long) req.getAttribute("groupId");
         groupService.setSimplifyDebt( groupId, userId, setSimplifyDebt);
         return ResponseEntity.ok(
                 new ApiResponse<>("success", String.format("userId %d set simplify debt groupId %d successfully!",userId, groupId), null)
         );
     }
     @Operation(summary = "Send debt reminder emails", description = "API to send debt reminder emails to all debtors in a group")
-    @PostMapping("/{groupId}/send-debt-reminder")
+    @PostMapping("/{groupId}/send-debt-reminder/{receiverId}")
     public ResponseEntity<ApiResponse<String>> sendDebtReminders(
             @PathVariable Long groupId,
+            @PathVariable Long receiverId,
             HttpServletRequest req
-    ) {
-        String resultMessage = emailService.sendDebtReminderForGroup(groupId, req);
+    ) throws IOException {
+        String resultMessage = emailService.sendDebtReminderForGroup(groupId, receiverId,req);
         return ResponseEntity.ok(
                 new ApiResponse<>("success", resultMessage, null)
         );

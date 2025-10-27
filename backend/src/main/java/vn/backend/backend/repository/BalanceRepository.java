@@ -21,7 +21,7 @@ public interface BalanceRepository extends JpaRepository<BalanceEntity, Long> {
     List<BalanceEntity> findAllByGroup_GroupIdAndUser1_UserIdOrGroup_GroupIdAndUser2_UserId(
             Long groupId1, Long userId1, Long groupId2, Long userId2
     );
-
+    BalanceEntity findByGroup_GroupIdAndUser1_UserIdAndUser2_UserIdOrGroup_GroupIdAndUser2_UserIdAndUser1_UserId(Long groupId, Long userId1, Long userId2, Long groupId2, Long userId3, Long userId4);
     boolean existsByGroupGroupIdAndBalanceNot(Long groupId, BigDecimal balance);
     @Modifying
     @Transactional

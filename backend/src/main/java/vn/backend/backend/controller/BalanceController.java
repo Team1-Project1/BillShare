@@ -1,6 +1,7 @@
 // java
 package vn.backend.backend.controller;
 
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -17,7 +18,8 @@ public class BalanceController {
     @GetMapping("/{groupId}/users/{userId}/balances")
     public ResponseEntity<BalanceResponse> getUserBalances(
             @PathVariable Long groupId,
-            @PathVariable Long userId) {
+            HttpServletRequest request) {
+        Long userId = (Long) request.getAttribute("userId");
         BalanceResponse response = balanceService.getUserBalanceResponse(groupId, userId);
         return ResponseEntity.ok(response);
     }

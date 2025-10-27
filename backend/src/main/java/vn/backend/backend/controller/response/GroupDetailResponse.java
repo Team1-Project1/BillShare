@@ -1,6 +1,7 @@
 package vn.backend.backend.controller.response;
 
 import lombok.*;
+import org.springframework.data.domain.Page;
 
 import java.io.Serializable;
 import java.util.Date;
@@ -18,7 +19,7 @@ public class GroupDetailResponse implements Serializable {
     private String defaultCurrency;
     private Date createdAt;
     private Boolean isActive;
-    private List<UserDetailResponse> members;
+    private Page<UserDetailResponse> members;
     private int totalMembers;
     private String avatar;
     private Boolean simplifyDebtOn;

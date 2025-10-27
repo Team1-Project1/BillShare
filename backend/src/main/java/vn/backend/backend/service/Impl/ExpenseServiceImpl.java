@@ -2,6 +2,10 @@ package vn.backend.backend.service.Impl;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import vn.backend.backend.controller.request.UpdateExpenseRequest;
@@ -211,7 +215,7 @@ public class ExpenseServiceImpl implements ExpenseService {
 
 
     @Override
-    public List<ExpenseResponse> getExpensesByGroupId(Long groupId,Long userId ) {
+    public Page<ExpenseResponse> getExpensesByGroupId(Long groupId, Long userId, int page, int size) {
         //Verify user is in group
         if (!isUserInGroup(userId, groupId)) {
             throw new RuntimeException("Không phải là thành viên của nhóm");
@@ -220,31 +224,28 @@ public class ExpenseServiceImpl implements ExpenseService {
         groupRepository.findByGroupId(groupId)
                 .orElseThrow(() -> new RuntimeException("Group not found with ID: " + groupId));
 
-        List<ExpenseEntity> expenses = expenseRepository.findAllByGroupGroupId(groupId);
-
-        return expenses.stream()
-                .map(expense -> ExpenseResponse.builder()
-                        .expenseId(expense.getExpenseId())
-                        .groupId(expense.getGroup().getGroupId())
-                        .groupName(expense.getGroup().getGroupName())
-                        .expenseName(expense.getExpenseName())
-                        .totalAmount(expense.getTotalAmount())
-                        .currency(expense.getCurrency())
-                        .categoryId(expense.getCategory().getCategoryId())
-                        .categoryName(expense.getCategory().getCategoryName())
-                        .expenseDate(expense.getExpenseDate())
-                        .description(expense.getDescription())
-                        .createdByUserId(expense.getCreatedBy().getUserId())
-                        .createdByUserName(expense.getCreatedBy().getFullName())
-                        .payerUserId(expense.getPayer().getUserId())
-                        .payerUserName(expense.getPayer().getFullName())
-                        .splitMethod(expense.getSplitMethod())
-                        .createdAt(expense.getCreatedAt())
-                        .updatedAt(expense.getUpdatedAt())
-                        .build())
-                .toList();
+        Pageable pageable = PageRequest.of(page, size, Sort.by("expenseDate").descending());
+        Page<ExpenseEntity> expensesPage = expenseRepository.findAllByGroupGroupId(groupId, pageable);
+        return  expensesPage.map(expense -> ExpenseResponse.builder()
+                .expenseId(expense.getExpenseId())
+                .groupId(expense.getGroup().getGroupId())
+                .groupName(expense.getGroup().getGroupName())
+                .expenseName(expense.getExpenseName())
+                .totalAmount(expense.getTotalAmount())
+                .currency(expense.getCurrency())
+                .categoryId(expense.getCategory().getCategoryId())
+                .categoryName(expense.getCategory().getCategoryName())
+                .expenseDate(expense.getExpenseDate())
+                .description(expense.getDescription())
+                .createdByUserId(expense.getCreatedBy().getUserId())
+                .createdByUserName(expense.getCreatedBy().getFullName())
+                .payerUserId(expense.getPayer().getUserId())
+                .payerUserName(expense.getPayer().getFullName())
+                .splitMethod(expense.getSplitMethod())
+                .createdAt(expense.getCreatedAt())
+                .updatedAt(expense.getUpdatedAt())
+                .build());
     }
-
     @Override
     public ExpenseDetailResponse getExpenseDetail(Long expenseId, Long userId, Long groupId) {
         //Verify user is in group
