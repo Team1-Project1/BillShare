@@ -11,5 +11,4 @@ import java.util.List;
 public interface TransactionService {
     TransactionResponse createTransaction(Long groupId, Long userId, ActionType actionType, EntityType entityType, Long entityId);
     Page<TransactionResponse> getTransactionsByGroupId(Long userId,Long groupId, Pageable pageable);
-    List<TransactionResponse> getTransactionsByUserId(Long userId);
 }

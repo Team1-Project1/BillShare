@@ -22,13 +22,13 @@ public class TransactionEntity {
     @Column(name = "transaction_id")
     private Long transactionId;
 
-    @ManyToOne
-    @JoinColumn(name = "group_id")
-    private GroupEntity group;
-
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id")
     private UserEntity user;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "group_id")
+    private GroupEntity group;
 
     @Enumerated(EnumType.STRING)
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
