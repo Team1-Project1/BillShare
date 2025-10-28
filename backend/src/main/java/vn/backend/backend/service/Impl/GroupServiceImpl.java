@@ -144,7 +144,7 @@ public class GroupServiceImpl implements GroupService {
 
     @Override
     public Page<GroupResponse> getAllGroupsByUserId(Long userId,int page,int size) {
-        Pageable pageable = PageRequest.of(page, size);
+        Pageable pageable = PageRequest.of(page, size, Sort.by("joinedAt").descending());
         Page<GroupMembersEntity>groupMembers=groupMembersRepository.findAllById_UserIdAndIsActiveTrue(userId,pageable);
         return groupMembers.map(groupMember->{
             GroupEntity group=groupRepository.findByGroupId(groupMember.getGroup().getGroupId()).orElseThrow(()->new RuntimeException("Group not found with id " + groupMember.getGroup().getGroupId()));
