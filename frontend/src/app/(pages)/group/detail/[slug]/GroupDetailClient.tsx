@@ -5,7 +5,7 @@ import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";
 import CardExpense from "@/components/card/CardExpense";
 import CardFriendEnhanced from "@/components/card/CardFriendEnhanced";
-import CardActivity from "@/components/card/CardActivity";
+import CardPayment from "@/components/card/CardPayment";
 import { BottomNav } from "@/components/Footer/BottomNav";
 import Head from "next/head";
 import {
@@ -65,15 +65,14 @@ interface Balances {
   isOwed: boolean;
 }
 
-interface Activity {
-  transactionId: number;
+interface Payment {
+  paymentId: number;
   groupId: number;
-  userId: number;
-  actionType: string;
-  entityType: string;
-  entityId: number;
-  timestamp: string;
-  userName?: string;
+  payerName: string;
+  payeeName: string;
+  amount: number;
+  currency: string;
+  paymentDate: string;
 }
 
 interface Group {
@@ -122,8 +121,8 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
   const [isAddExpenseModalOpen, setIsAddExpenseModalOpen] = useState(false);
   const [balances, setBalances] = useState<Balances[]>([]);
   const [isSimplified, setIsSimplified] = useState(false);
-  const [activities, setActivities] = useState<Activity[]>([]);
-  const [activitiesLoading, setActivitiesLoading] = useState(false);
+  const [payments, setPayments] = useState<Payment[]>([]);
+  const [paymentsLoading, setPaymentsLoading] = useState(false);
   const [showActivities, setShowActivities] = useState(false);
   const [hasExported, setHasExported] = useState(false);
 
@@ -300,44 +299,42 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
     }
   };
 
-  const fetchActivities = async () => {
+  const fetchPayments = async () => {
     if (!slug || !userId) return;
-    setActivitiesLoading(true);
+    setPaymentsLoading(true);
 
     try {
       const response = await fetchWithAuth(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/groups/${slug}/transactions`,
+        `${process.env.NEXT_PUBLIC_API_URL}/api/groups/${slug}/payments`,
         {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
             Accept: "*/*",
-            userId: userId.toString(),
           },
         }
       );
 
-      if (!response.ok) throw new Error("Không thể tải hoạt động");
+      if (!response.ok) throw new Error("Không thể tải danh sách chi trả");
 
       const data = await response.json();
       if (data.code === "success" && Array.isArray(data.data)) {
-        const mapped: Activity[] = data.data.map((item: any) => ({
-          transactionId: item.transactionId,
+        const mapped: Payment[] = data.data.map((item: any) => ({
+          paymentId: item.paymentId,
           groupId: item.groupId,
-          userId: item.userId,
-          actionType: item.actionType,
-          entityType: item.entityType,
-          entityId: item.entityId,
-          timestamp: item.timestamp,
-          userName: group.members.find((m) => m.id === item.userId)?.name || "Người dùng",
+          payerName: item.payerName,
+          payeeName: item.payeeName,
+          amount: item.amount,
+          currency: item.currency,
+          paymentDate: item.paymentDate,
         }));
-        setActivities(mapped);
+        setPayments(mapped);
       }
     } catch (err) {
       console.error("Fetch error:", err);
-      toast.error("Không thể tải hoạt động!", { position: "top-center" });
+      toast.error("Không thể tải các chi trả!", { position: "top-center" });
     } finally {
-      setActivitiesLoading(false);
+      setPaymentsLoading(false);
     }
   };
 
@@ -424,7 +421,7 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
 
   const handleShowActivities = () => {
     if (!showActivities) {
-      fetchActivities();
+      fetchPayments();
       activitiesRef.current?.scrollIntoView({ behavior: "smooth" });
     }
     setShowActivities(!showActivities);
@@ -467,7 +464,14 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
     fetchExpenses(0, false);
     fetchBalances();
   };
-  const handlePaymentSuccess = () => fetchBalances();
+  const handlePaymentSuccess = () => {
+    fetchBalances();
+    fetchPayments();
+  }
+  const handleDeletePaymentSuccess = () => {
+    fetchBalances();
+    fetchPayments();
+  }
 
   const handleDeleteGroup = async (confirmDeleteExpenses: boolean) => {
     try {
@@ -713,7 +717,7 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
                           groupId={group.groupId}
                           payerId={userId}
                           payeeId={balance.userId}
-                          onSuccess={fetchBalances}
+                          onSuccess={handlePaymentSuccess}
                         />
                       </motion.div>
                     ))
@@ -796,10 +800,10 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
                 <FiEdit2 className="mr-2" /> Thêm chi tiêu
               </button>
 
-              {/* Hoạt động */}
+              {/* Chi trả */}
               <div className="mt-6" ref={activitiesRef}>
                 <h2 className="text-lg font-semibold text-[#5BC5A7] flex items-center mb-2">
-                  <FiActivity className="mr-2" /> Hoạt động gần đây
+                  <FiActivity className="mr-2" /> Các chi trả gần đây
                 </h2>
                 <div className="flex justify-center">
                   <motion.button
@@ -824,14 +828,14 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
                       exit="hidden"
                       className="space-y-4 mt-4"
                     >
-                      {activitiesLoading ? (
+                      {paymentsLoading ? (
                         <p className="text-gray-600 italic text-center animate-pulse">Đang tải...</p>
-                      ) : activities.length > 0 ? (
-                        activities.map((activity) => (
-                          <CardActivity key={activity.transactionId} activity={activity} />
+                      ) : payments.length > 0 ? (
+                        payments.map((payment) => (
+                          <CardPayment key={payment.paymentId} payment={payment} onDeletePaymentSuccess={handleDeletePaymentSuccess} />
                         ))
                       ) : (
-                        <p className="text-gray-600 italic text-center">Chưa có hoạt động nào.</p>
+                        <p className="text-gray-600 italic text-center">Chưa có chi trả nào.</p>
                       )}
                     </motion.div>
                   )}
