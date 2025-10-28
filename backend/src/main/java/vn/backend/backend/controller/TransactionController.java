@@ -18,7 +18,7 @@ import java.util.List;
 
 
 
-@RequestMapping("/api/groups/{groupId}/transactions")
+@RequestMapping("/api/transactions")
 @RestController
 @RequiredArgsConstructor
 public class TransactionController {
@@ -32,7 +32,6 @@ public class TransactionController {
     )
     @GetMapping
     public ResponseEntity<ApiResponse<Page<TransactionResponse>>> getTransactionsByGroup(
-            @PathVariable Long groupId,
             HttpServletRequest request,
             @PageableDefault(
                     size = 20,
@@ -41,7 +40,7 @@ public class TransactionController {
             ) Pageable pageable) {
         // 3. Gọi service với pageable
         Long userId = (Long) request.getAttribute("userId");
-        Page<TransactionResponse> transactionsPage = transactionService.getTransactionsByGroupId(userId, groupId, pageable);
+        Page<TransactionResponse> transactionsPage = transactionService.getTransactionsByGroupId(userId, pageable);
 
         return ResponseEntity.ok(
                 // 4. Trả về đối tượng Page

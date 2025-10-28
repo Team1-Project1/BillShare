@@ -50,11 +50,7 @@ public class TransactionServiceImpl implements TransactionService {
     }
 
     @Override
-    public Page<TransactionResponse> getTransactionsByGroupId(Long userId, Long groupId, Pageable pageable) {
-        Boolean isMemberOfGroup = groupMembersRepository.existsById_GroupIdAndId_UserIdAndIsActiveTrue(groupId, userId);
-        if (!isMemberOfGroup) {
-            throw new RuntimeException("User is not a member of the group");
-        }
+    public Page<TransactionResponse> getTransactionsByGroupId(Long userId, Pageable pageable) {
         // Remove .map(this::toResponse) since repository returns TransactionResponse directly
         return transactionRepository.findTransactionsByUserActiveGroups(userId, pageable);
     }
