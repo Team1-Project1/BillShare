@@ -13,7 +13,7 @@ import "filepond-plugin-image-preview/dist/filepond-plugin-image-preview.css";
 // Đăng ký plugins
 registerPlugin(FilePondPluginFileValidateType, FilePondPluginImagePreview);
 
-export default function ModalCreateGroup({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
+export default function ModalCreateGroup({ isOpen, onClose, onSuccess }: { isOpen: boolean; onClose: () => void; onSuccess?: () => void; }) {
   const [groupName, setGroupName] = useState("");
   const [groupDesc, setGroupDesc] = useState("");
   const [selectedMembers, setSelectedMembers] = useState<number[]>([]);
@@ -157,8 +157,9 @@ export default function ModalCreateGroup({ isOpen, onClose }: { isOpen: boolean;
       if (data.code === "success") {
         toast.success("Tạo nhóm thành công!", {
           position: "top-center",
-          autoClose: 3000,
+          autoClose: 2000,
         });
+        onSuccess?.();
         onClose();
       }
     } catch (err) {

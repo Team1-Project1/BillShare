@@ -97,7 +97,17 @@ export const Section4 = ({ onOpenModal }: Section4Props) => {
     <div className="bg-white/90 backdrop-blur-sm p-4 md:p-6 shadow-md rounded-lg max-w-4xl mx-auto w-full">
       <div className="flex justify-between items-center mb-4">
         <h3 className="text-lg font-semibold text-gray-900">Bạn bè</h3>
-        <p className="text-sm text-gray-600">Tổng: {totalFriends}</p>
+        <div className="flex items-center gap-3">
+          <p className="text-sm text-gray-600">Tổng: {totalFriends}</p>
+          {totalFriends > 0 && (
+            <Link
+              href="/friends"
+              className="text-sm font-medium text-[#5BC5A7] underline underline-offset-2 hover:text-[#4AA88C] transition-colors"
+            >
+              Xem tất cả bạn bè
+            </Link>
+          )}
+        </div>
       </div>
 
       <div className="space-y-3">
@@ -110,22 +120,13 @@ export const Section4 = ({ onOpenModal }: Section4Props) => {
               name={friend.fullName}
               email={friend.email}
               onUnfriend={() => {
-                // Không cho unfriend ở preview
                 toast.info("Vui lòng vào trang danh sách bạn bè để hủy kết bạn.");
               }}
+              showUnfriend={false}
             />
           ))
         )}
       </div>
-
-      {/* Nút Xem thêm - chỉ hiện nếu có > 3 bạn */}
-      {totalFriends > 3 && (
-        <Link href="/friends" className="block mt-4">
-          <button className="w-full h-10 bg-gray-200 text-gray-800 rounded-md text-base font-medium hover:bg-gray-300 transition-colors duration-300">
-            Xem thêm
-          </button>
-        </Link>
-      )}
 
       {/* Nút Thêm bạn */}
       <button
