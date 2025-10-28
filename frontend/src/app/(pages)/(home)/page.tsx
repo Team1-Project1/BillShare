@@ -37,16 +37,13 @@ export default function Home() {
         }}
       >
         <div className="w-full max-w-[576px] mx-auto">
-          <Section1 />
           <div className="bg-[#F8F8F8]">
             <div className="py-6">
-              <Section2 />
-              <hr className="my-6 border-gray-400" />
-              <Section3 onOpenModal={handleOpenGroupModal} />
               <hr className="my-6 border-gray-400" />
               <Section4 onOpenModal={handleOpenFriendModal} />
               <hr className="my-6 border-gray-400" />
-              <Section5 />
+              <Section3 onOpenModal={handleOpenGroupModal} />
+              <hr className="my-6 border-gray-400" />              
             </div>
           </div>
         </div>
