@@ -12,7 +12,9 @@ import java.util.Date;
 public class TransactionResponse {
     private Long transactionId;
     private Long groupId;
+    private String groupName;
     private Long userId;
+    private String userName;
     private ActionType actionType;
     private EntityType entityType;
     private Long entityId;

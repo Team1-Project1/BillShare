@@ -55,24 +55,18 @@ public class TransactionServiceImpl implements TransactionService {
         if (!isMemberOfGroup) {
             throw new RuntimeException("User is not a member of the group");
         }
-        return transactionRepository.findAllByGroupGroupId(groupId, pageable)
-                .map(this::toResponse);
+        // Remove .map(this::toResponse) since repository returns TransactionResponse directly
+        return transactionRepository.findTransactionsByUserActiveGroups(userId, pageable);
     }
 
-    @Override
-    public List<TransactionResponse> getTransactionsByUserId(Long userId) {
-
-        return transactionRepository.findAllByUserUserId(userId)
-                .stream()
-                .map(this::toResponse)
-                .collect(Collectors.toList());
-    }
 
     private TransactionResponse toResponse(TransactionEntity entity) {
         return TransactionResponse.builder()
                 .transactionId(entity.getTransactionId())
-                .groupId(entity.getGroup().getGroupId())
-                .userId(entity.getUser().getUserId())
+                .groupId(entity.getGroup() != null ? entity.getGroup().getGroupId() : null)
+                .groupName(entity.getGroup() != null ? entity.getGroup().getGroupName() : null)
+                .userId(entity.getUser() != null ? entity.getUser().getUserId() : null)
+                .userName(entity.getUser() != null ? entity.getUser().getFullName() : null)
                 .actionType(entity.getActionType())
                 .entityType(entity.getEntityType())
                 .entityId(entity.getEntityId())
