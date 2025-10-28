@@ -34,7 +34,7 @@ export default function CardFriendEnhanced({
   const handleSendDebtReminder = async () => {
     try {
       const response = await fetchWithAuth(
-        `${process.env.NEXT_PUBLIC_API_URL}/group/${groupId}/send-debt-reminder`,
+        `${process.env.NEXT_PUBLIC_API_URL}/group/${groupId}/send-debt-reminder/${payeeId}`,
         {
           method: "POST",
           headers: {
