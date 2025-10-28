@@ -13,7 +13,7 @@ interface Expense {
   categoryId: number;
   expenseName: string;
   expenseDate: string;
-  totalAmount?: number; // Thêm trường totalAmount để lưu khi gọi API chi tiết
+  totalAmount?: number;
 }
 
 interface Member {
@@ -55,7 +55,7 @@ export default function SearchResultsClient({
   const fetchGroupDetails = async () => {
     try {
       const response = await fetchWithAuth(
-        `${process.env.NEXT_PUBLIC_API_URL}/group/${groupId}`,
+        `${process.env.NEXT_PUBLIC_API_URL}/group/${groupId}?page=0&size=10`,
         {
           method: "GET",
           headers: {
@@ -66,10 +66,19 @@ export default function SearchResultsClient({
       );
 
       if (!response.ok) {
+        if (response.status === 401) {
+          toast.error("Phiên đăng nhập hết hạn!", { position: "top-center" });
+          return;
+        }
         throw new Error("Không thể tải chi tiết nhóm");
       }
 
       const data = await response.json();
+      if (data.code === "error") {
+        toast.error(data.message, { position: "top-center" });
+        return;
+      }
+
       if (data.code === "success") {
         const apiGroup = data.data;
         setGroup({
@@ -78,16 +87,16 @@ export default function SearchResultsClient({
           description: apiGroup.description || "Không có mô tả",
           defaultCurrency: apiGroup.defaultCurrency || "VND",
           avatar:
-            apiGroup.avatarUrl ||
+            apiGroup.avatar ||
             "https://res.cloudinary.com/dtpxp9qqf/image/upload/v1750519773/xholultqlsq1bscqj7bv.jpg",
-          memberCount: apiGroup.members.length,
-          members: apiGroup.members.map((member: any) => ({
+          memberCount: apiGroup.totalMembers,
+          members: apiGroup.members.content?.map((member: any) => ({
             id: member.userId,
             name: member.fullName,
             email: member.email,
             avatar: member.avatarUrl || undefined,
             debt: 0,
-          })),
+          })) || [],
           createdBy: apiGroup.createdBy,
           totalCost: 0,
           netAmount: 0,
@@ -202,7 +211,11 @@ export default function SearchResultsClient({
   }, [groupId, searchParams]);
 
   if (loading || !group) {
-    return <p className="text-gray-600 text-center">Đang tải...</p>;
+    return (
+      <div className="min-h-[800px] bg-gray-100 py-6 px-4 flex items-center justify-center">
+        <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-[#5BC5A7]"></div>
+      </div>
+    );
   }
 
   return (
@@ -222,7 +235,7 @@ export default function SearchResultsClient({
                   groupId={groupId}
                   name={expense.expenseName}
                   date={expense.expenseDate}
-                  amount={expense.totalAmount || 0} // Sử dụng totalAmount từ API
+                  amount={expense.totalAmount || 0}
                   currency={group.defaultCurrency}
                   userId={userId}
                   members={group.members}

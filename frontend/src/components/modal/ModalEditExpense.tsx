@@ -328,7 +328,7 @@ export default function ModalEditExpense({
         throw new Error(errorData.message || "Không thể cập nhật khoản chi");
       }
 
-      toast.success("Cập nhật khoản chi thành công!", {
+      toast.success("Cập nhật khoản chi thành công! Vui lòng F5 hoặc tải lại trang web để làm mới dữ liệu.", {
         position: "top-center",
         autoClose: 2000,
       });

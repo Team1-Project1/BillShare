@@ -39,27 +39,7 @@ interface APIMember {
   phone: string;
   joinAt: string;
   avatarUrl: string | null;
-  isActive: boolean;
   role: string;
-}
-
-interface Participant {
-  participantId: number;
-  userId: number;
-  userName: string;
-  userEmail: string;
-  shareAmount: number;
-  currency: string;
-}
-
-interface ExpenseDetail {
-  expenseId: number;
-  groupId: number;
-  totalAmount: number;
-  payerUserId: number;
-  createdByUserId: number;
-  participants: Participant[];
-  currency: string;
 }
 
 interface Member {
@@ -108,6 +88,7 @@ interface Group {
   members: Member[];
   expenses: Expense[];
   createdBy: number;
+  simplifyDebtOn: boolean;
 }
 
 export default function GroupDetailClient({ slug }: { slug: string }) {
@@ -127,9 +108,11 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
     members: [],
     expenses: [],
     createdBy: 0,
+    simplifyDebtOn: false,
   });
   const [loading, setLoading] = useState(true);
   const [expensesLoading, setExpensesLoading] = useState(true);
+  const [loadMoreLoading, setLoadMoreLoading] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isViewAllModalOpen, setIsViewAllModalOpen] = useState(false);
@@ -143,6 +126,11 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
   const [activitiesLoading, setActivitiesLoading] = useState(false);
   const [showActivities, setShowActivities] = useState(false);
   const [hasExported, setHasExported] = useState(false);
+
+  // Phân trang chi tiêu
+  const [expensePage, setExpensePage] = useState(0);
+  const [hasMoreExpenses, setHasMoreExpenses] = useState(true);
+
   const canShowDelete = userId === group.createdBy;
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -155,7 +143,7 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
 
     try {
       const response = await fetchWithAuth(
-        `${process.env.NEXT_PUBLIC_API_URL}/group/${slug}`,
+        `${process.env.NEXT_PUBLIC_API_URL}/group/${slug}?page=0&size=10`,
         {
           method: "GET",
           headers: {
@@ -181,6 +169,7 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
 
       if (data.code === "success") {
         const apiGroup = data.data;
+
         setGroup((prev) => ({
           ...prev,
           groupId: apiGroup.groupId,
@@ -190,15 +179,19 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
           avatar:
             apiGroup.avatar ||
             "https://res.cloudinary.com/dtpxp9qqf/image/upload/v1750519773/xholultqlsq1bscqj7bv.jpg",
-          memberCount: apiGroup.members.length,
-          members: apiGroup.members.map((member: APIMember) => ({
+          memberCount: apiGroup.totalMembers,
+          members: apiGroup.members.content.map((member: APIMember) => ({
             id: member.userId,
             name: member.fullName,
             email: member.email,
             avatar: member.avatarUrl || undefined,
           })),
           createdBy: apiGroup.createdBy,
+          simplifyDebtOn: apiGroup.simplifyDebtOn,
         }));
+
+        setIsSimplified(apiGroup.simplifyDebtOn);
+        localStorage.setItem(`simplifyMode_${slug}`, JSON.stringify(apiGroup.simplifyDebtOn));
         toast.success("Tải chi tiết nhóm thành công!", { position: "top-center" });
       }
       setLoading(false);
@@ -209,13 +202,16 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
     }
   };
 
-  const fetchExpenses = async () => {
+  const fetchExpenses = async (page: number = 0, append: boolean = false) => {
     if (!slug || isNaN(Number(slug))) return;
-    setExpensesLoading(true);
+
+    const isLoadMore = page > 0;
+    if (isLoadMore) setLoadMoreLoading(true);
+    else setExpensesLoading(true);
 
     try {
       const response = await fetchWithAuth(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/groups/${slug}/expenses`,
+        `${process.env.NEXT_PUBLIC_API_URL}/api/groups/${slug}/expenses?page=${page}&size=3`,
         {
           method: "GET",
           headers: {
@@ -228,8 +224,8 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
       if (!response.ok) throw new Error("Không thể tải các khoản chi");
 
       const data = await response.json();
-      if (data.code === "success" && Array.isArray(data.data)) {
-        const mappedExpenses: Expense[] = data.data.map((item: any) => ({
+      if (data.code === "success" && data.data?.content) {
+        const newExpenses: Expense[] = data.data.content.map((item: any) => ({
           expenseId: item.expenseId,
           groupId: item.groupId,
           name: item.expenseName,
@@ -238,20 +234,30 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
           currency: group.defaultCurrency,
         }));
 
-        const totalCost = data.data.reduce((sum: number, item: any) => sum + item.totalAmount, 0);
+        const totalCost = data.data.content.reduce((sum: number, item: any) => sum + item.totalAmount, 0);
 
         setGroup((prev) => ({
           ...prev,
-          expenses: mappedExpenses,
-          totalCost,
+          expenses: append ? [...prev.expenses, ...newExpenses] : newExpenses,
+          totalCost: append ? prev.totalCost + totalCost : totalCost,
         }));
+
+        setHasMoreExpenses(!data.data.last);
+        if (!append) setExpensePage(0);
       }
     } catch (err) {
       console.error("Fetch error:", err);
       toast.error("Không thể tải các chi tiêu!", { position: "top-center" });
     } finally {
       setExpensesLoading(false);
+      setLoadMoreLoading(false);
     }
+  };
+
+  const loadMoreExpenses = () => {
+    const nextPage = expensePage + 1;
+    setExpensePage(nextPage);
+    fetchExpenses(nextPage, true);
   };
 
   const fetchBalances = async () => {
@@ -290,7 +296,7 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
       }
     } catch (err) {
       console.error("Fetch error:", err);
-      toast.error("Não thể tải số dư!", { position: "top-center" });
+      toast.error("Không thể tải số dư!", { position: "top-center" });
     }
   };
 
@@ -427,7 +433,7 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
   useEffect(() => {
     const loadData = async () => {
       await fetchGroupDetails();
-      await fetchExpenses();
+      await fetchExpenses(0, false); // Load page 0
     };
     loadData();
   }, [slug]);
@@ -454,7 +460,11 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
 
   const handleInviteSuccess = () => fetchGroupDetails();
   const handleEditExpenseSuccess = () => {
-    fetchExpenses();
+    router.refresh(); // ← Refresh toàn bộ trang
+    toast.success("Cập nhật thành công! Đã làm mới dữ liệu.", { position: "top-center" });
+
+    setExpensePage(0);
+    fetchExpenses(0, false);
     fetchBalances();
   };
   const handlePaymentSuccess = () => fetchBalances();
@@ -496,7 +506,13 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
     },
   };
 
-  if (loading) return <p className="text-gray-600 text-center">Đang tải...</p>;
+  if (loading) {
+    return (
+      <div className="min-h-[800px] bg-gray-100 py-6 px-4 flex items-center justify-center">
+        <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-[#5BC5A7]"></div>
+      </div>
+    );
+  }
 
   return (
     <>
@@ -669,7 +685,7 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
                     ))
                   ) : (
                     <motion.p className="text-gray-600 italic text-center">
-                      Chưa có thành viên nào.
+                      Chưa có thành viên có khoản chi.
                     </motion.p>
                   )}
                 </AnimatePresence>
@@ -721,6 +737,24 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
                 <p className="text-gray-600 italic text-center">Chưa có khoản chi nào.</p>
               )}
 
+              {/* Nút Xem thêm */}
+              {hasMoreExpenses && !expensesLoading && (
+                <button
+                  onClick={loadMoreExpenses}
+                  disabled={loadMoreLoading}
+                  className="w-full mt-4 h-10 bg-gray-200 text-gray-800 rounded-md text-sm font-medium hover:bg-gray-300 transition-colors duration-300 flex items-center justify-center"
+                >
+                  {loadMoreLoading ? (
+                    <>
+                      <div className="inline-block animate-spin rounded-full h-4 w-4 border-b-2 border-gray-600 mr-2"></div>
+                      Đang tải...
+                    </>
+                  ) : (
+                    "Xem thêm"
+                  )}
+                </button>
+              )}
+
               <button
                 onClick={() => setIsAddExpenseModalOpen(true)}
                 className="w-full h-12 bg-[#5BC5A7] text-white rounded-md font-semibold hover:bg-[#4AA88C] transition-colors mt-4 flex items-center justify-center"
@@ -728,7 +762,7 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
                 <FiEdit2 className="mr-2" /> Thêm chi tiêu
               </button>
 
-              {/* Hoạt động - CHỈ CÒN 1 NÚT MỞ RỘNG */}
+              {/* Hoạt động */}
               <div className="mt-6" ref={activitiesRef}>
                 <h2 className="text-lg font-semibold text-[#5BC5A7] flex items-center mb-2">
                   <FiActivity className="mr-2" /> Hoạt động gần đây
@@ -776,7 +810,7 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
       </div>
 
       {/* Modals */}
-      <ModalAddMember isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} groupId={group.groupId} createdBy={group.createdBy} onInviteSuccess={handleInviteSuccess} />
+      <ModalAddMember isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} groupId={group.groupId} createdBy={group.createdBy} onInviteSuccess={handleInviteSuccess} currentMembers={group.members} />
       <ModalViewAllMembers isOpen={isViewAllModalOpen} onClose={() => setIsViewAllModalOpen(false)} onDeleteMemberSuccess={fetchGroupDetails} groupId={group.groupId} members={group.members} createdBy={group.createdBy} />
       <ModalConfirmDelete isOpen={isConfirmDeleteOpen} onClose={() => setIsConfirmDeleteOpen(false)} onConfirm={() => handleDeleteGroup(true)} />
       <ModalEditGroupInfo isOpen={isEditGroupInfoOpen} onClose={() => setIsEditGroupInfoOpen(false)} group={group} onUpdateSuccess={fetchGroupDetails} />

@@ -88,7 +88,7 @@ export default function ModalCreateGroup({ isOpen, onClose }: { isOpen: boolean;
       }
 
       let accessToken = localStorage.getItem("accessToken");
-      let response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/group/create/${userId}`, {
+      let response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/group/create`, {
         method: "POST",
         body: formData,
         headers: {
@@ -117,7 +117,7 @@ export default function ModalCreateGroup({ isOpen, onClose }: { isOpen: boolean;
             localStorage.setItem("accessToken", newAccessToken);
             localStorage.setItem("refreshToken", newRefreshToken);
             accessToken = newAccessToken;
-            response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/group/create/${userId}`, {
+            response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/group/create`, {
               method: "POST",
               body: formData,
               headers: {
