@@ -20,7 +20,6 @@ export default function GroupListPage() {
         </div>
         <BottomNav />
       </div>
-      
     </>
   )
 }
