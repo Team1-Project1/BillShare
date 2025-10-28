@@ -498,6 +498,30 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
     }
   };
 
+  const fetchSettleBalances = async () => {
+    try {
+      const response = await fetchWithAuth(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/groups/${group.groupId}/settle`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "*/*",
+          },
+        }
+      );
+
+      if (response.ok) {
+        toast.success("Tất toán nợ thành công!", { position: "top-center" });
+      } else {
+        const err = await response.json();
+        toast.error(err.message || "Không thể tất toán!", { position: "top-center" });
+      }
+    } catch (err) {
+      toast.error("Có lỗi trong quá trình tất toán!", { position: "top-center" });
+    }
+  };
+
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
@@ -526,11 +550,11 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
         style={{
           filter:
             isModalOpen ||
-            isViewAllModalOpen ||
-            isConfirmDeleteOpen ||
-            isEditGroupInfoOpen ||
-            isAddExpenseModalOpen ||
-            isViewAllExpensesOpen
+              isViewAllModalOpen ||
+              isConfirmDeleteOpen ||
+              isEditGroupInfoOpen ||
+              isAddExpenseModalOpen ||
+              isViewAllExpensesOpen
               ? "blur(5px) brightness(0.8)"
               : "none",
           transition: "filter 0.3s",
@@ -586,9 +610,8 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
                         handleExportCSV();
                         setIsMenuOpen(false);
                       }}
-                      className={`flex items-center px-4 py-2 text-sm text-gray-700 w-full text-left ${
-                        hasExported ? "opacity-50 cursor-not-allowed" : "hover:bg-green-50"
-                      }`}
+                      className={`flex items-center px-4 py-2 text-sm text-gray-700 w-full text-left ${hasExported ? "opacity-50 cursor-not-allowed" : "hover:bg-green-50"
+                        }`}
                     >
                       <FiDownload className="mr-2" /> Xuất CSV
                     </button>
@@ -608,20 +631,19 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
               <div>
                 <h2 className="text-2xl font-bold text-[#5BC5A7]">Trạng thái của bạn</h2>
                 <p
-                  className={`text-2xl font-bold ${
-                    group.netAmount >= 0 ? "text-green-700" : "text-red-700"
-                  }`}
+                  className={`text-2xl font-bold ${group.netAmount >= 0 ? "text-green-700" : "text-red-700"
+                    }`}
                 >
                   {group.netAmount === 0
                     ? "Bạn không nợ ai"
                     : group.netAmount > 0
-                    ? `Bạn được nhận: ${group.netAmount.toLocaleString()} ${group.defaultCurrency}`
-                    : `Bạn đang nợ: ${Math.abs(group.netAmount).toLocaleString()} ${group.defaultCurrency}`}
+                      ? `Bạn được nhận: ${group.netAmount.toLocaleString()} ${group.defaultCurrency}`
+                      : `Bạn đang nợ: ${Math.abs(group.netAmount).toLocaleString()} ${group.defaultCurrency}`}
                 </p>
               </div>
             </div>
 
-            {/* Thành viên & Toggle Simplify */}
+            {/* Thành viên & Toggle Simplify & Settle Balance */}
             <div>
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-lg font-semibold text-[#5BC5A7] flex items-center">
@@ -635,29 +657,41 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
                 </button>
               </div>
 
-              <div className="flex items-center mb-4">
-                <div className="group relative flex items-center">
-                  <FiHelpCircle className="text-gray-500 mr-2" size={16} />
-                  <span className="absolute left-0 bottom-full mb-2 hidden group-hover:block w-48 bg-gray-800 text-white text-xs rounded py-1 px-2">
-                    Bật để xem danh sách nợ đơn giản hóa, tắt để xem chi tiết.
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="group relative flex items-center">
+                    <FiHelpCircle className="text-gray-500" size={16} />
+                    <span className="absolute left-0 bottom-full mb-2 hidden group-hover:block w-48 bg-gray-800 text-white text-xs rounded py-1 px-2">
+                      Bật để xem danh sách nợ đơn giản hóa, tắt để xem chi tiết.
+                    </span>
+                  </div>
+
+                  <div
+                    className={`relative w-14 h-7 rounded-full cursor-pointer transition-colors duration-300 ${isSimplified ? "bg-[#5BC5A7]" : "bg-gray-300"
+                      }`}
+                    onClick={handleSimplifyToggle}
+                  >
+                    <motion.div
+                      className="absolute w-5 h-5 bg-white rounded-full top-1 left-1 shadow-sm"
+                      animate={{ x: isSimplified ? 28 : 0 }}
+                      transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                    />
+                  </div>
+
+                  <span className="text-sm text-gray-500 whitespace-nowrap">
+                    {isSimplified ? "Đơn giản hóa: Bật" : "Đơn giản hóa: Tắt"}
                   </span>
                 </div>
-                <div
-                  className={`relative w-14 h-7 rounded-full cursor-pointer transition-colors duration-300 ${
-                    isSimplified ? "bg-[#5BC5A7]" : "bg-gray-300"
-                  }`}
-                  onClick={handleSimplifyToggle}
+
+                {/*Đưa button sát lề phải */}
+                <button
+                  onClick={fetchSettleBalances}
+                  className="px-3 py-2 bg-[#5BC5A7] text-white text-sm rounded-md hover:bg-[#4AA88C] transition-colors flex items-center whitespace-nowrap"
                 >
-                  <motion.div
-                    className="absolute w-5 h-5 bg-white rounded-full top-1 left-1 shadow-sm"
-                    animate={{ x: isSimplified ? 28 : 0 }}
-                    transition={{ type: "spring", stiffness: 300, damping: 20 }}
-                  />
-                </div>
-                <span className="text-sm text-gray-500 ml-2">
-                  {isSimplified ? "Đơn giản hóa: Bật" : "Đơn giản hóa: Tắt"}
-                </span>
+                  <FiActivity className="mr-1" /> Tất toán nợ
+                </button>
               </div>
+
 
               <div className="space-y-4">
                 <AnimatePresence>
