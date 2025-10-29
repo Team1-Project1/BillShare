@@ -687,7 +687,7 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
                   </span>
                 </div>
 
-                {/*Đưa button sát lề phải */}
+                {/* Nút tất toán nợ */}
                 <button
                   onClick={fetchSettleBalances}
                   className="px-3 py-2 bg-[#5BC5A7] text-white text-sm rounded-md hover:bg-[#4AA88C] transition-colors flex items-center whitespace-nowrap"
@@ -751,6 +751,13 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
                 </button>
               </div>
 
+              <button
+                onClick={() => setIsAddExpenseModalOpen(true)}
+                className="mb-4 w-full h-12 bg-[#5BC5A7] text-white rounded-md font-semibold hover:bg-[#4AA88C] transition-colors mt-4 flex items-center justify-center"
+              >
+                <FiEdit2 className="mr-2" /> Thêm chi tiêu
+              </button>
+
               {expensesLoading ? (
                 <p className="text-gray-600 italic text-center animate-pulse">Đang tải...</p>
               ) : group.expenses.length > 0 ? (
@@ -792,13 +799,6 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
                   )}
                 </button>
               )}
-
-              <button
-                onClick={() => setIsAddExpenseModalOpen(true)}
-                className="w-full h-12 bg-[#5BC5A7] text-white rounded-md font-semibold hover:bg-[#4AA88C] transition-colors mt-4 flex items-center justify-center"
-              >
-                <FiEdit2 className="mr-2" /> Thêm chi tiêu
-              </button>
 
               {/* Chi trả */}
               <div className="mt-6" ref={activitiesRef}>
