@@ -188,17 +188,18 @@ export default function ModalEditGroupInfo({ isOpen, onClose, group, onUpdateSuc
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center z-50">
+    <div className="fixed inset-0 flex items-center justify-center z-50 bg-black/10">
       <div
         ref={modalRef}
-        className="bg-white/90 backdrop-blur-md rounded-lg p-4 w-full max-w-[476px] shadow-xl border border-gray-200"
+        className="bg-white/90 backdrop-blur-md rounded-lg p-4 w-full max-w-[476px] shadow-xl border border-gray-200 max-h-[90vh] flex flex-col min-h-0"
         style={{
           transform: isOpen ? "scale(1)" : "scale(0.7)",
           opacity: isOpen ? 1 : 0,
           transition: "transform 0.3s ease-out, opacity 0.3s ease-out",
         }}
       >
-        <div className="flex justify-between items-center mb-4">
+        {/* Header */}
+        <div className="flex justify-between items-center mb-4 shrink-0">
           <h2 className="text-2xl font-bold text-[#5BC5A7]">Chỉnh sửa thông tin nhóm</h2>
           <button
             onClick={onClose}
@@ -207,77 +208,84 @@ export default function ModalEditGroupInfo({ isOpen, onClose, group, onUpdateSuc
             <FiX size={24} />
           </button>
         </div>
-        <div className="mb-4 text-center">
-          <label htmlFor="avatar" className="block font-[500] text-[14px] text-black mb-[5px]">
-            Avatar
-          </label>
-          <FilePond
-            name="avatar"
-            allowMultiple={false}
-            allowRemove={true}
-            labelIdle="+"
-            acceptedFileTypes={["image/*"]}
-            files={avatars}
-            onupdatefiles={(fileItems) => {
-              setAvatars(fileItems);
-            }}
-            imagePreviewMaxHeight={200}
-            {...({ imagePreviewMaxWidth: 200 } as any)}
-            className="w-full"
-          />
-          {avatars.length > 0 && avatars[0].file instanceof File ? (
-            <img
-              src={URL.createObjectURL(avatars[0].file)}
-              alt="Preview avatar"
-              className="w-24 h-24 rounded-full mx-auto mt-2"
+
+        {/* Scrollable Content */}
+        <div className="flex-1 overflow-y-auto min-h-0 overscroll-contain pr-1">
+          <div className="mb-4 text-center">
+            <label className="block font-medium text-black mb-2">Avatar</label>
+            <FilePond
+              name="avatar"
+              allowMultiple={false}
+              allowRemove={true}
+              labelIdle="+"
+              acceptedFileTypes={["image/*"]}
+              files={avatars}
+              onupdatefiles={(fileItems) => setAvatars(fileItems)}
+              imagePreviewMaxHeight={200}
+              className="w-full"
             />
-          ) : avatars.length > 0 && avatars[0].source ? (
-            <img
-              src={avatars[0].source}
-              alt="Current avatar"
-              className="w-24 h-24 rounded-full mx-auto mt-2"
+            {avatars.length > 0 ? (
+              avatars[0].file instanceof File ? (
+                <img
+                  src={URL.createObjectURL(avatars[0].file)}
+                  alt="Preview avatar"
+                  className="w-24 h-24 rounded-full mx-auto mt-2"
+                />
+              ) : (
+                <img
+                  src={avatars[0].source}
+                  alt="Current avatar"
+                  className="w-24 h-24 rounded-full mx-auto mt-2"
+                />
+              )
+            ) : (
+              <p className="mt-2 text-gray-500">Chưa có ảnh</p>
+            )}
+          </div>
+
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700 mb-1">Tên nhóm *</label>
+            <input
+              type="text"
+              value={groupName}
+              onChange={(e) => setGroupName(e.target.value)}
+              className="w-full border border-gray-300 rounded-md p-2 focus:border-[#5BC5A7]"
             />
-          ) : (
-            <p className="mt-2 text-gray-500">Chưa có ảnh</p>
-          )}
+          </div>
+
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700 mb-1">Mô tả</label>
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              className="w-full border border-gray-300 rounded-md p-2 focus:border-[#5BC5A7] h-24"
+            />
+          </div>
+
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700 mb-1">Tiền tệ</label>
+            <select
+              value={defaultCurrency}
+              onChange={(e) => setDefaultCurrency(e.target.value)}
+              className="w-full border border-gray-300 rounded-md p-2 focus:border-[#5BC5A7]"
+            >
+              {currencies.map((currency) => (
+                <option key={currency.code} value={currency.code}>
+                  {currency.code} - {currency.name}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
-        <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700 mb-1">Tên nhóm *</label>
-          <input
-            type="text"
-            value={groupName}
-            onChange={(e) => setGroupName(e.target.value)}
-            className="w-full border border-gray-300 rounded-md p-2 focus:border-[#5BC5A7]"
-          />
-        </div>
-        <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700 mb-1">Mô tả</label>
-          <textarea
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            className="w-full border border-gray-300 rounded-md p-2 focus:border-[#5BC5A7] h-24"
-          />
-        </div>
-        <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700 mb-1">Tiền tệ</label>
-          <select
-            value={defaultCurrency}
-            onChange={(e) => setDefaultCurrency(e.target.value)}
-            className="w-full border border-gray-300 rounded-md p-2 focus:border-[#5BC5A7]"
-          >
-            {currencies.map((currency) => (
-              <option key={currency.code} value={currency.code}>
-                {currency.code} - {currency.name}
-              </option>
-            ))}
-          </select>
-        </div>
+
+        {/* Footer Button */}
         <button
           onClick={handleEdit}
           disabled={isLoading}
-          className={`w-full h-10 text-white rounded-md text-base font-semibold transition-colors duration-300 flex items-center justify-center ${
-            isLoading ? "bg-gray-400 cursor-not-allowed" : "bg-[#5BC5A7] hover:bg-[#4AA88C]"
-          }`}
+          className={`w-full h-10 text-white rounded-md text-base font-semibold mt-4 shrink-0 ${isLoading
+              ? "bg-gray-400 cursor-not-allowed"
+              : "bg-[#5BC5A7] hover:bg-[#4AA88C]"
+            }`}
         >
           {isLoading ? "Đang xử lý..." : "Xác nhận"}
         </button>
