@@ -71,6 +71,9 @@ public class UserEntity implements Serializable, UserDetails {
     @Temporal(TemporalType.TIMESTAMP)
     private Date lastLogin;
 
+    @OneToOne(mappedBy = "user")
+    private ForgotPasswordEntity forgotPassword;
+
     @OneToMany(mappedBy = "member")
     private List<GroupMembersEntity> groupMembers;
 

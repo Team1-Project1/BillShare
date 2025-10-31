@@ -13,5 +13,6 @@ public interface JwtService {
     Boolean isValid(String token, UserDetails userDetails, TokenType type);
     Long extractUserId(String token, TokenType type);
     String generateFriendRequestToken(Long senderId, Long receiverId);
+    String generateOtpToken(String email);
     FriendClaimsRequest decodeFriendRequestToken(String token);
 }

@@ -6,6 +6,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.mail.MessagingException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
@@ -198,7 +199,7 @@ public class GroupController {
             @PathVariable Long groupId,
             @PathVariable Long receiverId,
             HttpServletRequest req
-    ) throws IOException {
+    ) throws IOException, MessagingException {
         String resultMessage = emailService.sendDebtReminderForGroup(groupId, receiverId,req);
         return ResponseEntity.ok(
                 new ApiResponse<>("success", resultMessage, null)

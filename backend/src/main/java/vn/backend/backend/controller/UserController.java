@@ -3,6 +3,7 @@ package vn.backend.backend.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.mail.MessagingException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -68,7 +69,7 @@ public class UserController {
     @PostMapping("/send-friend-request")
     public ResponseEntity<ApiResponse<String>> sendFriendRequest(
             HttpServletRequest req,
-            @RequestParam String email) throws IOException {
+            @RequestParam String email) throws IOException, MessagingException {
         String friendToken=emailService.sendFriendRequest(email,req);
         return ResponseEntity.ok(
                 new ApiResponse<>("success",String.format("sent email to %s successfully",email),friendToken)

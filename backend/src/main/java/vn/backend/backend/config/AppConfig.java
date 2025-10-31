@@ -1,12 +1,13 @@
 package vn.backend.backend.config;
 
-import com.sendgrid.SendGrid;
+
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Lazy;
+import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
@@ -23,9 +24,6 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-import org.springframework.web.servlet.config.annotation.CorsRegistry;
-import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
-import vn.backend.backend.repository.UserRepository;
 import vn.backend.backend.service.UserService;
 
 import java.util.List;
@@ -38,8 +36,6 @@ public class AppConfig {
     private final UserService userService;
     private final Prefilter prefilter; // Filter tự viết để kiểm tra JWT trong request
     private String[] WHITE_LIST = {"/auth/**","/group-member/**","/friendship/**"}; // Các API không cần login (ví dụ: đăng ký, đăng nhập)
-    @Value("${spring.sendgrid.api-key}")
-    private String sendGridApiKey;
 
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
@@ -110,8 +106,5 @@ public class AppConfig {
     public PasswordEncoder passwordEncoder(){
         return new BCryptPasswordEncoder(); // dùng thuật toán BCrypt để hash mật khẩu
     }
-    @Bean
-    public SendGrid sendGrid(){
-        return new SendGrid(sendGridApiKey);
-    }
+
 }
