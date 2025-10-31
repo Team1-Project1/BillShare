@@ -23,16 +23,23 @@ spring:
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
-  sendgrid:
-    api-key: ${SENDGRID_API_KEY}
-    from-email: nguyenkimgiang489@gmail.com
-    name: BillShare
-    templateConfirmParticipationId: d-5c76fa0599a24120bcb98560667202a0
-    templateSendDebtReminder: d-89de5b8671df48e3b1737482100eeb0a
-    templateSendFriendRequest: d-3d40192e7a55437c9df68fa8e4ddf87a
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: nguyenkimgiang489@gmail.com
+    password: bhehsuftnpdfnqna
+    from: nguyenkimgiang489@gmail.com
+    name: BillShare App
     baseUrlGroupMember: http://localhost:3000/group-member/
     baseUrlFriendShip: http://localhost:3000/friends/
-
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+    protocol: smtp
+    default-encoding: UTF-8
 
 springdoc:
   api-docs:
@@ -52,5 +59,15 @@ jwt:
   secretKeyAccessToken: ${JWT_SECRET_ACCESS}
   secretKeyRefreshToken: ${JWT_SECRET_REFRESH}
   secretKeyFriendship: ${JWT_SECRET_FRIENDSHIP};
+  secretKeyOtp: ${JWT_SECRET_OTP};
+app:
+  otp:
+    expiration:
+      minutes: 5
+    cooldown:
+      seconds: 60
+    max-retries: 5
+
+
 
 

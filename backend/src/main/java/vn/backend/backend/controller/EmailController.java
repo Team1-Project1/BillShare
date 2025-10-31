@@ -2,6 +2,7 @@ package vn.backend.backend.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.mail.MessagingException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -26,7 +27,7 @@ public class EmailController {
     @PostMapping("/confirm-participation")
     public ResponseEntity<String> mailVerifyCation(@RequestParam Long groupId,
                                                    HttpServletRequest req,
-                                                   @Valid  @RequestBody ConfirmPaticipationRequest emailTo) throws IOException {
+                                                   @Valid  @RequestBody ConfirmPaticipationRequest emailTo) throws IOException, MessagingException {
         Long userId = (Long) req.getAttribute("userId");
         emailService.confirmParticipation(groupId, userId, emailTo);
             return ResponseEntity.ok("Email sent successfully to " + emailTo.getEmailTo());

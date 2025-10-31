@@ -11,20 +11,29 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import vn.backend.backend.common.TokenType;
+import vn.backend.backend.controller.request.ChangePasswordRequest;
 import vn.backend.backend.controller.request.SignInRequest;
 import vn.backend.backend.controller.request.UserCreateRequest;
 import vn.backend.backend.controller.response.TokenResponse;
+import vn.backend.backend.model.ForgotPasswordEntity;
 import vn.backend.backend.model.TokenEntity;
 import vn.backend.backend.model.UserEntity;
+import vn.backend.backend.repository.ForgotPasswordRepository;
 import vn.backend.backend.repository.UserRepository;
 import vn.backend.backend.service.AuthenticationService;
 import vn.backend.backend.service.JwtService;
 import vn.backend.backend.service.TokenService;
 
+import java.time.Instant;
+import java.util.Date;
+import java.util.NoSuchElementException;
 import java.util.Optional;
+import java.util.UUID;
 
 import static vn.backend.backend.common.TokenType.REFRESH_TOKEN;
 
@@ -37,6 +46,8 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     private final AuthenticationManager authenticationManager ;
     private final JwtService jwtService ;
     private final TokenService tokenService ;
+    private final ForgotPasswordRepository forgotPasswordRepository;
+
 
     @Override
     public Long register(UserCreateRequest request) {

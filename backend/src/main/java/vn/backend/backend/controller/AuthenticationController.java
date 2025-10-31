@@ -2,21 +2,25 @@ package vn.backend.backend.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.mail.MessagingException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+import vn.backend.backend.controller.request.ChangePasswordRequest;
 import vn.backend.backend.controller.request.SignInRequest;
 import vn.backend.backend.controller.request.UserCreateRequest;
 import vn.backend.backend.controller.response.ApiResponse;
 import vn.backend.backend.controller.response.TokenResponse;
+import vn.backend.backend.repository.ForgotPasswordRepository;
 import vn.backend.backend.service.AuthenticationService;
+import vn.backend.backend.service.EmailService;
+import vn.backend.backend.service.OtpService;
+
+import java.io.UnsupportedEncodingException;
 
 
 @RestController
@@ -26,6 +30,8 @@ import vn.backend.backend.service.AuthenticationService;
 @RequiredArgsConstructor
 public class AuthenticationController {
     private final AuthenticationService authenticationService;
+    private final EmailService emailService;
+    private final OtpService otpService;
 
     @Operation(summary = "Register new user", description = "API to add a new user to the database")
     @PostMapping("/register")
@@ -70,5 +76,34 @@ public class AuthenticationController {
     public ResponseEntity<String> logout(HttpServletRequest request) {
         String result=authenticationService.logout(request);
         return ResponseEntity.ok(result);
+    }
+
+    @Operation(summary = "forgot-password", description = "API for forgot password to send OTP to email")
+    @PostMapping("/verify-email/{email}")
+    public ResponseEntity<ApiResponse<String>>  forgotPassword(@PathVariable String email) throws MessagingException, UnsupportedEncodingException {
+        String result=emailService.sendResetPasswordOTP(email);
+        return ResponseEntity.ok(
+                new ApiResponse<>("success", result, null)
+        );
+    }
+
+    @Operation(summary = "verify otp", description = "API to verify otp for reset password")
+    @PostMapping("/verify-otp/{otp}/{email}")
+    public ResponseEntity<ApiResponse<String>>  forgotPassword(@PathVariable Integer otp,@PathVariable String email) throws MessagingException, UnsupportedEncodingException {
+
+        String result=otpService.verifyOtp(email,otp.toString());
+        return ResponseEntity.ok(
+                new ApiResponse<>("success", String.format("verify OTP for email %s successfully",email), result)
+        );
+    }
+
+    @Operation(summary = "change password", description = "API to change password after verify otp")
+    @PostMapping("/change-password/{email}/{token}")
+    public ResponseEntity<ApiResponse<String>> changePassword(@RequestBody ChangePasswordRequest request, @PathVariable String token) throws MessagingException, UnsupportedEncodingException {
+
+        String result=otpService.resetPassword(token,request);
+        return ResponseEntity.ok(
+                new ApiResponse<>("success", result, null)
+        );
     }
 }

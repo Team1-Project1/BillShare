@@ -17,8 +17,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
 
-import static vn.backend.backend.common.TokenType.ACCESS_TOKEN;
-import static vn.backend.backend.common.TokenType.REFRESH_TOKEN;
+import static vn.backend.backend.common.TokenType.*;
 
 @Service
 public class JwtServiceImpl implements JwtService {
@@ -32,6 +31,9 @@ public class JwtServiceImpl implements JwtService {
     private String secretKeyRefreshToken;
     @Value("${jwt.secretKeyFriendship}")
     private String secretKeyFriendship;
+    @Value("${jwt.secretKeyOtp}")
+    private String secretKeyOtp;
+
 
 
     @Override
@@ -80,6 +82,8 @@ public class JwtServiceImpl implements JwtService {
             keyBytes = Decoders.BASE64.decode(secretKeyAccessToken);
         }else if(REFRESH_TOKEN.equals(type)){
             keyBytes = Decoders.BASE64.decode(secretKeyRefreshToken);
+        }else if(OTP_TOKEN.equals(type)){
+            keyBytes = Decoders.BASE64.decode(secretKeyOtp);
         }else{
             keyBytes = Decoders.BASE64.decode(secretKeyFriendship);
         }
@@ -135,6 +139,19 @@ public class JwtServiceImpl implements JwtService {
                 .setIssuedAt(new Date(System.currentTimeMillis()))
                 .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60 * 24)) // 24h
                 .signWith(getkey(TokenType.FRIENDSHIP_TOKEN), SignatureAlgorithm.HS256)
+                .compact();
+    }
+
+    @Override
+    public String generateOtpToken(String email) {
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("email", email);
+        return Jwts.builder()
+                .setClaims(claims)
+                .setSubject(email)
+                .setIssuedAt(new Date(System.currentTimeMillis()))
+                .setExpiration(new Date(System.currentTimeMillis()+1000*60*15))
+                .signWith(getkey(OTP_TOKEN), SignatureAlgorithm.HS256)
                 .compact();
     }
 
