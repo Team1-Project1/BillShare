@@ -26,12 +26,12 @@ spring:
   mail:
     host: smtp.gmail.com
     port: 587
-    username: nguyenkimgiang489@gmail.com
-    password: bhehsuftnpdfnqna
-    from: nguyenkimgiang489@gmail.com
+    username: ${MAIL_USERNAME}
+    password: ${MAIL_PASSWORD}
+    from: ${MAIL_USERNAME}
     name: BillShare App
-    baseUrlGroupMember: http://localhost:3000/group-member/
-    baseUrlFriendShip: http://localhost:3000/friends/
+    baseUrlGroupMember: ${APP_FRONTEND_URL}/group-member/
+    baseUrlFriendShip: ${APP_FRONTEND_URL}/friends/
     properties:
       mail:
         smtp:
