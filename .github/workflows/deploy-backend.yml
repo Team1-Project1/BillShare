@@ -43,10 +43,10 @@ jobs:
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
 
       # 6️⃣ Deploy lên App Runner
-      - name: Deploy to AWS App Runner
-        uses: awslabs/amazon-app-runner-deploy@v1
-        with:
-          service: ${{ secrets.APP_RUNNER_SERVICE_NAME }}
-          image: ${{ steps.login-ecr.outputs.registry }}/${{ secrets.AWS_ECR_REPO }}:latest
-          access-role-arn: ${{ secrets.APP_RUNNER_ROLE_ARN }}
-          region: ${{ secrets.AWS_REGION }}
+#      - name: Deploy to AWS App Runner
+#        uses: awslabs/amazon-app-runner-deploy@v1
+#        with:
+#          service: ${{ secrets.APP_RUNNER_SERVICE_NAME }}
+#          image: ${{ steps.login-ecr.outputs.registry }}/${{ secrets.AWS_ECR_REPO }}:latest
+#          access-role-arn: ${{ secrets.APP_RUNNER_ROLE_ARN }}
+#          region: ${{ secrets.AWS_REGION }}
