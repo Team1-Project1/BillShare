@@ -1,54 +1,52 @@
-# Tên file: .github/workflows/deploy-backend.yml
-name: Deploy Backend to Elastic Beanstalk
+name: Deploy Backend to AWS App Runner
 
 on:
   push:
     branches: [ "main" ]
     paths:
-      - 'backend/**' # Chỉ trigger khi code trong 'backend' thay đổi
+      - "backend/**"
 
 jobs:
   build-and-deploy-backend:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Checkout toàn bộ code (cả frontend và backend)
+      # 1️⃣ Lấy code
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # 2. Cài đặt JDK 17 (khớp với file README của bạn)
+      # 2️⃣ Cài JDK (để Maven build)
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
-          java-version: '17'
-          distribution: 'corretto'
+          java-version: "17"
+          distribution: "temurin"
 
-      # 3. Build ứng dụng backend (tạo file JAR)
-      - name: Build with Maven
+      # 3️⃣ Build file .jar
+      - name: Build backend with Maven
         run: mvn clean package -DskipTests
         working-directory: ./backend
 
-      # 4. Tìm và đổi tên file JAR để dễ tham chiếu
-      - name: Rename JAR for deployment
+      # 4️⃣ Build Docker image
+      - name: Build Docker image
+        run: docker build -t ${{ secrets.AWS_ECR_REPO }}:latest ./backend
+
+      # 5️⃣ Đăng nhập vào Amazon ECR
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      # 6️⃣ Push Docker image lên ECR
+      - name: Push Docker image to ECR
         run: |
-          artifact=$(find backend/target/*.jar -maxdepth 1 ! -name "*-sources.jar" ! -name "*-javadoc.jar")
-          echo "Found artifact: $artifact"
-          mv $artifact backend-app.jar
+          docker tag ${{ secrets.AWS_ECR_REPO }}:latest ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.AWS_ECR_REPO }}:latest
+          docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.AWS_ECR_REPO }}:latest
 
-      # 5. Cấu hình AWS Credentials (đọc từ GitHub Secrets)
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v4
+      # 7️⃣ Deploy App Runner service
+      - name: Deploy to AWS App Runner
+        uses: awslabs/amazon-app-runner-deploy@main
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.AWS_REGION }}
-
-      # 6. Deploy lên Elastic Beanstalk
-      - name: Deploy to Elastic Beanstalk
-        uses: aws-actions/elastic-beanstalk-deploy@v1
-        with:
-          application_name: ${{ secrets.EB_APPLICATION_NAME }}
-          environment_name: ${{ secrets.EB_ENVIRONMENT_NAME }}
-          version_label: "github-actions-${{ github.sha }}"
+          service: ${{ secrets.APP_RUNNER_SERVICE_NAME }}
+          image: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.AWS_ECR_REPO }}:latest
+          access-role-arn: ${{ secrets.APP_RUNNER_ROLE_ARN }}
           region: ${{ secrets.AWS_REGION }}
-          deployment_package: backend-app.jar
