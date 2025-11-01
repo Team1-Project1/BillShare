@@ -155,7 +155,7 @@ export const FormLogin = () => {
 
         <div className="flex items-center justify-end">
           <Link
-            href="/forgot-password"
+            href="/login/forgot-password"
             className="text-sm text-[#5BC5A7] hover:text-[#4AA88C] transition-colors"
           >
             Quên mật khẩu?
