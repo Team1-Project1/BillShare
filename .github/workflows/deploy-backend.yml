@@ -1,0 +1,54 @@
+# Tên file: .github/workflows/deploy-backend.yml
+name: Deploy Backend to Elastic Beanstalk
+
+on:
+  push:
+    branches: [ "main" ]
+    paths:
+      - 'backend/**' # Chỉ trigger khi code trong 'backend' thay đổi
+
+jobs:
+  build-and-deploy-backend:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Checkout toàn bộ code (cả frontend và backend)
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # 2. Cài đặt JDK 17 (khớp với file README của bạn)
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'corretto'
+
+      # 3. Build ứng dụng backend (tạo file JAR)
+      - name: Build with Maven
+        run: mvn clean package -DskipTests
+        working-directory: ./backend
+
+      # 4. Tìm và đổi tên file JAR để dễ tham chiếu
+      - name: Rename JAR for deployment
+        run: |
+          artifact=$(find backend/target/*.jar -maxdepth 1 ! -name "*-sources.jar" ! -name "*-javadoc.jar")
+          echo "Found artifact: $artifact"
+          mv $artifact backend-app.jar
+
+      # 5. Cấu hình AWS Credentials (đọc từ GitHub Secrets)
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      # 6. Deploy lên Elastic Beanstalk
+      - name: Deploy to Elastic Beanstalk
+        uses: aws-actions/elastic-beanstalk-deploy@v1
+        with:
+          application_name: ${{ secrets.EB_APPLICATION_NAME }}
+          environment_name: ${{ secrets.EB_ENVIRONMENT_NAME }}
+          version_label: "github-actions-${{ github.sha }}"
+          region: ${{ secrets.AWS_REGION }}
+          deployment_package: backend-app.jar
