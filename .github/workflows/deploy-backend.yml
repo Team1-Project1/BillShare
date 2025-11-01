@@ -3,8 +3,8 @@ name: Deploy Backend to AWS App Runner
 on:
   push:
     branches: [ "main" ]
-    paths:
-      - "backend/**"
+#    paths:
+#      - "backend/**"
 
 jobs:
   build-and-deploy-backend:
