@@ -15,38 +15,38 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # 2️⃣ Cài JDK (để Maven build)
+      # 2️⃣ Cài JDK (nếu cần build với Maven)
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
           java-version: "17"
           distribution: "temurin"
 
-      # 3️⃣ Build file .jar
+      # 3️⃣ Build file JAR
       - name: Build backend with Maven
         run: mvn clean package -DskipTests
         working-directory: ./backend
 
-      # 4️⃣ Build Docker image
-      - name: Build Docker image
-        run: docker build -t ${{ secrets.AWS_ECR_REPO }}:latest ./backend
-
-      # 5️⃣ Đăng nhập vào Amazon ECR
+      # 4️⃣ Login vào ECR
       - name: Login to Amazon ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
-      # 6️⃣ Push Docker image lên ECR
-      - name: Push Docker image to ECR
+      # 5️⃣ Build & Push Docker image
+      - name: Build and push Docker image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: ${{ secrets.AWS_ECR_REPO }}
+          IMAGE_TAG: latest
         run: |
-          docker tag ${{ secrets.AWS_ECR_REPO }}:latest ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.AWS_ECR_REPO }}:latest
-          docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.AWS_ECR_REPO }}:latest
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG ./backend
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
 
-      # 7️⃣ Deploy App Runner service
+      # 6️⃣ Deploy lên App Runner
       - name: Deploy to AWS App Runner
-        uses: awslabs/amazon-app-runner-deploy@main
+        uses: awslabs/amazon-app-runner-deploy@v1
         with:
           service: ${{ secrets.APP_RUNNER_SERVICE_NAME }}
-          image: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.AWS_ECR_REPO }}:latest
+          image: ${{ steps.login-ecr.outputs.registry }}/${{ secrets.AWS_ECR_REPO }}:latest
           access-role-arn: ${{ secrets.APP_RUNNER_ROLE_ARN }}
           region: ${{ secrets.AWS_REGION }}
