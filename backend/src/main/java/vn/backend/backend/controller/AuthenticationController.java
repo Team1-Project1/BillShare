@@ -20,6 +20,7 @@ import vn.backend.backend.service.AuthenticationService;
 import vn.backend.backend.service.EmailService;
 import vn.backend.backend.service.OtpService;
 
+import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 
 
@@ -80,7 +81,7 @@ public class AuthenticationController {
 
     @Operation(summary = "forgot-password", description = "API for forgot password to send OTP to email")
     @PostMapping("/verify-email/{email}")
-    public ResponseEntity<ApiResponse<String>>  forgotPassword(@PathVariable String email) throws MessagingException, UnsupportedEncodingException {
+    public ResponseEntity<ApiResponse<String>>  forgotPassword(@PathVariable String email) throws MessagingException, IOException{
         String result=emailService.sendResetPasswordOTP(email);
         return ResponseEntity.ok(
                 new ApiResponse<>("success", result, null)
@@ -98,7 +99,7 @@ public class AuthenticationController {
     }
 
     @Operation(summary = "change password", description = "API to change password after verify otp")
-    @PostMapping("/change-password/{email}/{token}")
+    @PostMapping("/change-password/{token}")
     public ResponseEntity<ApiResponse<String>> changePassword(@RequestBody ChangePasswordRequest request, @PathVariable String token) throws MessagingException, UnsupportedEncodingException {
 
         String result=otpService.resetPassword(token,request);

@@ -23,24 +23,28 @@ spring:
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
+#  mail:
+#    host: smtp.gmail.com
+#    port: 587
+#    username: ${MAIL_USERNAME}
+#    password: ${MAIL_PASSWORD}
+#    from: ${MAIL_USERNAME}
+#    name: BillShare App
+#    baseUrlGroupMember: ${APP_FRONTEND_URL}/group-member/
+#    baseUrlFriendShip: ${APP_FRONTEND_URL}/friends/
+#    properties:
+#      mail:
+#        smtp:
+#          auth: true
+#          starttls:
+#            enable: true
+#    protocol: smtp
+#    default-encoding: UTF-8
   mail:
-    host: smtp.gmail.com
-    port: 587
-    username: ${MAIL_USERNAME}
-    password: ${MAIL_PASSWORD}
-    from: ${MAIL_USERNAME}
-    name: BillShare App
+    from: ${MAIL_USERNAME}          # Email gửi đi (hiển thị trong Gmail)
+    name: BillShare App             # Tên người gửi hiển thị trong hộp thư
     baseUrlGroupMember: ${APP_FRONTEND_URL}/group-member/
     baseUrlFriendShip: ${APP_FRONTEND_URL}/friends/
-    properties:
-      mail:
-        smtp:
-          auth: true
-          starttls:
-            enable: true
-    protocol: smtp
-    default-encoding: UTF-8
-
 springdoc:
   api-docs:
     enabled: true
@@ -67,6 +71,8 @@ app:
     cooldown:
       seconds: 60
     max-retries: 5
+
+
 
 
 

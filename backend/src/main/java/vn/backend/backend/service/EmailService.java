@@ -11,6 +11,6 @@ public interface EmailService {
     public void confirmParticipation(Long groupId, Long userId, ConfirmPaticipationRequest request) throws IOException, MessagingException;
     public String sendDebtReminderForGroup(Long groupId,Long receiverId, HttpServletRequest req) throws IOException, MessagingException;
     public String sendFriendRequest(String email, HttpServletRequest req) throws IOException, MessagingException;
-    public String sendResetPasswordOTP(String email) throws MessagingException, UnsupportedEncodingException;
+    public String sendResetPasswordOTP(String email) throws MessagingException, IOException;
 
 }

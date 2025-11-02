@@ -1,21 +1,20 @@
 package vn.backend.backend.service.Impl;
+import com.google.api.services.gmail.Gmail;
+import com.google.api.services.gmail.model.Message;
 
-import jakarta.mail.MessagingException;
-import jakarta.mail.internet.InternetAddress;
-import jakarta.mail.internet.MimeMessage;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.mail.javamail.MimeMessageHelper;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
 import org.thymeleaf.context.Context;
 import org.thymeleaf.spring6.SpringTemplateEngine;
+
 import vn.backend.backend.common.FriendshipStatus;
 import vn.backend.backend.common.MemberRole;
 import vn.backend.backend.common.TokenType;
@@ -25,18 +24,26 @@ import vn.backend.backend.repository.*;
 import vn.backend.backend.service.EmailService;
 import vn.backend.backend.service.JwtService;
 
+import jakarta.mail.MessagingException;
+import jakarta.mail.Session;
+import jakarta.mail.internet.InternetAddress;
+import jakarta.mail.internet.MimeMessage;
+
+
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.math.BigDecimal;
-import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.Properties;
+
 
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class EmailServiceImpl implements EmailService {
 
-    private final JavaMailSender mailSender;
     private final SpringTemplateEngine templateEngine;
     private final UserRepository userRepository;
     private final GroupRepository groupRepository;
@@ -45,57 +52,61 @@ public class EmailServiceImpl implements EmailService {
     private final BalanceRepository balanceRepository;
     private final FriendshipRepository friendshipRepository;
     private final ForgotPasswordRepository forgotPasswordRepository;
+
+    private final Gmail gmailService; // Gmail API Inject
+
     private final PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
-    @Value("${spring.mail.from}")
-    private String emailFrom;
 
-    @Value("${spring.mail.name}")
-    private String name;
-
-    @Value("${spring.mail.baseUrlGroupMember}")
-    private String baseUrlGroupMember;
-
-    @Value("${spring.mail.baseUrlFriendShip}")
-    private String baseUrlFriendShip;
-
-    @Value("${app.otp.expiration.minutes}")
-    private long otpExpiryMinutes;
-
-    @Value("${app.otp.cooldown.seconds}")
-    private long cooldownSeconds;
-
-    @Value("${app.otp.max-retries}")
-    private int maxRetries;
-
+    @Value("${spring.mail.from}") private String emailFrom;
+    @Value("${spring.mail.name}") private String name;
+    @Value("${spring.mail.baseUrlGroupMember}") private String baseUrlGroupMember;
+    @Value("${spring.mail.baseUrlFriendShip}") private String baseUrlFriendShip;
+    @Value("${app.otp.expiration.minutes}") private long otpExpiryMinutes;
+    @Value("${app.otp.cooldown.seconds}") private long cooldownSeconds;
 
 
     public void sendEmail(String emailTo, String subject, String templateName, Map<String, Object> templateData)
-            throws MessagingException, UnsupportedEncodingException {
+            throws MessagingException, IOException {
 
-        log.info("Sending email to {}", emailTo);
-
-        MimeMessage message = mailSender.createMimeMessage();
-        MimeMessageHelper helper =
-                new MimeMessageHelper(message, MimeMessageHelper.MULTIPART_MODE_MIXED_RELATED, "UTF-8");
+        long startTime = System.currentTimeMillis(); // ⏱️ Bắt đầu tính thời gian
 
         Context context = new Context();
         context.setVariables(templateData);
         String htmlContent = templateEngine.process(templateName, context);
 
-        helper.setFrom(new InternetAddress(emailFrom, name));
-        helper.setTo(emailTo);
-        helper.setSubject(subject);
-        helper.setText(htmlContent, true);
+        Properties props = new Properties();
+        Session session = Session.getDefaultInstance(props, null);
+        MimeMessage email = new MimeMessage(session);
 
-        mailSender.send(message);
+        email.setFrom(new InternetAddress(emailFrom, name, "UTF-8"));
+        email.addRecipient(jakarta.mail.Message.RecipientType.TO, new InternetAddress(emailTo));
+        email.setSubject(subject, "UTF-8");
+        email.setContent(htmlContent, "text/html; charset=UTF-8");
 
-        log.info("Email sent to {}", emailTo);
+        ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+        email.writeTo(buffer);
+        byte[] rawMessageBytes = buffer.toByteArray();
+
+        String encodedEmail = org.apache.commons.codec.binary.Base64.encodeBase64URLSafeString(rawMessageBytes);
+
+        Message gmailMessage = new Message();
+        gmailMessage.setRaw(encodedEmail);
+
+        gmailService.users().messages().send("me", gmailMessage).execute();
+
+        long endTime = System.currentTimeMillis(); // ⏱️ Kết thúc
+        long durationMs = endTime - startTime;
+        double durationSec = durationMs / 1000.0;
+
+        log.info("✅ Gmail API sent email to {} in {} ms (~{} seconds)", emailTo, durationMs, String.format("%.2f", durationSec));
     }
+
+
 
     // ================= XÁC NHẬN THAM GIA NHÓM =================
     @Override
     public void confirmParticipation(Long groupId, Long userId, ConfirmPaticipationRequest request)
-            throws UnsupportedEncodingException, MessagingException {
+            throws IOException, MessagingException {
 
         UserEntity sender = userRepository.findById(userId)
                 .orElseThrow(() -> new NoSuchElementException("User not found with id " + userId));
@@ -138,7 +149,7 @@ public class EmailServiceImpl implements EmailService {
     // ================= GỬI EMAIL NHẮC NỢ TRONG NHÓM =================
     @Override
     public String sendDebtReminderForGroup(Long groupId, Long receiverId, HttpServletRequest req)
-            throws UnsupportedEncodingException, MessagingException {
+            throws IOException, MessagingException {
 
         String token = req.getHeader("Authorization").substring("Bearer ".length());
         Long userId = jwtService.extractUserId(token, TokenType.ACCESS_TOKEN);
@@ -202,7 +213,7 @@ public class EmailServiceImpl implements EmailService {
     @Transactional
     @Override
     public String sendFriendRequest(String email, HttpServletRequest req)
-            throws UnsupportedEncodingException, MessagingException {
+            throws IOException, MessagingException {
 
         log.info("==> [SEND FRIEND REQUEST] Start processing friend request to email: {}", email);
 
@@ -223,9 +234,10 @@ public class EmailServiceImpl implements EmailService {
 
         if (friendship != null) {
             if (friendship.getStatus().equals(FriendshipStatus.pending))
-                return "Friend request already pending";
+                throw new RuntimeException("Friend request already pending");
+
             if (friendship.getStatus().equals(FriendshipStatus.accepted))
-                return "Already friends";
+                throw new RuntimeException("Already friends,cand not send request again");
         }
 
         String friendToken = jwtService.generateFriendRequestToken(sender.getUserId(), receiver.getUserId());
@@ -253,7 +265,7 @@ public class EmailServiceImpl implements EmailService {
     }
 
     @Override
-    public String sendResetPasswordOTP(String email) throws MessagingException, UnsupportedEncodingException {
+    public String sendResetPasswordOTP(String email) throws IOException, MessagingException {
         UserEntity user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("email not found"));
         ForgotPasswordEntity fp = forgotPasswordRepository.findByUser(user).orElseGet(() -> {
