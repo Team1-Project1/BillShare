@@ -26,13 +26,13 @@ public class FriendShipServiceImpl implements FriendShipService {
                 senderId, receiverId, receiverId, senderId
         );
         if (friendship == null) {
-            return "Friend request not found or already processed!";
+            throw new RuntimeException("Friend request not found or already processed!");
         }
         if (friendship.getStatus().equals(FriendshipStatus.accepted)) {
-            return "You already accepted this friend request.";
+            throw new RuntimeException("You already accepted this friend request.");
         }
         if(friendship.getStatus().equals(FriendshipStatus.blocked)){
-            return "You cannot interact with this user because they are blocked.";
+            throw new RuntimeException("You cannot interact with this user because they are blocked.");
         }
         friendship.setStatus(FriendshipStatus.accepted);
         friendshipRepository.save(friendship);
@@ -53,13 +53,13 @@ public class FriendShipServiceImpl implements FriendShipService {
                 senderId, receiverId, receiverId, senderId
         );
         if (friendship == null) {
-            return "Friend request not found or already processed!";
+            throw new RuntimeException("Friend request not found or already processed!");
         }
         if (friendship.getStatus().equals(FriendshipStatus.accepted) ) {
-            return "You already accepted this friend request. You can’t decline now.";
+            throw new RuntimeException("You already accepted this friend request. You can’t decline now.");
         }
         if(friendship.getStatus().equals(FriendshipStatus.blocked)){
-            return "You cannot interact with this user because they are blocked.";
+            throw new RuntimeException("You cannot interact with this user because they are blocked.");
         }
         friendshipRepository.delete(friendship);
         return String.format("%s rejected %s's friend request!",

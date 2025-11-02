@@ -32,3 +32,6 @@ build/
 ### VS Code ###
 .vscode/
 .env
+
+backend/src/main/resources/credentials.json
+backend/tokens
