@@ -59,9 +59,9 @@ public class AppConfig {
                 .csrf(AbstractHttpConfigurer::disable) // tắt CSRF vì dùng JWT
                 .cors(cors -> {})
                 .authorizeHttpRequests(request -> request
-                        .requestMatchers("/**").permitAll())
-//                        .requestMatchers(WHITE_LIST).permitAll() // /auth/** ai cũng vào được
-//                        .anyRequest().authenticated()) // còn lại thì phải login mới được
+//                        .requestMatchers("/**").permitAll())
+                        .requestMatchers(WHITE_LIST).permitAll() // /auth/** ai cũng vào được
+                        .anyRequest().authenticated()) // còn lại thì phải login mới được
                 .sessionManagement(manager->manager.sessionCreationPolicy(STATELESS)) // không lưu session, vì JWT là stateless
                 .authenticationProvider(provider()) // gắn provider để Spring biết cách xác thực
                 .addFilterBefore(prefilter, UsernamePasswordAuthenticationFilter.class);
