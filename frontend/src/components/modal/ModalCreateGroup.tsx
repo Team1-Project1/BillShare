@@ -2,28 +2,39 @@
 
 import { useState, useRef, useEffect } from "react";
 import { toast } from "react-toastify";
-import CardMemberSelect from "../card/CardMemberSelect";
+// SỬA: Xóa CardMemberSelect không dùng đến
+// import CardMemberSelect from "../card/CardMemberSelect";
 import { currencies } from "@/config/currencies";
 import { FilePond, registerPlugin } from "react-filepond";
 import "filepond/dist/filepond.min.css";
 import FilePondPluginFileValidateType from "filepond-plugin-file-validate-type";
 import FilePondPluginImagePreview from "filepond-plugin-image-preview";
 import "filepond-plugin-image-preview/dist/filepond-plugin-image-preview.css";
+import type { FilePondFile } from "filepond"; // SỬA: Import type cho FilePond
 
 // Đăng ký plugins
 registerPlugin(FilePondPluginFileValidateType, FilePondPluginImagePreview);
 
-export default function ModalCreateGroup({ isOpen, onClose, onSuccess }: { isOpen: boolean; onClose: () => void; onSuccess?: () => void; }) {
+export default function ModalCreateGroup({
+  isOpen,
+  onClose,
+  onSuccess,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  onSuccess?: () => void;
+}) {
   const [groupName, setGroupName] = useState("");
   const [groupDesc, setGroupDesc] = useState("");
-  const [selectedMembers, setSelectedMembers] = useState<number[]>([]);
+  // SỬA: Xóa state 'selectedMembers' không dùng đến
+  // const [selectedMembers, setSelectedMembers] = useState<number[]>([]);
   const [defaultCurrency, setDefaultCurrency] = useState("VND");
-  const [avatars, setAvatars] = useState<any[]>([]);
-  const [isCreating, setIsCreating] = useState(false); // Thêm trạng thái isCreating
+  const [avatars, setAvatars] = useState<FilePondFile[]>([]); // SỬA: Dùng type FilePondFile[]
+  const [isCreating, setIsCreating] = useState(false);
   const modalRef = useRef<HTMLDivElement>(null);
 
-  // Dữ liệu thành viên mẫu
-  const members = [[]];
+  // SỬA: Xóa 'members' không dùng đến
+  // const members = [[]];
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -38,21 +49,18 @@ export default function ModalCreateGroup({ isOpen, onClose, onSuccess }: { isOpe
   }, [isOpen, onClose]);
 
   useEffect(() => {
-    setGroupName("")
-    setGroupDesc("")
-    setDefaultCurrency("VND")
-    setAvatars([])
-    setIsCreating(false)
-  },[isOpen]);
+    setGroupName("");
+    setGroupDesc("");
+    setDefaultCurrency("VND");
+    setAvatars([]);
+    setIsCreating(false);
+  }, [isOpen]);
 
-  const handleSelectMember = (id: number) => {
-    setSelectedMembers((prev) =>
-      prev.includes(id) ? prev.filter((m) => m !== id) : [...prev, id]
-    );
-  };
+  // SỬA: Xóa hàm 'handleSelectMember' không dùng đến
+  // const handleSelectMember = (id: number) => { ... };
 
   const handleCreate = async () => {
-    setIsCreating(true); // Disable nút và đổi trạng thái
+    setIsCreating(true);
     try {
       const userId = localStorage.getItem("userId");
       if (!userId) {
@@ -60,7 +68,7 @@ export default function ModalCreateGroup({ isOpen, onClose, onSuccess }: { isOpe
           position: "top-center",
           autoClose: 3000,
         });
-        setIsCreating(false); // Reset trạng thái
+        setIsCreating(false);
         return;
       }
 
@@ -69,11 +77,10 @@ export default function ModalCreateGroup({ isOpen, onClose, onSuccess }: { isOpe
           position: "top-center",
           autoClose: 3000,
         });
-        setIsCreating(false); // Reset trạng thái
+        setIsCreating(false);
         return;
       }
 
-      // Tạo JSON string cho field 'group'
       const groupData = {
         groupName,
         description: groupDesc || "Không có mô tả",
@@ -82,31 +89,36 @@ export default function ModalCreateGroup({ isOpen, onClose, onSuccess }: { isOpe
       const groupJson = JSON.stringify(groupData);
 
       const formData = new FormData();
-      formData.append("group", groupJson); // Gửi JSON string dưới key 'group'
+      formData.append("group", groupJson);
       if (avatars.length > 0 && avatars[0].file) {
-        formData.append("file", avatars[0].file); // Gửi file avatar dưới key 'file'
+        formData.append("file", avatars[0].file);
       }
 
       let accessToken = localStorage.getItem("accessToken");
-      let response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/group/create`, {
-        method: "POST",
-        body: formData,
-        headers: {
-          Authorization: accessToken ? `Bearer ${accessToken}` : "",
-          Accept: "*/*",
-        },
-      });
+      let response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/group/create`,
+        {
+          method: "POST",
+          body: formData,
+          headers: {
+            Authorization: accessToken ? `Bearer ${accessToken}` : "",
+            Accept: "*/*",
+          },
+        }
+      );
 
       if (response.status === 401 || response.status === 403) {
-        // Refresh token
         const refreshToken = localStorage.getItem("refreshToken");
-        const refreshRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/refresh-token`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "refresh-token": refreshToken ?? "",
-          },
-        });
+        const refreshRes = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/auth/refresh-token`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "refresh-token": refreshToken ?? "",
+            },
+          }
+        );
 
         if (refreshRes.ok) {
           const data = await refreshRes.json();
@@ -117,24 +129,27 @@ export default function ModalCreateGroup({ isOpen, onClose, onSuccess }: { isOpe
             localStorage.setItem("accessToken", newAccessToken);
             localStorage.setItem("refreshToken", newRefreshToken);
             accessToken = newAccessToken;
-            response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/group/create`, {
-              method: "POST",
-              body: formData,
-              headers: {
-                Authorization: `Bearer ${accessToken}`,
-                Accept: "*/*",
-              },
-            });
+            response = await fetch(
+              `${process.env.NEXT_PUBLIC_API_URL}/group/create`,
+              {
+                method: "POST",
+                body: formData,
+                headers: {
+                  Authorization: `Bearer ${accessToken}`,
+                  Accept: "*/*",
+                },
+              }
+            );
           } else {
             localStorage.clear();
             window.location.href = "/login";
-            setIsCreating(false); // Reset trạng thái
+            setIsCreating(false);
             return;
           }
         } else {
           localStorage.clear();
           window.location.href = "/login";
-          setIsCreating(false); // Reset trạng thái
+          setIsCreating(false);
           return;
         }
       }
@@ -150,7 +165,7 @@ export default function ModalCreateGroup({ isOpen, onClose, onSuccess }: { isOpe
           position: "top-center",
           autoClose: 3000,
         });
-        setIsCreating(false); // Reset trạng thái
+        setIsCreating(false);
         return;
       }
 
@@ -162,13 +177,17 @@ export default function ModalCreateGroup({ isOpen, onClose, onSuccess }: { isOpe
         onSuccess?.();
         onClose();
       }
-    } catch (err) {
-      toast.error(`Không thể tạo nhóm!`, {
+    } catch (err) { // SỬA: Xóa 'err' không dùng đến
+      let message = "Không thể tạo nhóm!";
+      if (err instanceof Error) {
+        message = err.message;
+      }
+      toast.error(message, {
         position: "top-center",
         autoClose: 3000,
       });
     } finally {
-      setIsCreating(false); // Reset trạng thái sau khi hoàn tất
+      setIsCreating(false);
     }
   };
 
@@ -190,17 +209,24 @@ export default function ModalCreateGroup({ isOpen, onClose, onSuccess }: { isOpe
           <h2 className="text-lg font-semibold text-gray-900">Tạo Nhóm</h2>
           <button
             onClick={handleCreate}
-            disabled={isCreating} // Disable nút khi đang tạo
+            disabled={isCreating}
             className={`w-24 h-10 text-white rounded-md text-base font-semibold transition-colors duration-300 flex items-center justify-center ${
-              isCreating ? "bg-gray-400 cursor-not-allowed" : "bg-[#5BC5A7] hover:bg-[#4AA88C]"
+              isCreating
+                ? "bg-gray-400 cursor-not-allowed"
+                : "bg-[#5BC5A7] hover:bg-[#4AA88C]"
             }`}
           >
             {isCreating ? "Đang tạo" : "Tạo"}
           </button>
         </div>
-        <h3 className="text-base font-medium text-gray-700 mb-2">Thông tin nhóm</h3>
+        <h3 className="text-base font-medium text-gray-700 mb-2">
+          Thông tin nhóm
+        </h3>
         <div className="mb-4 text-center">
-          <label htmlFor="avatar" className="block font-[500] text-[14px] text-black mb-[5px]">
+          <label
+            htmlFor="avatar"
+            className="block font-[500] text-[14px] text-black mb-[5px]"
+          >
             Avatar
           </label>
           <FilePond
@@ -209,10 +235,11 @@ export default function ModalCreateGroup({ isOpen, onClose, onSuccess }: { isOpe
             allowRemove={true}
             labelIdle="+"
             acceptedFileTypes={["image/*"]}
-            files={avatars}
-            onupdatefiles={setAvatars}
+            files={avatars.map((avatar) => avatar.file)} // FilePond mong đợi File objects
+            onupdatefiles={(fileItems) => {
+              setAvatars(fileItems as FilePondFile[]); // Cập nhật state với FilePondFile
+            }}
             imagePreviewMaxHeight={200}
-            {...({ imagePreviewMaxWidth: 200 } as any)}
             className="w-full"
           />
           {avatars.length > 0 && avatars[0].file && (
@@ -224,7 +251,9 @@ export default function ModalCreateGroup({ isOpen, onClose, onSuccess }: { isOpe
           )}
         </div>
         <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700 mb-1">Tên nhóm</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Tên nhóm
+          </label>
           <input
             type="text"
             value={groupName}
@@ -233,7 +262,9 @@ export default function ModalCreateGroup({ isOpen, onClose, onSuccess }: { isOpe
           />
         </div>
         <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700 mb-1">Thông tin mô tả</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Thông tin mô tả
+          </label>
           <textarea
             value={groupDesc}
             onChange={(e) => setGroupDesc(e.target.value)}
@@ -241,7 +272,9 @@ export default function ModalCreateGroup({ isOpen, onClose, onSuccess }: { isOpe
           />
         </div>
         <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700 mb-1">Tiền tệ mặc định</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Tiền tệ mặc định
+          </label>
           <select
             value={defaultCurrency}
             onChange={(e) => setDefaultCurrency(e.target.value)}
@@ -254,20 +287,10 @@ export default function ModalCreateGroup({ isOpen, onClose, onSuccess }: { isOpe
             ))}
           </select>
         </div>
-        <h3 className="text-base font-medium text-gray-700 mb-2">Thêm thành viên</h3>
-        <div className="space-y-3 max-h-48 overflow-y-auto">
-          Bạn không có bạn bè.
-          {/* {members.map((member) => (
-            <CardMemberSelect
-              key={member.id}
-              avatar={member.avatar}
-              name={member.name}
-              email={member.email}
-              selected={selectedMembers.includes(member.id)}
-              onSelect={() => handleSelectMember(member.id)}
-            />
-          ))} */}
-        </div>
+        <h3 className="text-base font-medium text-gray-700 mb-2">
+          Thêm thành viên
+        </h3>
+        
       </div>
     </div>
   );

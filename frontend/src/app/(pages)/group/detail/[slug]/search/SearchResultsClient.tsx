@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react"; // SỬA: Thêm useCallback
 import { toast } from "react-toastify";
 import { fetchWithAuth } from "@/lib/fetchWithAuth";
 import CardExpense from "@/components/card/CardExpense";
@@ -42,6 +42,19 @@ interface SearchResultsClientProps {
   searchParams: { [key: string]: string | string[] | undefined };
 }
 
+// SỬA: Thêm interface để tránh 'any'
+interface ApiMember {
+  userId: number;
+  fullName: string;
+  email: string;
+  avatarUrl?: string | null;
+}
+
+// SỬA: Thêm interface để tránh 'any'
+interface ApiExpenseStub {
+  expenseId: number;
+}
+
 export default function SearchResultsClient({
   groupId,
   searchParams,
@@ -52,7 +65,7 @@ export default function SearchResultsClient({
   const userId = Number(localStorage.getItem("userId"));
   const router = useRouter();
 
-  const fetchGroupDetails = async () => {
+  const fetchGroupDetails = useCallback(async () => { // SỬA: Gói bằng useCallback
     try {
       const response = await fetchWithAuth(
         `${process.env.NEXT_PUBLIC_API_URL}/group/${groupId}?page=0&size=10`,
@@ -90,13 +103,14 @@ export default function SearchResultsClient({
             apiGroup.avatar ||
             "https://res.cloudinary.com/dtpxp9qqf/image/upload/v1750519773/xholultqlsq1bscqj7bv.jpg",
           memberCount: apiGroup.totalMembers,
-          members: apiGroup.members.content?.map((member: any) => ({
-            id: member.userId,
-            name: member.fullName,
-            email: member.email,
-            avatar: member.avatarUrl || undefined,
-            debt: 0,
-          })) || [],
+          members:
+            apiGroup.members.content?.map((member: ApiMember) => ({ // SỬA: Dùng interface ApiMember
+              id: member.userId,
+              name: member.fullName,
+              email: member.email,
+              avatar: member.avatarUrl || undefined,
+              debt: 0,
+            })) || [],
           createdBy: apiGroup.createdBy,
           totalCost: 0,
           netAmount: 0,
@@ -106,9 +120,9 @@ export default function SearchResultsClient({
       console.error("Fetch error:", err);
       toast.error("Không thể tải chi tiết nhóm!", { position: "top-center" });
     }
-  };
+  }, [groupId]); // SỬA: Thêm dependency
 
-  const fetchExpenseDetails = async (expenseId: number) => {
+  const fetchExpenseDetails = useCallback(async (expenseId: number) => { // SỬA: Gói bằng useCallback
     try {
       const response = await fetchWithAuth(
         `${process.env.NEXT_PUBLIC_API_URL}/api/groups/${groupId}/expenses/${expenseId}`,
@@ -137,9 +151,9 @@ export default function SearchResultsClient({
       });
       return 0;
     }
-  };
+  }, [groupId]); // SỬA: Thêm dependency
 
-  const fetchSearchResults = async () => {
+  const fetchSearchResults = useCallback(async () => { // SỬA: Gói bằng useCallback
     if (!userId || (group && !group.members.some((member) => member.id === userId))) {
       toast.error("Bạn không phải là thành viên của nhóm này!", {
         position: "top-center",
@@ -179,11 +193,11 @@ export default function SearchResultsClient({
 
       const data = await response.json();
       if (data.code === "success") {
-        const expenseIds = data.data.map((expense: any) => expense.expenseId);
+        const expenseIds = data.data.map((expense: ApiExpenseStub) => expense.expenseId); // SỬA: Dùng interface ApiExpenseStub
         const amounts = await Promise.all(
           expenseIds.map((id: number) => fetchExpenseDetails(id))
         );
-        const updatedExpenses = data.data.map((expense: any, index: number) => ({
+        const updatedExpenses = data.data.map((expense: Expense, index: number) => ({ // SỬA: Dùng interface Expense
           ...expense,
           totalAmount: amounts[index],
         }));
@@ -200,7 +214,7 @@ export default function SearchResultsClient({
     } finally {
       setLoading(false);
     }
-  };
+  }, [groupId, searchParams, userId, group, fetchExpenseDetails]); // SỬA: Thêm dependencies
 
   useEffect(() => {
     const loadData = async () => {
@@ -208,7 +222,7 @@ export default function SearchResultsClient({
       await fetchSearchResults();
     };
     loadData();
-  }, [groupId, searchParams]);
+  }, [groupId, searchParams, fetchGroupDetails, fetchSearchResults]); // SỬA: Thêm dependencies
 
   if (loading || !group) {
     return (

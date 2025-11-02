@@ -90,6 +90,32 @@ interface Group {
   simplifyDebtOn: boolean;
 }
 
+// SỬA: Thêm các interface cho API response để tránh 'any'
+interface ApiExpenseItem {
+  expenseId: number;
+  groupId: number;
+  expenseName: string;
+  expenseDate: string;
+  totalAmount: number;
+}
+
+interface ApiBalanceItem {
+  userId: number;
+  userName: string;
+  amount: number;
+  isOwed: boolean;
+}
+
+interface ApiPaymentItem {
+  paymentId: number;
+  groupId: number;
+  payerName: string;
+  payeeName: string;
+  amount: number;
+  currency: string;
+  paymentDate: string;
+}
+
 export default function GroupDetailClient({ slug }: { slug: string }) {
   const router = useRouter();
   const { userId } = useAuthRefresh();
@@ -190,8 +216,13 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
         }));
 
         setIsSimplified(apiGroup.simplifyDebtOn);
-        localStorage.setItem(`simplifyMode_${slug}`, JSON.stringify(apiGroup.simplifyDebtOn));
-        toast.success("Tải chi tiết nhóm thành công!", { position: "top-center" });
+        localStorage.setItem(
+          `simplifyMode_${slug}`,
+          JSON.stringify(apiGroup.simplifyDebtOn)
+        );
+        toast.success("Tải chi tiết nhóm thành công!", {
+          position: "top-center",
+        });
       }
       setLoading(false);
     } catch (err) {
@@ -224,16 +255,21 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
 
       const data = await response.json();
       if (data.code === "success" && data.data?.content) {
-        const newExpenses: Expense[] = data.data.content.map((item: any) => ({
-          expenseId: item.expenseId,
-          groupId: item.groupId,
-          name: item.expenseName,
-          date: item.expenseDate,
-          amount: item.totalAmount,
-          currency: group.defaultCurrency,
-        }));
+        const newExpenses: Expense[] = data.data.content.map(
+          (item: ApiExpenseItem) => ({ // SỬA: từ 'any' thành 'ApiExpenseItem'
+            expenseId: item.expenseId,
+            groupId: item.groupId,
+            name: item.expenseName,
+            date: item.expenseDate,
+            amount: item.totalAmount,
+            currency: group.defaultCurrency,
+          })
+        );
 
-        const totalCost = data.data.content.reduce((sum: number, item: any) => sum + item.totalAmount, 0);
+        const totalCost = data.data.content.reduce(
+          (sum: number, item: ApiExpenseItem) => sum + item.totalAmount, // SỬA: từ 'any' thành 'ApiExpenseItem'
+          0
+        );
 
         setGroup((prev) => ({
           ...prev,
@@ -278,12 +314,14 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
 
       const data = await response.json();
       if (Array.isArray(data.balances)) {
-        const mappedBalances: Balances[] = data.balances.map((item: any) => ({
-          userId: item.userId,
-          userName: item.userName,
-          amount: item.amount,
-          isOwed: item.isOwed,
-        }));
+        const mappedBalances: Balances[] = data.balances.map(
+          (item: ApiBalanceItem) => ({ // SỬA: từ 'any' thành 'ApiBalanceItem'
+            userId: item.userId,
+            userName: item.userName,
+            amount: item.amount,
+            isOwed: item.isOwed,
+          })
+        );
 
         let netAmount = 0;
         mappedBalances.forEach((b) => {
@@ -319,7 +357,7 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
 
       const data = await response.json();
       if (data.code === "success" && Array.isArray(data.data)) {
-        const mapped: Payment[] = data.data.map((item: any) => ({
+        const mapped: Payment[] = data.data.map((item: ApiPaymentItem) => ({ // SỬA: từ 'any' thành 'ApiPaymentItem'
           paymentId: item.paymentId,
           groupId: item.groupId,
           payerName: item.payerName,
@@ -358,7 +396,9 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
       const disposition = response.headers.get("Content-Disposition");
       let filename = `group_${group.groupId}_report.csv`;
       if (disposition?.includes("attachment")) {
-        const match = disposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+        const match = disposition.match(
+          /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/
+        );
         if (match?.[1]) filename = match[1].replace(/['"]/g, "");
       }
 
@@ -406,14 +446,21 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
       if (data.code === "success") {
         setIsSimplified(newMode);
         localStorage.setItem(`simplifyMode_${slug}`, JSON.stringify(newMode));
-        toast.success(newMode ? "Đã bật đơn giản hóa nợ!" : "Đã tắt đơn giản hóa!", {
-          position: "top-center",
-        });
+        toast.success(
+          newMode ? "Đã bật đơn giản hóa nợ!" : "Đã tắt đơn giản hóa!",
+          {
+            position: "top-center",
+          }
+        );
         await fetchBalances();
       }
-    } catch (err: any) {
+    } catch (err: unknown) { // SỬA: từ 'any' thành 'unknown'
       console.error("Toggle simplify error:", err);
-      toast.error(err.message || "Lỗi khi thay đổi chế độ đơn giản hóa!", {
+      let message = "Lỗi khi thay đổi chế độ đơn giản hóa!";
+      if (err instanceof Error) {
+        message = err.message; // SỬA: truy cập message an toàn
+      }
+      toast.error(message, {
         position: "top-center",
       });
     }
@@ -433,6 +480,8 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
       await fetchExpenses(0, false); // Load page 0
     };
     loadData();
+    // Bỏ fetchGroupDetails và fetchExpenses khỏi dependency array
+    // vì chúng đã được sửa trong cảnh báo (warning) ở lần trước
   }, [slug]);
 
   useEffect(() => {
@@ -442,6 +491,7 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
         setIsSimplified(JSON.parse(storedMode));
       }
       fetchBalances();
+      // Bỏ fetchBalances khỏi dependency array
     }
   }, [slug, userId]);
 
@@ -458,7 +508,9 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
   const handleInviteSuccess = () => fetchGroupDetails();
   const handleEditExpenseSuccess = () => {
     router.refresh(); // ← Refresh toàn bộ trang
-    toast.success("Cập nhật thành công! Đã làm mới dữ liệu.", { position: "top-center" });
+    toast.success("Cập nhật thành công! Đã làm mới dữ liệu.", {
+      position: "top-center",
+    });
 
     setExpensePage(0);
     fetchExpenses(0, false);
@@ -467,11 +519,11 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
   const handlePaymentSuccess = () => {
     fetchBalances();
     fetchPayments();
-  }
+  };
   const handleDeletePaymentSuccess = () => {
     fetchBalances();
     fetchPayments();
-  }
+  };
 
   const handleDeleteGroup = async (confirmDeleteExpenses: boolean) => {
     try {
@@ -494,7 +546,9 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
         if (!confirmDeleteExpenses && response.status === 500) {
           setIsConfirmDeleteOpen(true);
         } else {
-          toast.error(err.message || "Không thể xóa nhóm!", { position: "top-center" });
+          toast.error(err.message || "Không thể xóa nhóm!", {
+            position: "top-center",
+          });
         }
       }
     } catch (err) {
@@ -519,10 +573,14 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
         toast.success("Tất toán nợ thành công!", { position: "top-center" });
       } else {
         const err = await response.json();
-        toast.error(err.message || "Không thể tất toán!", { position: "top-center" });
+        toast.error(err.message || "Không thể tất toán!", {
+          position: "top-center",
+        });
       }
     } catch (err) {
-      toast.error("Có lỗi trong quá trình tất toán!", { position: "top-center" });
+      toast.error("Có lỗi trong quá trình tất toán!", {
+        position: "top-center",
+      });
     }
   };
 
@@ -554,11 +612,11 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
         style={{
           filter:
             isModalOpen ||
-              isViewAllModalOpen ||
-              isConfirmDeleteOpen ||
-              isEditGroupInfoOpen ||
-              isAddExpenseModalOpen ||
-              isViewAllExpensesOpen
+            isViewAllModalOpen ||
+            isConfirmDeleteOpen ||
+            isEditGroupInfoOpen ||
+            isAddExpenseModalOpen ||
+            isViewAllExpensesOpen
               ? "blur(5px) brightness(0.8)"
               : "none",
           transition: "filter 0.3s",
@@ -570,13 +628,24 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
             {/* Header nhóm */}
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center">
-                <img src={group.avatar} alt="Avatar nhóm" className="w-12 h-12 rounded-full mr-4" />
+                <img
+                  src={group.avatar}
+                  alt="Avatar nhóm"
+                  className="w-12 h-12 rounded-full mr-4"
+                />
                 <div>
-                  <h1 className="text-xl font-bold text-[#5BC5A7]">{group.name}</h1>
+                  <h1 className="text-xl font-bold text-[#5BC5A7]">
+                    {group.name}
+                  </h1>
                   <p className="text-sm text-gray-600 flex items-center">
-                    <FiUsers className="mr-1" /> {group.memberCount} thành viên
+                    <FiUsers className="mr-1" /> {group.memberCount} thành
+                    viên
                   </p>
-                  <p className={`text-md text-gray-600 mt-2 line-clamp-2 ${group.description === "Không có mô tả" ? "italic" : ""}`}>
+                  <p
+                    className={`text-md text-gray-600 mt-2 line-clamp-2 ${
+                      group.description === "Không có mô tả" ? "italic" : ""
+                    }`}
+                  >
                     Mô tả: {group.description}
                   </p>
                 </div>
@@ -614,8 +683,11 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
                         handleExportCSV();
                         setIsMenuOpen(false);
                       }}
-                      className={`flex items-center px-4 py-2 text-sm text-gray-700 w-full text-left ${hasExported ? "opacity-50 cursor-not-allowed" : "hover:bg-green-50"
-                        }`}
+                      className={`flex items-center px-4 py-2 text-sm text-gray-700 w-full text-left ${
+                        hasExported
+                          ? "opacity-50 cursor-not-allowed"
+                          : "hover:bg-green-50"
+                      }`}
                     >
                       <FiDownload className="mr-2" /> Xuất CSV
                     </button>
@@ -627,22 +699,37 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
             {/* Tổng chi phí & trạng thái */}
             <div className="text-center mb-6">
               <div className="mb-4">
-                <h2 className="text-2xl font-bold text-[#5BC5A7]">Tổng chi phí</h2>
+                <h2 className="text-2xl font-bold text-[#5BC5A7]">
+                  Tổng chi phí
+                </h2>
                 <p className="text-2xl font-bold text-gray-700">
-                  {expensesLoading ? "Đang tải..." : `${group.totalCost.toLocaleString()} ${group.defaultCurrency}`}
+                  {expensesLoading
+                    ? "Đang tải..."
+                    : `${group.totalCost.toLocaleString()} ${
+                        group.defaultCurrency
+                      }`}
                 </p>
               </div>
               <div>
-                <h2 className="text-2xl font-bold text-[#5BC5A7]">Trạng thái của bạn</h2>
+                <h2 className="text-2xl font-bold text-[#5BC5A7]">
+                  Trạng thái của bạn
+                </h2>
                 <p
-                  className={`text-2xl font-bold ${group.netAmount >= 0 ? "text-green-700" : "text-red-700"
-                    }`}
+                  className={`text-2xl font-bold ${
+                    group.netAmount >= 0
+                      ? "text-green-700"
+                      : "text-red-700"
+                  }`}
                 >
                   {group.netAmount === 0
                     ? "Bạn không nợ ai"
                     : group.netAmount > 0
-                      ? `Bạn được nhận: ${group.netAmount.toLocaleString()} ${group.defaultCurrency}`
-                      : `Bạn đang nợ: ${Math.abs(group.netAmount).toLocaleString()} ${group.defaultCurrency}`}
+                    ? `Bạn được nhận: ${group.netAmount.toLocaleString()} ${
+                        group.defaultCurrency
+                      }`
+                    : `Bạn đang nợ: ${Math.abs(
+                        group.netAmount
+                      ).toLocaleString()} ${group.defaultCurrency}`}
                 </p>
               </div>
             </div>
@@ -666,24 +753,32 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
                   <div className="group relative flex items-center">
                     <FiHelpCircle className="text-gray-500" size={16} />
                     <span className="absolute left-0 bottom-full mb-2 hidden group-hover:block w-48 bg-gray-800 text-white text-xs rounded py-1 px-2">
-                      Bật để xem danh sách nợ đơn giản hóa, tắt để xem chi tiết.
+                      Bật để xem danh sách nợ đơn giản hóa, tắt để xem chi
+                      tiết.
                     </span>
                   </div>
 
                   <div
-                    className={`relative w-14 h-7 rounded-full cursor-pointer transition-colors duration-300 ${isSimplified ? "bg-[#5BC5A7]" : "bg-gray-300"
-                      }`}
+                    className={`relative w-14 h-7 rounded-full cursor-pointer transition-colors duration-300 ${
+                      isSimplified ? "bg-[#5BC5A7]" : "bg-gray-300"
+                    }`}
                     onClick={handleSimplifyToggle}
                   >
                     <motion.div
                       className="absolute w-5 h-5 bg-white rounded-full top-1 left-1 shadow-sm"
                       animate={{ x: isSimplified ? 28 : 0 }}
-                      transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                      transition={{
+                        type: "spring",
+                        stiffness: 300,
+                        damping: 20,
+                      }}
                     />
                   </div>
 
                   <span className="text-sm text-gray-500 whitespace-nowrap">
-                    {isSimplified ? "Đơn giản hóa: Bật" : "Đơn giản hóa: Tắt"}
+                    {isSimplified
+                      ? "Đơn giản hóa: Bật"
+                      : "Đơn giản hóa: Tắt"}
                   </span>
                 </div>
 
@@ -695,7 +790,6 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
                   <FiActivity className="mr-1" /> Tất toán nợ
                 </button>
               </div>
-
 
               <div className="space-y-4">
                 <AnimatePresence>
@@ -759,7 +853,9 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
               </button>
 
               {expensesLoading ? (
-                <p className="text-gray-600 italic text-center animate-pulse">Đang tải...</p>
+                <p className="text-gray-600 italic text-center animate-pulse">
+                  Đang tải...
+                </p>
               ) : group.expenses.length > 0 ? (
                 <div className="space-y-4">
                   {group.expenses.map((expense) => (
@@ -779,7 +875,9 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
                   ))}
                 </div>
               ) : (
-                <p className="text-gray-600 italic text-center">Chưa có khoản chi nào.</p>
+                <p className="text-gray-600 italic text-center">
+                  Chưa có khoản chi nào.
+                </p>
               )}
 
               {/* Nút Xem thêm */}
@@ -812,7 +910,10 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                   >
-                    <motion.span animate={{ rotate: showActivities ? 180 : 0 }} transition={{ duration: 0.3 }}>
+                    <motion.span
+                      animate={{ rotate: showActivities ? 180 : 0 }}
+                      transition={{ duration: 0.3 }}
+                    >
                       <FiChevronDown className="mr-2" />
                     </motion.span>
                     {showActivities ? "Thu gọn" : "Mở rộng"}
@@ -829,13 +930,23 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
                       className="space-y-4 mt-4"
                     >
                       {paymentsLoading ? (
-                        <p className="text-gray-600 italic text-center animate-pulse">Đang tải...</p>
+                        <p className="text-gray-600 italic text-center animate-pulse">
+                          Đang tải...
+                        </p>
                       ) : payments.length > 0 ? (
                         payments.map((payment) => (
-                          <CardPayment key={payment.paymentId} payment={payment} onDeletePaymentSuccess={handleDeletePaymentSuccess} />
+                          <CardPayment
+                            key={payment.paymentId}
+                            payment={payment}
+                            onDeletePaymentSuccess={
+                              handleDeletePaymentSuccess
+                            }
+                          />
                         ))
                       ) : (
-                        <p className="text-gray-600 italic text-center">Chưa có chi trả nào.</p>
+                        <p className="text-gray-600 italic text-center">
+                          Chưa có chi trả nào.
+                        </p>
                       )}
                     </motion.div>
                   )}
@@ -848,10 +959,33 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
       </div>
 
       {/* Modals */}
-      <ModalAddMember isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} groupId={group.groupId} createdBy={group.createdBy} onInviteSuccess={handleInviteSuccess} currentMembers={group.members} />
-      <ModalViewAllMembers isOpen={isViewAllModalOpen} onClose={() => setIsViewAllModalOpen(false)} onDeleteMemberSuccess={fetchGroupDetails} groupId={group.groupId} members={group.members} createdBy={group.createdBy} />
-      <ModalConfirmDelete isOpen={isConfirmDeleteOpen} onClose={() => setIsConfirmDeleteOpen(false)} onConfirm={() => handleDeleteGroup(true)} />
-      <ModalEditGroupInfo isOpen={isEditGroupInfoOpen} onClose={() => setIsEditGroupInfoOpen(false)} group={group} onUpdateSuccess={fetchGroupDetails} />
+      <ModalAddMember
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        groupId={group.groupId}
+        createdBy={group.createdBy}
+        onInviteSuccess={handleInviteSuccess}
+        currentMembers={group.members}
+      />
+      <ModalViewAllMembers
+        isOpen={isViewAllModalOpen}
+        onClose={() => setIsViewAllModalOpen(false)}
+        onDeleteMemberSuccess={fetchGroupDetails}
+        groupId={group.groupId}
+        members={group.members}
+        createdBy={group.createdBy}
+      />
+      <ModalConfirmDelete
+        isOpen={isConfirmDeleteOpen}
+        onClose={() => setIsConfirmDeleteOpen(false)}
+        onConfirm={() => handleDeleteGroup(true)}
+      />
+      <ModalEditGroupInfo
+        isOpen={isEditGroupInfoOpen}
+        onClose={() => setIsEditGroupInfoOpen(false)}
+        group={group}
+        onUpdateSuccess={fetchGroupDetails}
+      />
       <ModalViewAllExpense
         isOpen={isViewAllExpensesOpen}
         onClose={() => setIsViewAllExpensesOpen(false)}

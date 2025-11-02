@@ -1,8 +1,17 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react"; // SỬA: Thêm useCallback
 import { toast } from "react-toastify";
-import { FiUsers, FiMail, FiSearch, FiUser, FiSend, FiX, FiUserPlus, FiChevronDown } from "react-icons/fi";
+import {
+  FiUsers,
+  FiMail,
+  FiSearch,
+  FiUser,
+  FiSend,
+  FiX,
+  FiUserPlus,
+  FiChevronDown,
+} from "react-icons/fi";
 import { fetchWithAuth } from "@/lib/fetchWithAuth";
 
 interface Friend {
@@ -62,7 +71,9 @@ const CardFriendSelect = ({
           <FiUser className="text-[#5BC5A7] text-xl" />
         </div>
         <div className="flex-1 min-w-0">
-          <h4 className="text-base font-semibold text-gray-900 truncate">{name}</h4>
+          <h4 className="text-base font-semibold text-gray-900 truncate">
+            {name}
+          </h4>
           <p className="text-sm text-gray-600 truncate">{email}</p>
         </div>
       </div>
@@ -101,7 +112,7 @@ export default function ModalAddMember({
   const currentMemberIds = currentMembers.map((m) => m.id);
 
   // Fetch danh sách bạn bè (dùng đúng API trong FriendsPage)
-  const fetchFriends = async () => {
+  const fetchFriends = useCallback(async () => { // SỬA: Gói bằng useCallback
     setFriendsLoading(true);
     try {
       const response = await fetchWithAuth(
@@ -125,7 +136,9 @@ export default function ModalAddMember({
 
       const data = await response.json();
       if (data.code === "error") {
-        toast.error(data.message || "Lỗi tải bạn bè", { position: "top-center" });
+        toast.error(data.message || "Lỗi tải bạn bè", {
+          position: "top-center",
+        });
         return;
       }
 
@@ -134,17 +147,21 @@ export default function ModalAddMember({
         const newFriends = pageableData.content || [];
 
         // Loại bỏ người đã trong nhóm
-        const filtered = newFriends.filter((f) => !currentMemberIds.includes(f.id));
+        const filtered = newFriends.filter(
+          (f) => !currentMemberIds.includes(f.id)
+        );
 
         setFriends(filtered);
       }
     } catch (err) {
       console.error("Fetch friends error:", err);
-      toast.error("Không thể tải danh sách bạn bè!", { position: "top-center" });
+      toast.error("Không thể tải danh sách bạn bè!", {
+        position: "top-center",
+      });
     } finally {
       setFriendsLoading(false);
     }
-  };
+  }, [currentMemberIds]); // SỬA: Thêm dependency
 
   useEffect(() => {
     if (isOpen) {
@@ -155,7 +172,7 @@ export default function ModalAddMember({
       setInviteOpen(false);
       setSearchOpen(false);
     }
-  }, [isOpen, currentMembers]);
+  }, [isOpen, currentMembers, fetchFriends]); // SỬA: Thêm fetchFriends
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -176,7 +193,9 @@ export default function ModalAddMember({
 
   const handleSendInvite = async () => {
     if (currentUserId !== createdBy) {
-      toast.error("Chỉ người tạo nhóm mới có quyền mời!", { position: "top-center" });
+      toast.error("Chỉ người tạo nhóm mới có quyền mời!", {
+        position: "top-center",
+      });
       return;
     }
 
@@ -206,7 +225,7 @@ export default function ModalAddMember({
       setEmail("");
       setInviteOpen(false);
       onInviteSuccess();
-    } catch (err) {
+    } catch { // SỬA: Xóa 'err' không dùng đến
       toast.error("Không thể gửi lời mời!", { position: "top-center" });
     } finally {
       setIsLoading(false);
@@ -221,7 +240,9 @@ export default function ModalAddMember({
 
   const handleAddMembers = async () => {
     if (selectedMembers.length === 0) {
-      toast.warn("Vui lòng chọn ít nhất một người bạn!", { position: "top-center" });
+      toast.warn("Vui lòng chọn ít nhất một người bạn!", {
+        position: "top-center",
+      });
       return;
     }
 
@@ -253,9 +274,13 @@ export default function ModalAddMember({
       });
       onInviteSuccess();
       onClose();
-    } catch (err: any) {
+    } catch (err: unknown) { // SỬA: Đổi 'any' thành 'unknown'
       console.error("Add friends error:", err);
-      toast.error(err.message || "Có lỗi khi thêm thành viên!", { position: "top-center" });
+      let message = "Có lỗi khi thêm thành viên!";
+      if (err instanceof Error) { // SỬA: Kiểm tra kiểu Error
+        message = err.message;
+      }
+      toast.error(message, { position: "top-center" });
     } finally {
       setIsLoading(false);
     }
@@ -282,8 +307,13 @@ export default function ModalAddMember({
         }}
       >
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-lg font-semibold text-gray-900">Thêm thành viên</h2>
-          <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
+          <h2 className="text-lg font-semibold text-gray-900">
+            Thêm thành viên
+          </h2>
+          <button
+            onClick={onClose}
+            className="text-gray-500 hover:text-gray-700"
+          >
             <FiX size={20} />
           </button>
         </div>
@@ -297,7 +327,11 @@ export default function ModalAddMember({
             <span className="flex items-center text-gray-600">
               <FiSearch className="mr-2" /> Tìm kiếm bạn bè...
             </span>
-            <FiChevronDown className={`transition-transform ${searchOpen ? "rotate-180" : ""}`} />
+            <FiChevronDown
+              className={`transition-transform ${
+                searchOpen ? "rotate-180" : ""
+              }`}
+            />
           </button>
           {searchOpen && (
             <input
@@ -349,7 +383,9 @@ export default function ModalAddMember({
 
         <div className="space-y-3 max-h-48 overflow-y-auto">
           {friendsLoading ? (
-            <p className="text-center text-gray-500 italic py-4">Đang tải bạn bè...</p>
+            <p className="text-center text-gray-500 italic py-4">
+              Đang tải bạn bè...
+            </p>
           ) : filteredFriends.length > 0 ? (
             filteredFriends.map((friend) => (
               <CardFriendSelect
@@ -388,7 +424,8 @@ export default function ModalAddMember({
             </>
           ) : (
             <>
-              <FiUserPlus className="mr-2" /> Thêm {selectedMembers.length} thành viên
+              <FiUserPlus className="mr-2" /> Thêm {selectedMembers.length}{" "}
+              thành viên
             </>
           )}
         </button>
