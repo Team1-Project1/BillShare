@@ -33,8 +33,12 @@ export default function AcceptFriendPage() {
 
         const data = await response.json();
         toast.success(data.message || "Đã chấp nhận kết bạn!");
-      } catch (err: any) {
-        toast.error(err.message || "Lỗi khi chấp nhận lời mời");
+      } catch (err: unknown) { // SỬA: từ 'any' thành 'unknown'
+        let message = "Lỗi khi chấp nhận lời mời";
+        if (err instanceof Error) {
+          message = err.message; // SỬA: truy cập message an toàn
+        }
+        toast.error(message);
       } finally {
         // Redirect sau 5 giây dù thành công hay thất bại
         setTimeout(() => router.push("/friends"), 5000);

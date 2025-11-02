@@ -33,8 +33,12 @@ export default function DeclineFriendPage() {
 
         const data = await response.json();
         toast.success(data.message || "Đã từ chối lời mời kết bạn");
-      } catch (err: any) {
-        toast.error(err.message || "Lỗi khi từ chối");
+      } catch (err: unknown) { // SỬA: từ 'any' thành 'unknown'
+        let message = "Lỗi khi từ chối";
+        if (err instanceof Error) {
+          message = err.message; // SỬA: truy cập message an toàn
+        }
+        toast.error(message);
       } finally {
         setTimeout(() => router.push("/friends"), 5000);
       }

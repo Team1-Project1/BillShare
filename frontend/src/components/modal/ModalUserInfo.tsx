@@ -7,7 +7,10 @@ import { FilePond, registerPlugin } from "react-filepond";
 import "filepond/dist/filepond.min.css";
 import FilePondPluginFileValidateType from "filepond-plugin-file-validate-type";
 import FilePondPluginImagePreview from "filepond-plugin-image-preview";
-import "filepond-plugin-image-preview/dist/filepond-plugin-image-preview.css"; 
+import "filepond-plugin-image-preview/dist/filepond-plugin-image-preview.css";
+
+// Import đúng type mới
+import type { FilePondFile, FilePondInitialFile } from "filepond";
 
 registerPlugin(FilePondPluginFileValidateType, FilePondPluginImagePreview);
 
@@ -26,8 +29,8 @@ interface UserInfoProps {
 }
 
 export default function UserInfo({
-  isOpen, 
-  onClose, 
+  isOpen,
+  onClose,
   user,
   onSuccess,
 }: UserInfoProps) {
@@ -35,21 +38,39 @@ export default function UserInfo({
   const [fullName, setFullName] = useState(user?.fullName || "");
   const [email, setEmail] = useState(user?.email || "");
   const [phone, setPhone] = useState(user?.phone || "");
-  const [avatars, setAvatars] = useState<any[]>(user?.avatarUrl ? [{ source: user.avatarUrl, options: { type: "server" } }] : []);
+
+  // CHỈ DÙNG FilePondInitialFile CHO files prop
+  const [initialFiles, setInitialFiles] = useState<FilePondInitialFile[]>(
+    user?.avatarUrl
+      ? [{ source: user.avatarUrl, options: { type: "local" } }]
+      : []
+  );
+
+  // DÙNG FilePondFile CHO file người dùng chọn
+  const [fileItems, setFileItems] = useState<FilePondFile[]>([]);
+
   const [isEmailChanged, setIsEmailChanged] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const modalRef = useRef<HTMLDivElement>(null);
 
+  // Đồng bộ khi user hoặc isOpen thay đổi
   useEffect(() => {
-    console.log("Avatar URL:", user?.avatarUrl); // Debug URL
-    setFullName(user?.fullName || "");
-    setEmail(user?.email || "");
-    setPhone(user?.phone || "");
-    setAvatars(user?.avatarUrl ? [{ source: user.avatarUrl, options: { type: "server" } }] : []);
+    if (!user) return;
+
+    setFullName(user.fullName || "");
+    setEmail(user.email || "");
+    setPhone(user.phone || "");
+    setInitialFiles(
+      user.avatarUrl
+        ? [{ source: user.avatarUrl, options: { type: "local" } }]
+        : []
+    );
+    setFileItems([]);
     setIsEditing(false);
     setIsEmailChanged(false);
   }, [user, isOpen]);
 
+  // Click outside để đóng
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (modalRef.current && !modalRef.current.contains(event.target as Node)) {
@@ -71,31 +92,20 @@ export default function UserInfo({
     }
   };
 
-  const handleSaveChanges = async () => {
+  const handleSaveChanges = async (): Promise<boolean> => {
     try {
       setIsLoading(true);
 
       if (!fullName.trim()) {
-        toast.error("Vui lòng nhập tên người dùng!", {
-          position: "top-center",
-          autoClose: 3000,
-        });
+        toast.error("Vui lòng nhập tên người dùng!", { position: "top-center", autoClose: 3000 });
         return false;
       }
-
       if (!email.trim()) {
-        toast.error("Vui lòng nhập email!", {
-          position: "top-center",
-          autoClose: 3000,
-        });
+        toast.error("Vui lòng nhập email!", { position: "top-center", autoClose: 3000 });
         return false;
       }
-
       if (!phone.trim()) {
-        toast.error("Vui lòng nhập số điện thoại!", {
-          position: "top-center",   
-          autoClose: 3000,
-        });
+        toast.error("Vui lòng nhập số điện thoại!", { position: "top-center", autoClose: 3000 });
         return false;
       }
 
@@ -103,17 +113,13 @@ export default function UserInfo({
         setIsEmailChanged(true);
       }
 
-      const userData = {
-        fullName,
-        email,
-        phone,
-      };
-      const userJson = JSON.stringify(userData);
-
+      const userData = { fullName, email, phone };
       const formData = new FormData();
-      formData.append("user", userJson);
-      if (avatars.length > 0 && avatars[0].file instanceof File) {
-        formData.append("file", avatars[0].file);
+      formData.append("user", JSON.stringify(userData));
+
+      // Upload file mới
+      if (fileItems.length > 0 && fileItems[0].file instanceof File) {
+        formData.append("file", fileItems[0].file);
       }
 
       let accessToken = localStorage.getItem("accessToken");
@@ -126,6 +132,7 @@ export default function UserInfo({
         },
       });
 
+      // Refresh token
       if (response.status === 401 || response.status === 403) {
         const refreshToken = localStorage.getItem("refreshToken");
         const refreshRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/refresh-token`, {
@@ -145,6 +152,7 @@ export default function UserInfo({
             localStorage.setItem("accessToken", newAccessToken);
             localStorage.setItem("refreshToken", newRefreshToken);
             accessToken = newAccessToken;
+
             response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/edit`, {
               method: "PATCH",
               body: formData,
@@ -168,69 +176,57 @@ export default function UserInfo({
       if (!response.ok) {
         const errorData = await response.json();
         if (response.status === 409) {
-          toast.error(errorData.message || "Xung đột dữ liệu khi cập nhật người dùng!", {
-            position: "top-center",
-            autoClose: 3000,
-          });
+          toast.error(errorData.message || "Xung đột dữ liệu!", { position: "top-center", autoClose: 3000 });
           return false;
         }
-        throw new Error("Không thể cập nhật thông tin người dùng");
+        throw new Error("Cập nhật thất bại");
       }
 
       const data = await response.json();
       if (data.code === "error") {
-        toast.error(data.message || "Không thể cập nhật thông tin người dùng!", {
-          position: "top-center",
-          autoClose: 3000,
-        });
+        toast.error(data.message || "Cập nhật thất bại!", { position: "top-center", autoClose: 3000 });
         return false;
       }
 
       if (data.code === "success") {
         if (isEmailChanged) {
-          toast.success("Cập nhật thông tin người dùng thành công! Vui lòng đăng nhập lại.", {
-            position: "top-center",
-            autoClose: 3000,
-          });
+          toast.success("Cập nhật thành công! Vui lòng đăng nhập lại.", { position: "top-center", autoClose: 3000 });
           localStorage.clear();
-          window.location.href = "/login";   
+          window.location.href = "/login";
           onClose();
           return true;
         } else {
-          toast.success("Cập nhật thông tin người dùng thành công!", {
-            position: "top-center",
-            autoClose: 3000,
-          });
+          toast.success("Cập nhật thành công!", { position: "top-center", autoClose: 3000 });
           if (data.data.avatarUrl) {
-            setAvatars([{ source: data.data.avatarUrl, options: { type: "server" } }]);
+            setInitialFiles([{ source: data.data.avatarUrl, options: { type: "local" } }]);
+            setFileItems([]);
           }
           onClose();
           onSuccess();
           return true;
         }
       }
+      return false;
     } catch (err) {
       console.error("Lỗi:", err);
-      toast.error("Không thể cập nhật thông tin người dùng!", {
-        position: "top-center",
-        autoClose: 3000,
-      });
+      toast.error("Lỗi hệ thống!", { position: "top-center", autoClose: 3000 });
       return false;
     } finally {
       setIsLoading(false);
     }
   };
 
-  if (!user || !isOpen) { 
-    return null;
-  }
+  if (!user || !isOpen) return null;
+
+  // Ưu tiên ảnh mới > ảnh cũ
+  const displayFile = fileItems[0] || (initialFiles[0] ? { ...initialFiles[0], file: undefined } : null);
 
   return (
     <div className="fixed inset-0 flex items-center justify-center z-50">
       <div
         className="absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity duration-300"
         onClick={onClose}
-      ></div>
+      />
       <div
         ref={modalRef}
         className="bg-white/90 backdrop-blur-md rounded-lg p-4 w-full max-w-[500px] shadow-xl border border-gray-200"
@@ -241,35 +237,43 @@ export default function UserInfo({
         }}
       >
         <div className="mb-4 text-center">
-          <label htmlFor="avatar" className="block font-[500] text-[14px] text-black mb-[5px]">
+          <label className="block font-[500] text-[14px] text-black mb-[5px]">
             Ảnh đại diện
           </label>
+
+          {/* CHỈ DÙNG FilePondInitialFile[] cho files prop */}
           <FilePond
             name="avatar"
             allowMultiple={false}
             allowRemove={true}
             labelIdle="+"
             acceptedFileTypes={["image/*"]}
-            files={avatars}
-            onupdatefiles={(fileItems) => {
-              setAvatars(fileItems);
+            files={initialFiles}
+            onupdatefiles={(items: FilePondFile[]) => {
+              setFileItems(items);
+              if (items.length === 0) {
+                setInitialFiles([]);
+              }
             }}
             imagePreviewMaxHeight={200}
-            {...({ imagePreviewMaxWidth: 200 } as any)}
             className="w-full"
           />
-          {avatars.length > 0 && avatars[0].file instanceof File ? (
-            <img
-              src={URL.createObjectURL(avatars[0].file)}
-              alt="Preview avatar"
-              className="w-24 h-24 rounded-full mx-auto mt-2"
-            />
-          ) : avatars.length > 0 && avatars[0].source ? (
-            <img
-              src={avatars[0].source}
-              alt="Current avatar"
-              className="w-24 h-24 rounded-full mx-auto mt-2"
-            />
+
+          {/* Preview ảnh */}
+          {displayFile ? (
+            displayFile.file ? (
+              <img
+                src={URL.createObjectURL(displayFile.file)}
+                alt="Preview"
+                className="w-24 h-24 rounded-full mx-auto mt-2 object-cover"
+              />
+            ) : (
+              <img
+                src={displayFile.source}
+                alt="Current"
+                className="w-24 h-24 rounded-full mx-auto mt-2 object-cover"
+              />
+            )
           ) : (
             <p className="mt-2 text-gray-500">Chưa có ảnh</p>
           )}
@@ -277,9 +281,7 @@ export default function UserInfo({
 
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Họ và tên
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Họ và tên</label>
             <div className="flex items-center border border-gray-300 rounded-md p-2">
               <FiUser className="text-[#5BC5A7] mr-2" />
               <input
@@ -295,9 +297,7 @@ export default function UserInfo({
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Email
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
             <div className="flex items-center border border-gray-300 rounded-md p-2">
               <FiMail className="text-[#5BC5A7] mr-2" />
               <input
@@ -313,9 +313,7 @@ export default function UserInfo({
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Số điện thoại
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Số điện thoại</label>
             <div className="flex items-center border border-gray-300 rounded-md p-2">
               <FiPhone className="text-[#5BC5A7] mr-2" />
               <input
