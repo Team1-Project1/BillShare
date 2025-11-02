@@ -332,7 +332,7 @@ public class GroupServiceImpl implements GroupService {
         response.reset(); // Xóa mọi encoding cũ
         response.setCharacterEncoding("UTF-8");
         response.setContentType("application/vnd.ms-excel");
-        response.setHeader("Access-Control-Allow-Origin", "http://localhost:3000");
+        response.setHeader("Access-Control-Allow-Origin", "https://frontend-three-wheat-74.vercel.app");
         response.setHeader("Access-Control-Allow-Credentials", "true");
 
         String currentDate = new SimpleDateFormat("dd-MM-yyyy").format(new Date());
