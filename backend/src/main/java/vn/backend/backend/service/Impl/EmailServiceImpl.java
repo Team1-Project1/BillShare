@@ -68,7 +68,7 @@ public class EmailServiceImpl implements EmailService {
     public void sendEmail(String emailTo, String subject, String templateName, Map<String, Object> templateData)
             throws MessagingException, IOException {
 
-        long startTime = System.currentTimeMillis(); // ⏱️ Bắt đầu tính thời gian
+        long startTime = System.currentTimeMillis(); // Bắt đầu tính thời gian
 
         Context context = new Context();
         context.setVariables(templateData);
@@ -98,7 +98,7 @@ public class EmailServiceImpl implements EmailService {
         long durationMs = endTime - startTime;
         double durationSec = durationMs / 1000.0;
 
-        log.info("✅ Gmail API sent email to {} in {} ms (~{} seconds)", emailTo, durationMs, String.format("%.2f", durationSec));
+        log.info(" Gmail API sent email to {} in {} ms (~{} seconds)", emailTo, durationMs, String.format("%.2f", durationSec));
     }
 
 
