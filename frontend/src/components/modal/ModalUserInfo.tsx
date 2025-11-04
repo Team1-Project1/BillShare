@@ -62,7 +62,7 @@ export default function UserInfo({
     setPhone(user.phone || "");
     setInitialFiles(
       user.avatarUrl
-        ? [{ source: user.avatarUrl, options: { type: "local" } }]
+        ? [{ source: user.avatarUrl, options: { type : "input"} }]
         : []
     );
     setFileItems([]);
@@ -261,18 +261,20 @@ export default function UserInfo({
 
           {/* Preview ảnh */}
           {displayFile ? (
-            displayFile.file ? (
+            displayFile.file instanceof Blob ? (
               <img
                 src={URL.createObjectURL(displayFile.file)}
                 alt="Preview"
                 className="w-24 h-24 rounded-full mx-auto mt-2 object-cover"
               />
-            ) : (
+            ) : displayFile.source ? (
               <img
                 src={displayFile.source}
                 alt="Current"
                 className="w-24 h-24 rounded-full mx-auto mt-2 object-cover"
               />
+            ) : (
+              <p className="mt-2 text-gray-500">Chưa có ảnh</p>
             )
           ) : (
             <p className="mt-2 text-gray-500">Chưa có ảnh</p>
@@ -289,9 +291,8 @@ export default function UserInfo({
                 value={fullName}
                 disabled={!isEditing}
                 onChange={(e) => setFullName(e.target.value)}
-                className={`flex-1 bg-transparent outline-none ${
-                  isEditing ? "text-gray-900" : "text-gray-600"
-                }`}
+                className={`flex-1 bg-transparent outline-none ${isEditing ? "text-gray-900" : "text-gray-600"
+                  }`}
               />
             </div>
           </div>
@@ -305,9 +306,8 @@ export default function UserInfo({
                 value={email}
                 disabled={!isEditing}
                 onChange={(e) => setEmail(e.target.value)}
-                className={`flex-1 bg-transparent outline-none ${
-                  isEditing ? "text-gray-900" : "text-gray-600"
-                }`}
+                className={`flex-1 bg-transparent outline-none ${isEditing ? "text-gray-900" : "text-gray-600"
+                  }`}
               />
             </div>
           </div>
@@ -321,9 +321,8 @@ export default function UserInfo({
                 value={phone}
                 disabled={!isEditing}
                 onChange={(e) => setPhone(e.target.value)}
-                className={`flex-1 bg-transparent outline-none ${
-                  isEditing ? "text-gray-900" : "text-gray-600"
-                }`}
+                className={`flex-1 bg-transparent outline-none ${isEditing ? "text-gray-900" : "text-gray-600"
+                  }`}
               />
             </div>
           </div>
@@ -333,13 +332,12 @@ export default function UserInfo({
           <button
             onClick={handleSetEditing}
             disabled={isLoading}
-            className={`flex items-center justify-center gap-2 w-[200px] h-12 rounded-md text-base font-semibold transition-all duration-300 ${
-              isLoading
+            className={`flex items-center justify-center gap-2 w-[200px] h-12 rounded-md text-base font-semibold transition-all duration-300 ${isLoading
                 ? "bg-gray-400 cursor-not-allowed text-gray-800"
                 : isEditing
-                ? "bg-[#5BC5A7] text-white hover:bg-[#4AA88C]"
-                : "bg-gray-300 text-gray-800 hover:bg-gray-400"
-            }`}
+                  ? "bg-[#5BC5A7] text-white hover:bg-[#4AA88C]"
+                  : "bg-gray-300 text-gray-800 hover:bg-gray-400"
+              }`}
           >
             {isLoading ? (
               <span>Đang xử lý...</span>

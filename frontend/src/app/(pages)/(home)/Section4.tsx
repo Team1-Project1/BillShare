@@ -9,6 +9,7 @@ import Link from "next/link";
 
 interface Section4Props {
   onOpenModal: () => void;
+  onFriendLoaded?: (friends: Friend[]) => void;
 }
 
 interface Friend {
@@ -31,7 +32,7 @@ interface PageableResponse {
   empty: boolean;
 }
 
-export const Section4 = ({ onOpenModal }: Section4Props) => {
+export const Section4 = ({ onOpenModal, onFriendLoaded }: Section4Props) => {
   const [friends, setFriends] = useState<Friend[]>([]);
   const [totalFriends, setTotalFriends] = useState<number>(0);
   const [loading, setLoading] = useState(true);
@@ -71,6 +72,10 @@ export const Section4 = ({ onOpenModal }: Section4Props) => {
           const pageableData: PageableResponse = data.data;
           setFriends(pageableData.content || []);
           setTotalFriends(pageableData.totalElements);
+
+          if(onFriendLoaded) {
+            onFriendLoaded(pageableData.content || []);
+          }
         }
       } catch (err) {
         console.error("Fetch friends error:", err);

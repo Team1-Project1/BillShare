@@ -9,9 +9,10 @@ interface ModalAddFriendProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
+  existingFriends?: {email: string}[];
 }
 
-export default function ModalAddFriend({ isOpen, onClose, onSuccess }: ModalAddFriendProps) {
+export default function ModalAddFriend({ isOpen, onClose, onSuccess, existingFriends }: ModalAddFriendProps) {
   const [inviteOpen, setInviteOpen] = useState(false);
   const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -36,6 +37,15 @@ export default function ModalAddFriend({ isOpen, onClose, onSuccess }: ModalAddF
   const handleSendInvite = async () => {
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       toast.error("Vui lòng nhập email hợp lệ!");
+      return;
+    }
+
+    const isDuplicate = existingFriends?.some(
+      (f) => f.email === email
+    );
+
+    if (isDuplicate) {
+      toast.error("Người này đã có trong danh sách bạn bè!");
       return;
     }
 

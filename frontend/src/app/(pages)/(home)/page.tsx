@@ -14,6 +14,7 @@ import ModalAddFriend from "@/components/modal/ModalAddFriend";
 export default function Home() {
   const [isGroupModalOpen, setIsGroupModalOpen] = useState(false);
   const [isFriendModalOpen, setIsFriendModalOpen] = useState(false);
+  const [friends, setFriends] = useState<any>([]);
 
   const handleOpenGroupModal = () => {
     setIsGroupModalOpen(true);
@@ -40,7 +41,7 @@ export default function Home() {
           <div className="bg-[#F8F8F8]">
             <div className="py-6">
               <hr className="my-6 border-gray-400" />
-              <Section4 onOpenModal={handleOpenFriendModal} />
+              <Section4 onOpenModal={handleOpenFriendModal} onFriendLoaded={setFriends} />
               <hr className="my-6 border-gray-400" />
               <Section3 onOpenModal={handleOpenGroupModal} />
               <hr className="my-6 border-gray-400" />              
@@ -50,7 +51,12 @@ export default function Home() {
         <BottomNav />
       </div>
       <ModalCreateGroup isOpen={isGroupModalOpen} onClose={() => setIsGroupModalOpen(false)} />
-      <ModalAddFriend isOpen={isFriendModalOpen} onClose={() => setIsFriendModalOpen(false)} onSuccess={() => {console.log("Thêm bạn thành công!");}} />
+      <ModalAddFriend 
+        isOpen={isFriendModalOpen} 
+        onClose={() => setIsFriendModalOpen(false)} 
+        onSuccess={() => {console.log("Thêm bạn thành công!");}}
+        existingFriends={friends}
+      />
     </>
   );
 }
