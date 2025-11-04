@@ -114,12 +114,7 @@ export const Section3 = ({ onOpenModal }: Section3Props) => {
         <h3 className="text-lg font-semibold text-gray-900">Nhóm</h3>
         <p className="text-sm text-gray-600">Tổng số nhóm: {totalGroups}</p>
       </div>
-      <button
-        onClick={onOpenModal}
-        className="w-full h-12 bg-[#5BC5A7] text-white rounded-md text-base font-semibold hover:bg-[#4AA88C] transition-colors duration-300 flex items-center justify-center mb-4"
-      >
-        <FiUsers className="mr-2" /> Tạo nhóm
-      </button>
+      
       <div className="space-y-4">
         {groups.length === 0 ? (
           <p className="text-gray-600">Chưa có nhóm nào.</p>
