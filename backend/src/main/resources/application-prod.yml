@@ -1,7 +1,7 @@
 spring:
   config:
     activate:
-      on-profile: dev
+      on-profile: prod
   devtools:
     add-properties: true
   datasource:
@@ -84,10 +84,3 @@ app:
           "redirect_uris": ["${GOOGLE_REDIRECT_URI}"]
         }
       }
-
-    
-
-
-
-
-
