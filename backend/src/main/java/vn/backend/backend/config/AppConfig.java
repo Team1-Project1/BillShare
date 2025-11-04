@@ -39,13 +39,13 @@ public class AppConfig {
     private final Prefilter prefilter; // Filter tự viết để kiểm tra JWT trong request
     private String[] WHITE_LIST = {"/auth/**","/group-member/**","/friendship/**"}; // Các API không cần login (ví dụ: đăng ký, đăng nhập)
 
-//    @Value("${app.frontend.url}")
-//    private String appFrontendUrl;
+    @Value("${app.frontend.url}")
+    private String appFrontendUrl;
 
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(List.of("http://localhost:3000")); //"appFrontendUrl"
+        configuration.setAllowedOrigins(List.of(appFrontendUrl)); //"appFrontendUrl" "http://localhost:3000"
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setExposedHeaders(List.of("Content-Disposition", "Content-Type"));
