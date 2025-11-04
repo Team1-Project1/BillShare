@@ -19,23 +19,26 @@ export const FormForgotPassword = () => {
   const savedEmail = sessionStorage.getItem('resetEmail');
   const savedExpireAt = sessionStorage.getItem('otpExpireAt');
 
-  if (savedEmail && savedExpireAt) {
-    const remaining = Math.floor((parseInt(savedExpireAt) - Date.now()) / 1000);
+  // Nếu không có dữ liệu trong sessionStorage → ở lại form nhập email
+  if (!savedEmail || !savedExpireAt) return;
 
-    if (remaining > 0) {
-      // OTP vẫn còn hạn → tiếp tục đếm ngược
-      setEmail(savedEmail);
-      setIsOTPSent(true);
-      setCountdown(remaining);
-    } else {
-      // ⏰ OTP hết hạn → xóa session và quay lại nhập email
-      sessionStorage.removeItem('resetEmail');
-      sessionStorage.removeItem('otpExpireAt');
-      setEmail('');
-      setIsOTPSent(false);
-    }
+  const remaining = Math.floor((parseInt(savedExpireAt) - Date.now()) / 1000);
+
+  // Lấy email hiện đang nhập (nếu có)
+  const currentEmail = email?.trim();
+
+  // Nếu cùng email và OTP còn hạn → tiếp tục form OTP
+  if (remaining > 0 && savedEmail === currentEmail) {
+    setIsOTPSent(true);
+    setCountdown(remaining);
+  } else {
+    // Email khác hoặc OTP hết hạn → xóa session
+    // sessionStorage.removeItem('resetEmail');
+    // sessionStorage.removeItem('otpExpireAt');
+    // setEmail('');
+    setIsOTPSent(false);
   }
-}, []);
+}, [email]);
 
   // ⏳ Giảm thời gian đếm ngược mỗi giây
   useEffect(() => {
@@ -58,6 +61,18 @@ export const FormForgotPassword = () => {
         const form = event.target as HTMLFormElement;
         const emailValue = form.email.value;
         setEmail(emailValue);
+
+        const savedExpireAt = sessionStorage.getItem('otpExpireAt');
+        const remaining = savedExpireAt ? Math.floor((parseInt(savedExpireAt) - Date.now()) / 1000) : 0;
+        if (sessionStorage.getItem('resetEmail') === emailValue && remaining > 0) {
+          toast.info("Bạn vẫn còn mã OTP hợp lệ. Vui lòng kiểm tra email!", {
+            position: "top-center",
+            autoClose: 3000,
+          });
+          setIsOTPSent(true);
+          setCountdown(remaining);
+          return;
+        }
         setIsLoading(true);
 
         fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/verify-email/${emailValue}`, {
@@ -67,23 +82,29 @@ export const FormForgotPassword = () => {
           .then(res => res.json())
           .then(data => {
             setIsLoading(false);
-            if (data.code === "error") {
-              toast.error(data.message, { position: "top-center", autoClose: 3000 });
+            if (data.details === "email not found") {
+              toast.error("Không tìm thấy tài khoản này!", { position: "top-center", autoClose: 3000 });
               return;
             }
 
-            toast.success("OTP đã được gửi đến email của bạn!", {
-              position: "top-center",
-              autoClose: 3000,
-            });
+            if (data.code === "success") {
+              toast.success("OTP đã được gửi đến email của bạn!", {
+                position: "top-center",
+                autoClose: 3000,
+              });
 
-            // ✅ Lưu email + thời gian hết hạn OTP vào sessionStorage
-            const expireAt = Date.now() + 60000; // 60s
-            sessionStorage.setItem('resetEmail', emailValue);
-            sessionStorage.setItem('otpExpireAt', expireAt.toString());
+              // ✅ Lưu email + thời gian hết hạn OTP vào sessionStorage
+              const expireAt = Date.now() + 60000; // 60s
+              sessionStorage.setItem('resetEmail', emailValue);
+              sessionStorage.setItem('otpExpireAt', expireAt.toString());
 
-            setIsOTPSent(true);
-            setCountdown(60);
+              setIsOTPSent(true);
+              setCountdown(60);
+              return;
+            }
+
+            toast.error("Đã có lỗi xảy ra!", { position: "top-center", autoClose: 3000 });
+
           });
       });
 
@@ -102,7 +123,7 @@ export const FormForgotPassword = () => {
       .then(res => res.json())
       .then(data => {
         setIsLoading(false);
-        if (data.code === "error") {
+        if (data.message === "Runtime error") {
           toast.error(data.message, { position: "top-center", autoClose: 3000 });
           return;
         }
@@ -137,23 +158,33 @@ export const FormForgotPassword = () => {
       .then(res => res.json())
       .then(data => {
         setIsLoading(false);
-        if (data.code === "error") {
-          toast.error('OTP sai hoặc hết hạn', { position: "top-center", autoClose: 3000 });
+        console.log(data)
+        if (data.details === "OTP expired") {
+          toast.error('OTP hết hạn', { position: "top-center", autoClose: 3000 });
           return;
         }
 
-        toast.success("Xác thực OTP thành công!", {
-          position: "top-center",
-          autoClose: 3000,
-        });
+        if (data.details === "Invalid OTP") {
+          toast.error('OTP không hợp lệ', { position: "top-center", autoClose: 3000 });
+          return;
+        }
 
-        sessionStorage.setItem('resetToken', data.data);
+        if (data.code === "success") {
+          toast.success("Xác thực OTP thành công!", {
+            position: "top-center",
+            autoClose: 3000,
+          });
 
-        // ✅ Xóa sessionStorage khi xác thực thành công
-        sessionStorage.removeItem('resetEmail');
-        sessionStorage.removeItem('otpExpireAt');
+          sessionStorage.setItem('resetToken', data.data);
 
-        router.push(`/login/forgot-password/reset-password?email=${email}`);
+          // ✅ Xóa sessionStorage khi xác thực thành công
+          sessionStorage.removeItem('resetEmail');
+          sessionStorage.removeItem('otpExpireAt');
+          router.push(`/login/forgot-password/reset-password?email=${email}`);
+          return;
+        }
+
+        toast.error('Đã có lỗi xảy ra', { position: "top-center", autoClose: 3000 });
       })
       .catch(() => {
         setIsLoading(false);
@@ -193,11 +224,10 @@ export const FormForgotPassword = () => {
           <button
             type="submit"
             disabled={isLoading}
-            className={`h-12 w-full rounded-md text-base font-semibold flex items-center justify-center transition-colors duration-300 ${
-              isLoading
-                ? 'bg-gray-300 text-gray-600 cursor-not-allowed'
-                : 'bg-[#5BC5A7] text-white hover:bg-[#4AA88C]'
-            }`}
+            className={`h-12 w-full rounded-md text-base font-semibold flex items-center justify-center transition-colors duration-300 ${isLoading
+              ? 'bg-gray-300 text-gray-600 cursor-not-allowed'
+              : 'bg-[#5BC5A7] text-white hover:bg-[#4AA88C]'
+              }`}
           >
             {isLoading ? (
               <span className="flex items-center gap-2">
@@ -231,11 +261,10 @@ export const FormForgotPassword = () => {
             <button
               type="submit"
               disabled={isLoading}
-              className={`h-12 w-[60%] rounded-md text-base font-semibold flex items-center justify-center transition-colors duration-300 ${
-                isLoading
-                  ? 'bg-gray-300 text-gray-600 cursor-not-allowed'
-                  : 'bg-[#5BC5A7] text-white hover:bg-[#4AA88C]'
-              }`}
+              className={`h-12 w-[60%] rounded-md text-base font-semibold flex items-center justify-center transition-colors duration-300 ${isLoading
+                ? 'bg-gray-300 text-gray-600 cursor-not-allowed'
+                : 'bg-[#5BC5A7] text-white hover:bg-[#4AA88C]'
+                }`}
             >
               {isLoading ? (
                 <span className="flex items-center gap-2">
@@ -251,11 +280,10 @@ export const FormForgotPassword = () => {
               type="button"
               onClick={handleResendOTP}
               disabled={countdown > 0}
-              className={`h-12 w-[35%] border rounded-md text-base font-semibold transition-colors duration-300 ${
-                countdown > 0
-                  ? 'border-gray-300 text-gray-400 cursor-not-allowed'
-                  : 'border-[#5BC5A7] text-[#5BC5A7] hover:bg-[#5BC5A7]/10'
-              }`}
+              className={`h-12 w-[35%] border rounded-md text-base font-semibold transition-colors duration-300 ${countdown > 0
+                ? 'border-gray-300 text-gray-400 cursor-not-allowed'
+                : 'border-[#5BC5A7] text-[#5BC5A7] hover:bg-[#5BC5A7]/10'
+                }`}
             >
               {countdown > 0 ? `Gửi lại (${countdown}s)` : 'Gửi lại OTP'}
             </button>
