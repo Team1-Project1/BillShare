@@ -10,6 +10,7 @@ export const FormResetPassword = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const email = searchParams.get('email');
+  const [token, setToken] = useState<string | null>();
   const [isLoading, setIsLoading] = useState(false);
 
   // state password
@@ -30,17 +31,30 @@ export const FormResetPassword = () => {
     }
   }, [email, router]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    const token = sessionStorage.getItem('resetToken');
-    if (!token) {
-      toast.error('Thiếu token xác thực, vui lòng thực hiện lại bước OTP!', {
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      toast.error('Đã hết phiên hoạt động vui lòng thực hiện lại bước OTP!', {
         position: 'top-center',
       });
       router.push('/login/forgot-password');
       return;
     }
+
+    setToken(sessionStorage.getItem('resetToken'));
+
+    if (!token) {
+      toast.error('Đã hết phiên hoạt động vui lòng thực hiện lại bước OTP!', {
+        position: 'top-center',
+      });
+      router.push('/login/forgot-password');
+      return;
+    }
+  }, [])
+
+
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
 
     // validate thủ công
     if (!password.trim() || !confirmPassword.trim()) {
@@ -180,11 +194,10 @@ export const FormResetPassword = () => {
         <button
           type="submit"
           disabled={isLoading}
-          className={`h-12 w-full rounded-md text-base font-semibold flex items-center justify-center transition-colors duration-300 ${
-            isLoading
-              ? 'bg-gray-300 text-gray-600 cursor-not-allowed'
-              : 'bg-[#5BC5A7] text-white hover:bg-[#4AA88C]'
-          }`}
+          className={`h-12 w-full rounded-md text-base font-semibold flex items-center justify-center transition-colors duration-300 ${isLoading
+            ? 'bg-gray-300 text-gray-600 cursor-not-allowed'
+            : 'bg-[#5BC5A7] text-white hover:bg-[#4AA88C]'
+            }`}
         >
           {isLoading ? (
             <span className="flex items-center gap-2">
