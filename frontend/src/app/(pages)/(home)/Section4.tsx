@@ -73,7 +73,7 @@ export const Section4 = ({ onOpenModal, onFriendLoaded }: Section4Props) => {
           setFriends(pageableData.content || []);
           setTotalFriends(pageableData.totalElements);
 
-          if(onFriendLoaded) {
+          if (onFriendLoaded) {
             onFriendLoaded(pageableData.content || []);
           }
         }
@@ -124,6 +124,7 @@ export const Section4 = ({ onOpenModal, onFriendLoaded }: Section4Props) => {
               key={friend.id}
               name={friend.fullName}
               email={friend.email}
+              avatarUrl={friend.avatarUrl}
               onUnfriend={() => {
                 toast.info("Vui lòng vào trang danh sách bạn bè để hủy kết bạn.");
               }}

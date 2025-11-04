@@ -195,6 +195,7 @@ export default function FriendsPage() {
                     key={friend.id}
                     name={friend.fullName}
                     email={friend.email}
+                    avatarUrl={friend.avatarUrl}
                     onUnfriend={() => openConfirmModal(friend)}
                   />
                 ))}
@@ -215,6 +216,7 @@ export default function FriendsPage() {
           setHasMore(true);
           fetchFriends(0);
         }}
+        existingFriends={friends}
       />
 
       {selectedFriend && (
