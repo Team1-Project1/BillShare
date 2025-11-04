@@ -2,8 +2,6 @@ spring:
   config:
     activate:
       on-profile: prod
-  devtools:
-    add-properties: true
   datasource:
     url: ${DB_URL}
     username: ${DB_USERNAME}
@@ -11,40 +9,25 @@ spring:
     driver-class-name: org.postgresql.Driver
     hikari:
       minimum-idle: 1
-      maximum-pool-size: 3
+      maximum-pool-size: 5 # Tăng pool size cho prod
       idle-timeout: 600000
       max-lifetime: 1800000
       connection-timeout: 30000
-      leak-detection-threshold: 20000
   jpa:
-    show-sql: true
+    show-sql: false # Tắt show-sql cho prod
     hibernate:
       ddl-auto: none
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
-  #  mail:
-  #    host: smtp.gmail.com
-  #    port: 587
-  #    username: ${MAIL_USERNAME}
-  #    password: ${MAIL_PASSWORD}
-  #    from: ${MAIL_USERNAME}
-  #    name: BillShare App
-  #    baseUrlGroupMember: ${APP_FRONTEND_URL}/group-member/
-  #    baseUrlFriendShip: ${APP_FRONTEND_URL}/friends/
-  #    properties:
-  #      mail:
-  #        smtp:
-  #          auth: true
-  #          starttls:
-  #            enable: true
-  #    protocol: smtp
-  #    default-encoding: UTF-8
+
+  # Cấu hình Spring Mail (dự phòng, vẫn nên có)
   mail:
-    from: ${MAIL_USERNAME}          # Email gửi đi (hiển thị trong Gmail)
-    name: BillShare App             # Tên người gửi hiển thị trong hộp thư
+    from: ${MAIL_USERNAME}
+    name: BillShare App
     baseUrlGroupMember: ${APP_FRONTEND_URL}/group-member/
     baseUrlFriendShip: ${APP_FRONTEND_URL}/friends/
+
 springdoc:
   api-docs:
     enabled: true
@@ -54,9 +37,10 @@ springdoc:
 openapi:
   service:
     api-docs: backend-service
-    server: http://localhost:${server.port}
+    server: https://billshare-49116087295.asia-southeast1.run.app # URL thật của Cloud Run
     title: Backend service
     version: 1.0.0
+
 jwt:
   timeOutAccessToken: 5
   timeOutRefreshToken: 1440
@@ -64,6 +48,7 @@ jwt:
   secretKeyRefreshToken: ${JWT_SECRET_REFRESH}
   secretKeyFriendship: ${JWT_SECRET_FRIENDSHIP}
   secretKeyOtp: ${JWT_SECRET_OTP}
+
 app:
   otp:
     expiration:
@@ -72,15 +57,6 @@ app:
       seconds: 60
     max-retries: 5
   gmail:
-    credentials: >
-      {
-        "installed": {
-          "client_id": "${GOOGLE_CLIENT_ID}",
-          "project_id": "${GOOGLE_PROJECT_ID}",
-          "auth_uri": "${GOOGLE_AUTH_URI}",
-          "token_uri": "${GOOGLE_TOKEN_URI}",
-          "auth_provider_x509_cert_url": "${GOOGLE_CERT_URL}",
-          "client_secret": "${GOOGLE_CLIENT_SECRET}",
-          "redirect_uris": ["${GOOGLE_REDIRECT_URI}"]
-        }
-      }
+    client-id: ${GOOGLE_CLIENT_ID}
+    client-secret: ${GOOGLE_CLIENT_SECRET}
+    refresh-token: ${GOOGLE_REFRESH_TOKEN}

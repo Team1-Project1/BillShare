@@ -1,10 +1,8 @@
 package vn.backend.backend.config;
 
 
-import com.google.api.services.gmail.Gmail;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -112,11 +110,5 @@ public class AppConfig {
     public PasswordEncoder passwordEncoder(){
         return new BCryptPasswordEncoder(); // dùng thuật toán BCrypt để hash mật khẩu
     }
-    @Autowired
-    private GmailConfig gmailConfig; // Inject GmailConfig
 
-    @Bean
-    public Gmail gmailService() throws Exception {
-        return gmailConfig.getGmailService(); //  Gọi từ instance
-    }
 }
