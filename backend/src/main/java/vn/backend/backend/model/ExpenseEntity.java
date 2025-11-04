@@ -70,6 +70,9 @@ public class ExpenseEntity {
     @UpdateTimestamp
     private Date updatedAt;
 
+    @Column(name = "deleted_at", nullable = true)
+    private Date deletedAt;
+
     @OneToMany(mappedBy = "expense", cascade = CascadeType.REMOVE, orphanRemoval = true)
     private List<ExpenseParticipantEntity> expenseParticipants;
 }

@@ -113,7 +113,7 @@ public class PaymentServiceImpl implements PaymentService {
     @Transactional
     public PaymentResponse updatePayment(Long paymentId, PaymentRequest request, Long requestingUserId, Long groupId) {
         // Tìm payment hiện tại
-        PaymentEntity existingPayment = paymentRepository.findByPaymentId(paymentId)
+        PaymentEntity existingPayment = paymentRepository.findByPaymentIdAndDeletedAtIsNull(paymentId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy payment với ID: " + paymentId));
 
         // Kiểm tra payment thuộc đúng group
@@ -189,7 +189,7 @@ public class PaymentServiceImpl implements PaymentService {
     @Override
     @Transactional
     public void deletePayment(Long paymentId, Long requestingUserId, Long groupId) {
-        PaymentEntity payment = paymentRepository.findByPaymentId(paymentId)
+        PaymentEntity payment = paymentRepository.findByPaymentIdAndDeletedAtIsNull(paymentId)
                 .orElseThrow(() -> new RuntimeException("Payment not found"));
 
         // Kiểm tra người xóa có quyền không (có thể là payer hoặc payee)
@@ -202,7 +202,9 @@ public class PaymentServiceImpl implements PaymentService {
         balanceService.updateBalancesAfterPaymentDeletion(payment);
 
         // Xóa payment
-        paymentRepository.deleteById(paymentId);
+        payment.setDeletedAt(new Date());
+        paymentRepository.save(payment);
+
 
         // Tạo transaction
         transactionService.createTransaction(
@@ -225,7 +227,7 @@ public class PaymentServiceImpl implements PaymentService {
         groupRepository.findByGroupId(groupId)
                 .orElseThrow(() -> new RuntimeException("Group not found with ID: " + groupId));
 
-        List<PaymentEntity> payments = paymentRepository.findAllByGroupGroupId(groupId);
+        List<PaymentEntity> payments = paymentRepository.findAllByGroupGroupIdAndDeletedAtIsNull(groupId);
 
         return payments.stream()
                 .map(payment -> PaymentResponse.builder()
@@ -250,7 +252,7 @@ public class PaymentServiceImpl implements PaymentService {
             throw new RuntimeException("Không phải là thành viên của nhóm");
         }
 
-        PaymentEntity payment = paymentRepository.findByPaymentId(paymentId)
+        PaymentEntity payment = paymentRepository.findByPaymentIdAndDeletedAtIsNull(paymentId)
                 .orElseThrow(() -> new RuntimeException("Payment not found with ID: " + paymentId));
 
         return PaymentResponse.builder()
@@ -269,13 +271,55 @@ public class PaymentServiceImpl implements PaymentService {
 
     @Override
     public List<PaymentEntity> getPaymentsByPayerId(Long payerId) {
-        return paymentRepository.findAllByPayerUserId(payerId);
+        return paymentRepository.findAllByPayerUserIdAndDeletedAtIsNull(payerId);
     }
 
     @Override
     public List<PaymentEntity> getPaymentsByPayeeId(Long payeeId) {
-        return paymentRepository.findAllByPayeeUserId(payeeId);
+        return paymentRepository.findAllByPayeeUserIdAndDeletedAtIsNull(payeeId);
     }
+
+    @Override
+    @Transactional
+    public void restorePayment(Long paymentId, Long requestingUserId, Long groupId) {
+        // 1. Tìm payment kể cả đã bị xóa mềm
+        PaymentEntity payment = paymentRepository.findByPaymentIdAndDeletedAtIsNotNull(paymentId)
+                .orElseThrow(() -> new RuntimeException("Payment with ID not found: " + paymentId));
+
+        // 2. Kiểm tra payment thuộc group
+        if (!payment.getGroup().getGroupId().equals(groupId)) {
+            throw new RuntimeException("Payment does not belong to this group");
+        }
+
+        if (!payment.getPayer().getUserId().equals(requestingUserId) && !payment.getPayee().getUserId().equals(requestingUserId)) {
+            throw new RuntimeException("Only the payer or payee of the payment can restore this payment.");
+        }
+
+        // 4. Kiểm tra xem payment đã xóa hay chưa
+        if (payment.getDeletedAt() == null) {
+            throw new RuntimeException("This payment has not been deleted, no need to restore");
+        }
+
+        // 5. Khôi phục payment
+        payment.setDeletedAt(null);
+        PaymentEntity restored = paymentRepository.save(payment);
+
+        // 6. Cập nhật lại balance sau khi restore
+        balanceService.updateBalancesForPayment(restored);
+
+        // 7. Ghi transaction log
+        log.info("Creating transaction log...");
+        transactionService.createTransaction(
+                groupId,
+                requestingUserId,
+                ActionType.restore,
+                EntityType.payment,
+                paymentId
+        );
+        log.info("Transaction log created.");
+
+    }
+
 
     private boolean isUserInGroup(Long userId, Long groupId) {
         return groupMembersRepository.existsById_GroupIdAndId_UserIdAndIsActiveTrue(groupId, userId);

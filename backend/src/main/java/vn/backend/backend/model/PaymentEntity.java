@@ -39,4 +39,7 @@ public class PaymentEntity {
     @Column(name = "payment_date", nullable = false)
     private Date paymentDate;
 
+    @Column(name = "deleted_at", nullable = true)
+    private Date deletedAt;
+
 }

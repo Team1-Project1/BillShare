@@ -26,6 +26,8 @@ public class ExpenseCriteriaRepositoryImpl implements ExpenseCriteriaRepository 
 
         predicates.add(criteriaBuilder.equal(expenseRoot.get("group").get("groupId"), groupId));
 
+        predicates.add(criteriaBuilder.isNull(expenseRoot.get("deletedAt")));
+
 
         if(categoryId!=null){
             predicates.add(criteriaBuilder.equal((expenseRoot.get("category").get("categoryId")),categoryId));

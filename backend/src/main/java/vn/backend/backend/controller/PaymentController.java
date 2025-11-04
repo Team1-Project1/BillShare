@@ -98,4 +98,22 @@ public class PaymentController {
                 new ApiResponse<>("success", String.format("Lấy thông tin chi tiết thanh toán %d thành công", paymentId), payment)
         );
     }
+
+    @Operation(summary = "Restore payment", description = "Restore a deleted payment")
+    @PutMapping("/{paymentId}/restore")
+    public ResponseEntity<ApiResponse<Void>> restorePayment(
+            @PathVariable Long groupId,
+            @PathVariable Long paymentId,
+            HttpServletRequest req) {
+
+        Long userId = (Long) req.getAttribute("userId");
+        paymentService.restorePayment(paymentId, userId, groupId);
+        return ResponseEntity.ok(
+                new ApiResponse<>(
+                        "success",
+                        "Payment ID %d has been successfully restored!".formatted(paymentId),
+                        null
+                )
+        );
+    }
 }

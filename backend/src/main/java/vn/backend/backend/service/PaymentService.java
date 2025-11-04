@@ -14,4 +14,6 @@ public interface PaymentService {
     PaymentResponse getPaymentDetail(Long paymentId, Long userId, Long groupId);
     List<PaymentEntity> getPaymentsByPayerId(Long payerId);
     List<PaymentEntity> getPaymentsByPayeeId(Long payeeId);
+    void restorePayment(Long paymentId, Long requestingUserId, Long groupId);
+
 }

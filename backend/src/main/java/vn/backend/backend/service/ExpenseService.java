@@ -23,5 +23,7 @@ public interface ExpenseService {
     List<ExpenseEntity> getExpensesByPayerId(Long payerId);
     ExpenseDetailResponse updateExpenseByExpenseId(Long expenseId,Long userId, Long groupId,UpdateExpenseRequest request);
     List<ExpenseSimpleResponse>getExpensesByConditions(Long categoryId, String expenseName, Date expenseDateFrom, Date expenseDateTo, Long userId, Long groupId);
+    void restoreExpense(Long expenseId, Long requestingUserId, Long groupId);
+
 }
 
