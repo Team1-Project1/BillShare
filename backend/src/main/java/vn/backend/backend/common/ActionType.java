@@ -14,5 +14,6 @@ public enum ActionType {
 
     join,
 
-    leave
+    leave,
+    restore
 }

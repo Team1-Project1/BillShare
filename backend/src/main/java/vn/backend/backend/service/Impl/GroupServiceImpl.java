@@ -212,7 +212,7 @@ public class GroupServiceImpl implements GroupService {
             throw new RuntimeException("User is not admin of group");
         }
         //TODO: kiểm tra người dùng trong nhóm có khoản chi nào không, nếu có thì phải thông báo trưcớc khi xóa
-        List<ExpenseEntity> hasExpenses = expenseRepository.findAllByGroupGroupId(groupId);
+        List<ExpenseEntity> hasExpenses = expenseRepository.findAllByGroupGroupIdAndDeletedAtIsNull(groupId);
         if (!hasExpenses.isEmpty() && !confirmDeleteWithExpenses) {
             throw new RuntimeException("Group id "+groupId+" has "+hasExpenses.size()+" expenses, confirmation required before deletion");
         }
@@ -318,8 +318,8 @@ public class GroupServiceImpl implements GroupService {
             throw new RuntimeException("User is not member of group");
         }
 
-        List<ExpenseEntity> expenses = expenseRepository.findAllByGroupGroupId(groupId);
-        List<PaymentEntity> payments = paymentRepository.findAllByGroupGroupId(groupId);
+        List<ExpenseEntity> expenses = expenseRepository.findAllByGroupGroupIdAndDeletedAtIsNull(groupId);
+        List<PaymentEntity> payments = paymentRepository.findAllByGroupGroupIdAndDeletedAtIsNull(groupId);
 
         List<String> memberNames = new ArrayList<>();
         List<Long> memberIds = new ArrayList<>();

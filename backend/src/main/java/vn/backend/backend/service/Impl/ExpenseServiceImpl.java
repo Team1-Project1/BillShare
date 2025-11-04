@@ -27,6 +27,7 @@ import vn.backend.backend.common.SplitMethod;
 import vn.backend.backend.common.ActionType;
 import vn.backend.backend.common.EntityType;
 
+import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
 
@@ -166,7 +167,7 @@ public class ExpenseServiceImpl implements ExpenseService {
     public ExpenseEntity updateExpense(Long expenseId, String expenseName, BigDecimal amount,
                                        String currency, Long categoryId, Date expenseDate,
                                        String description, SplitMethod splitMethod) {
-        var expense = expenseRepository.findById(expenseId)
+        var expense = expenseRepository.findByExpenseIdAndDeletedAtIsNull(expenseId)
                 .orElseThrow(() -> new RuntimeException("Expense not found"));
         expense.setExpenseName(expenseName);
         expense.setTotalAmount(amount);
@@ -183,7 +184,7 @@ public class ExpenseServiceImpl implements ExpenseService {
     @Transactional
     public void deleteExpense(Long expenseId, Long requestingUserId, Long groupId) {
         // 1. Find expense
-        ExpenseEntity expense = expenseRepository.findByExpenseId(expenseId)
+        ExpenseEntity expense = expenseRepository.findByExpenseIdAndDeletedAtIsNull(expenseId)
                 .orElseThrow(() -> new RuntimeException("Expense not found"));
         Long payerId = expense.getPayer().getUserId();
         // 2. Validate creator
@@ -199,9 +200,10 @@ public class ExpenseServiceImpl implements ExpenseService {
         balanceService.updateBalancesAfterExpenseDeletion(groupId, payerId, participants);  // Thay đổi signature
 
         // 5.delete participant
-        expenseParticipantService.removeAllParticipantsByExpenseId(expenseId);
+//        expenseParticipantService.removeAllParticipantsByExpenseId(expenseId);
         // 6. Delete expense
-        expenseRepository.deleteById(expenseId);
+        expense.setDeletedAt(new Date());
+        expenseRepository.save(expense);
 
         // 7. Create transaction – Chỉ dùng ID
         transactionService.createTransaction(
@@ -225,7 +227,7 @@ public class ExpenseServiceImpl implements ExpenseService {
                 .orElseThrow(() -> new RuntimeException("Group not found with ID: " + groupId));
 
         Pageable pageable = PageRequest.of(page, size, Sort.by("expenseDate").descending());
-        Page<ExpenseEntity> expensesPage = expenseRepository.findAllByGroupGroupId(groupId, pageable);
+        Page<ExpenseEntity> expensesPage = expenseRepository.findAllByGroupGroupIdAndDeletedAtIsNull(groupId, pageable);
         return  expensesPage.map(expense -> ExpenseResponse.builder()
                 .expenseId(expense.getExpenseId())
                 .groupId(expense.getGroup().getGroupId())
@@ -253,7 +255,7 @@ public class ExpenseServiceImpl implements ExpenseService {
             throw new RuntimeException("Không phải là thành viên của nhóm");
         }
 
-        ExpenseEntity expense = expenseRepository.findByExpenseId(expenseId)
+        ExpenseEntity expense = expenseRepository.findByExpenseIdAndDeletedAtIsNull(expenseId)
                 .orElseThrow(() -> new RuntimeException("Expense not found with ID: " + expenseId));
 
         List<ExpenseParticipantEntity> participants = expenseParticipantService.getParticipantsByExpenseId(expenseId);
@@ -297,12 +299,12 @@ public class ExpenseServiceImpl implements ExpenseService {
 
     @Override
     public List<ExpenseEntity> getExpensesByPayerId(Long payerId) {
-        return expenseRepository.findAllByPayerUserId(payerId);
+        return expenseRepository.findAllByPayerUserIdAndDeletedAtIsNull(payerId);
     }
     @Transactional
     @Override
     public ExpenseDetailResponse updateExpenseByExpenseId(Long expenseId, Long userId,Long groupId,UpdateExpenseRequest request) {
-        ExpenseEntity expense=expenseRepository.findByExpenseId(expenseId).orElseThrow(()->new NoSuchElementException("Expense not found with ID: " + expenseId));
+        ExpenseEntity expense=expenseRepository.findByExpenseIdAndDeletedAtIsNull(expenseId).orElseThrow(()->new NoSuchElementException("Expense not found with ID: " + expenseId));
         if(!expense.getCreatedBy().getUserId().equals(userId)){
             throw new RuntimeException("Only the creator can update this expense");
         }
@@ -326,7 +328,7 @@ public class ExpenseServiceImpl implements ExpenseService {
             throw new RuntimeException("The total share amount of participants does not equal to the total expense amount");
         }
         long oldPayerId=expense.getPayer().getUserId();
-        List<ExpenseParticipantEntity>oldParticipants=expenseParticipantRepository.findAllByExpenseExpenseId(expenseId);
+        List<ExpenseParticipantEntity>oldParticipants=expenseParticipantRepository.findAllByExpenseExpenseIdAndExpenseDeletedAtIsNull(expenseId);
 
         expense.setPayer(payer);
         expense.setExpenseName(request.getExpenseName());
@@ -338,17 +340,17 @@ public class ExpenseServiceImpl implements ExpenseService {
         ExpenseEntity updatedExpense = expenseRepository.save(expense);
 
 
-        expenseParticipantRepository.deleteAllByExpenseExpenseId(expenseId);
-        expenseParticipantRepository.flush();
-        boolean deleted = expenseParticipantRepository
-                .findAllByExpenseExpenseId(expenseId)
-                .isEmpty();
-        if(deleted){
-            log.info("da xoa het");
-        }
-        else {
-            log.info("Chua xoa het");
-        }
+//        expenseParticipantRepository.deleteAllByExpenseExpenseId(expenseId);
+//        expenseParticipantRepository.flush();
+//        boolean deleted = expenseParticipantRepository
+//                .findAllByExpenseExpenseIdAndExpenseDeletedAtIsNull(expenseId)
+//                .isEmpty();
+//        if(deleted){
+//            log.info("da xoa het");
+//        }
+//        else {
+//            log.info("Chua xoa het");
+//        }
 
 
         List<ExpenseParticipantEntity> newParticipants = new ArrayList<>();
@@ -421,4 +423,46 @@ public class ExpenseServiceImpl implements ExpenseService {
                         .toLocalDate())
                 .build()).toList();
     }
+    @Override
+    @Transactional
+    public void restoreExpense(Long expenseId, Long requestingUserId, Long groupId) {
+        // Tìm expense đã bị xóa mềm
+        ExpenseEntity expense = expenseRepository.findByExpenseIdAndDeletedAtIsNotNull(expenseId)
+                .orElseThrow(() -> new RuntimeException("annot find deleted or undeleted app expenses"));
+
+        // Kiểm tra nhóm
+        if (!expense.getGroup().getGroupId().equals(groupId)) {
+            throw new RuntimeException("Expense does not belong to this group.");
+        }
+
+        // Kiểm tra user có trong nhóm không
+        if (!groupMembersRepository.existsById_GroupIdAndId_UserIdAndIsActiveTrue(groupId, requestingUserId)) {
+            throw new RuntimeException("You are not a member of this group");
+        }
+
+
+        if(!expense.getCreatedBy().getUserId().equals(requestingUserId)){
+            throw new RuntimeException("Only the spend creator can restore this spend.");
+        }
+        //Khôi phục lại deletedAt
+        expense.setDeletedAt(null);
+        expenseRepository.save(expense);
+
+        // Lấy danh sách participants của expense
+        List<ExpenseParticipantEntity> participants = expenseParticipantRepository.findAllByExpenseExpenseIdAndExpenseDeletedAtIsNull(expenseId);
+
+        // Cập nhật lại balance (vì restore -> cộng lại nợ)
+        balanceService.updateBalancesForExpense(expense, participants);
+
+        // Ghi lại transaction
+        transactionService.createTransaction(
+                groupId,
+                requestingUserId,
+                ActionType.restore,
+                EntityType.expense,
+                expenseId
+        );
+    }
+
+
 }

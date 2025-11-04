@@ -119,6 +119,29 @@ public class ExpenseController {
         );
     }
 
+    @Operation(
+            summary = "Restore deleted costs",
+            description = "API restores a soft-deleted Expense in a group. "
+    )
+    @PutMapping("/{expenseId}/restore")
+    public ResponseEntity<ApiResponse<Void>> restoreExpense(
+             @PathVariable Long groupId,
+             @PathVariable Long expenseId,
+            HttpServletRequest req) {
+
+        Long userId = (Long) req.getAttribute("userId");
+
+        expenseService.restoreExpense(expenseId, userId, groupId);
+
+        return ResponseEntity.ok(
+                new ApiResponse<>(
+                        "success",
+                        String.format("Cost ID %d was successfully restored in group %d!", expenseId, groupId),
+                        null
+                )
+        );
+    }
+
 
 
 }

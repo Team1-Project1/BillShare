@@ -12,9 +12,11 @@ import java.util.Optional;
 
 @Repository
 public interface ExpenseRepository extends JpaRepository<ExpenseEntity, Long>, ExpenseCriteriaRepository {
-    List<ExpenseEntity> findAllByGroupGroupId(Long groupId);
-    Page<ExpenseEntity> findAllByGroupGroupId(Long groupId, Pageable pageable);
-    Optional<ExpenseEntity> findByExpenseId(Long expenseId);
-    List<ExpenseEntity> findAllByPayerUserId(Long payerId);
+    List<ExpenseEntity> findAllByGroupGroupIdAndDeletedAtIsNull(Long groupId);
+    Page<ExpenseEntity> findAllByGroupGroupIdAndDeletedAtIsNull(Long groupId, Pageable pageable);
+    Optional<ExpenseEntity> findByExpenseIdAndDeletedAtIsNull(Long expenseId);
+    List<ExpenseEntity> findAllByPayerUserIdAndDeletedAtIsNull(Long payerId);
     void deleteByGroup_GroupId(Long groupId);
+    Optional<ExpenseEntity> findByExpenseIdAndDeletedAtIsNotNull(Long expenseId);
+
 }

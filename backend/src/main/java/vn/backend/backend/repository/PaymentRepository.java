@@ -9,9 +9,11 @@ import java.util.Optional;
 
 @Repository
 public interface PaymentRepository extends JpaRepository<PaymentEntity, Long> {
-    List<PaymentEntity> findAllByGroupGroupId(Long groupId);
-    List<PaymentEntity> findAllByPayerUserId(Long payerId);
-    List<PaymentEntity> findAllByPayeeUserId(Long payeeId);
-    Optional<PaymentEntity> findByPaymentId(Long paymentId);
+    List<PaymentEntity> findAllByGroupGroupIdAndDeletedAtIsNull(Long groupId);
+    List<PaymentEntity> findAllByPayerUserIdAndDeletedAtIsNull(Long payerId);
+    List<PaymentEntity> findAllByPayeeUserIdAndDeletedAtIsNull(Long payeeId);
+    Optional<PaymentEntity> findByPaymentIdAndDeletedAtIsNull(Long paymentId);
+    Optional<PaymentEntity> findByPaymentIdAndDeletedAtIsNotNull(Long paymentId);
+
 }
 
