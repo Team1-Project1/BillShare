@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react"; // SỬA: Thêm useCallback
+import { useState, useRef, useEffect, useCallback, useMemo } from "react"; // SỬA: Thêm useCallback
 import { toast } from "react-toastify";
 import {
   FiUsers,
@@ -62,9 +62,8 @@ const CardFriendSelect = ({
   return (
     <div
       onClick={onSelect}
-      className={`bg-white rounded-xl p-4 shadow-md border ${
-        selected ? "border-[#5BC5A7]" : "border-gray-200"
-      } flex items-center justify-between cursor-pointer hover:shadow-lg transition-all duration-200`}
+      className={`bg-white rounded-xl p-4 shadow-md border ${selected ? "border-[#5BC5A7]" : "border-gray-200"
+        } flex items-center justify-between cursor-pointer hover:shadow-lg transition-all duration-200`}
     >
       <div className="flex items-center flex-1 min-w-0">
         <div className="w-12 h-12 bg-[#5BC5A7]/20 rounded-full flex items-center justify-center mr-3 flex-shrink-0">
@@ -78,9 +77,8 @@ const CardFriendSelect = ({
         </div>
       </div>
       <div
-        className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${
-          selected ? "bg-[#5BC5A7] border-[#5BC5A7]" : "border-gray-300"
-        }`}
+        className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${selected ? "bg-[#5BC5A7] border-[#5BC5A7]" : "border-gray-300"
+          }`}
       >
         {selected && <div className="w-3 h-3 bg-white rounded-full" />}
       </div>
@@ -109,14 +107,17 @@ export default function ModalAddMember({
   const currentUserId = parseInt(localStorage.getItem("userId") || "0", 10);
 
   // Lấy ID thành viên hiện tại trong nhóm
-  const currentMemberIds = currentMembers.map((m) => m.id);
+  const currentMemberIds = useMemo(
+  () => currentMembers.map((m) => m.id),
+  [currentMembers]
+);
 
   // Fetch danh sách bạn bè (dùng đúng API trong FriendsPage)
   const fetchFriends = useCallback(async () => { // SỬA: Gói bằng useCallback
     setFriendsLoading(true);
     try {
       const response = await fetchWithAuth(
-        `${process.env.NEXT_PUBLIC_API_URL}/users/friends?page=0&size=100`,
+        `${process.env.NEXT_PUBLIC_API_URL}/users/friends?page=0&size=10`,
         {
           method: "GET",
           headers: {
@@ -328,9 +329,8 @@ export default function ModalAddMember({
               <FiSearch className="mr-2" /> Tìm kiếm bạn bè...
             </span>
             <FiChevronDown
-              className={`transition-transform ${
-                searchOpen ? "rotate-180" : ""
-              }`}
+              className={`transition-transform ${searchOpen ? "rotate-180" : ""
+                }`}
             />
           </button>
           {searchOpen && (
@@ -364,9 +364,8 @@ export default function ModalAddMember({
             <button
               onClick={handleSendInvite}
               disabled={isLoading}
-              className={`ml-2 bg-[#5BC5A7] text-white rounded-md p-2 hover:bg-[#4AA88C] transition-colors flex items-center justify-center ${
-                isLoading ? "opacity-50 cursor-not-allowed" : ""
-              }`}
+              className={`ml-2 bg-[#5BC5A7] text-white rounded-md p-2 hover:bg-[#4AA88C] transition-colors flex items-center justify-center ${isLoading ? "opacity-50 cursor-not-allowed" : ""
+                }`}
             >
               <FiSend className="text-xl" />
             </button>
@@ -401,8 +400,8 @@ export default function ModalAddMember({
               {searchQuery
                 ? "Không tìm thấy bạn bè nào."
                 : friends.length === 0
-                ? "Bạn chưa có bạn bè hoặc tất cả bạn bè đã trong nhóm."
-                : "Tất cả bạn bè đã trong nhóm."}
+                  ? "Bạn chưa có bạn bè hoặc tất cả bạn bè đã trong nhóm."
+                  : "Tất cả bạn bè đã trong nhóm."}
             </p>
           )}
         </div>
@@ -411,11 +410,10 @@ export default function ModalAddMember({
         <button
           onClick={handleAddMembers}
           disabled={isLoading || selectedMembers.length === 0}
-          className={`w-full h-12 mt-4 rounded-md text-base font-semibold transition-colors flex items-center justify-center ${
-            selectedMembers.length === 0 || isLoading
+          className={`w-full h-12 mt-4 rounded-md text-base font-semibold transition-colors flex items-center justify-center ${selectedMembers.length === 0 || isLoading
               ? "bg-gray-300 text-gray-500 cursor-not-allowed"
               : "bg-[#5BC5A7] text-white hover:bg-[#4AA88C]"
-          }`}
+            }`}
         >
           {isLoading ? (
             <>

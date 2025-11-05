@@ -821,6 +821,7 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
                     </motion.p>
                   )}
                 </AnimatePresence>
+                
               </div>
 
               <button
