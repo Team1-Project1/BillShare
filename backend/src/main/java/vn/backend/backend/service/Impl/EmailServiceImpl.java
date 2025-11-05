@@ -113,7 +113,9 @@ public class EmailServiceImpl implements EmailService {
 
         UserEntity receiver = userRepository.findByEmail(request.getEmailTo())
                 .orElseThrow(() -> new NoSuchElementException("User not found with email " + request.getEmailTo()));
-
+        if (sender.getUserId().equals(receiver.getUserId())) {
+            throw new IllegalArgumentException("You cannot invite yourself to the group.");
+        }
         GroupEntity group = groupRepository.findByGroupIdAndIsActiveTrue(groupId)
                 .orElseThrow(() -> new NoSuchElementException("Group not found with id " + groupId));
 
@@ -162,7 +164,9 @@ public class EmailServiceImpl implements EmailService {
 
         UserEntity receiver = userRepository.findById(receiverId)
                 .orElseThrow(() -> new NoSuchElementException("User not found with id " + receiverId));
-
+        if (sender.getUserId().equals(receiver.getUserId())) {
+            throw new IllegalArgumentException("You cannot send a debt reminder to yourself.");
+        }
         Boolean membership = groupMembersRepository.existsById_GroupIdAndId_UserIdAndIsActiveTrue(groupId, userId);
         Boolean membershipOfReceiver = groupMembersRepository.existsById_GroupIdAndId_UserIdAndIsActiveTrue(groupId, receiverId);
 
@@ -225,7 +229,9 @@ public class EmailServiceImpl implements EmailService {
 
         UserEntity receiver = userRepository.findByEmail(email)
                 .orElseThrow(() -> new NoSuchElementException("User not found with email " + email));
-
+        if (sender.getUserId().equals(receiver.getUserId())) {
+            throw new IllegalArgumentException("You cannot send a friend request to yourself.");
+        }
         FriendshipEntity friendship = friendshipRepository
                 .findByUser1UserIdAndUser2UserIdOrUser1UserIdAndUser2UserId(
                         sender.getUserId(), receiver.getUserId(),
