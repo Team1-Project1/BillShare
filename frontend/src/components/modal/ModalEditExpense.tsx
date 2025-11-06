@@ -258,68 +258,53 @@ export default function ModalEditExpense({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // ... (logic kiểm tra dữ liệu) ...
+    if (!expenseDetail) return;
 
     setIsLoading(true);
 
     try {
+      const payload = {
+        expenseName: formData.expenseName,
+        totalAmount: Number(formData.totalAmount),
+        categoryId: Number(formData.categoryId),
+        expenseDate: formData.expenseDate,
+        description: formData.description || null, // ← Quan trọng: null nếu rỗng
+        payerId: Number(formData.payerId),
+        splitMethod: formData.splitMethod,
+        participants: formData.participants.map(p => ({
+          userId: p.userId,
+          shareAmount: Math.round(p.shareAmount),
+        })),
+      };
+
       const response = await fetchWithAuth(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/groups/${groupId}/expenses/${expenseDetail?.expenseId}`,
+        `${process.env.NEXT_PUBLIC_API_URL}/api/groups/${groupId}/expenses/${expenseDetail.expenseId}`,
         {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
-            Accept: "*/*",
             userId: userId.toString(),
           },
-          body: JSON.stringify({
-            ...formData,
-            totalAmount: Number(formData.totalAmount),
-            categoryId: Number(formData.categoryId),
-            payerId: Number(formData.payerId),
-            participants: formData.participants.map(
-              ({ userId, shareAmount }) => ({
-                userId,
-                shareAmount,
-              })
-            ),
-          }),
+          body: JSON.stringify(payload),
         }
       );
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Không thể cập nhật khoản chi");
+        const err = await response.json();
+        throw new Error(err.message || "Cập nhật thất bại");
       }
 
-      toast.success(
-        "Cập nhật khoản chi thành công! Vui lòng F5 hoặc tải lại trang web để làm mới dữ liệu.",
-        {
-          position: "top-center",
-          autoClose: 2000,
-        }
-      );
+      toast.success("Cập nhật thành công!");
       onSuccess();
       onClose();
-    } catch (err: unknown) { // SỬA: từ 'any' thành 'unknown'
-      console.error("Update error:", err);
-      let message = "Không thể cập nhật khoản chi!";
-      if (err instanceof Error) { // SỬA: truy cập message an toàn
-        message = err.message;
-      }
-      toast.error(message, {
-        position: "top-center",
-        autoClose: 2000,
-      });
+    } catch (err: any) {
+      toast.error(err.message || "Lỗi cập nhật");
     } finally {
       setIsLoading(false);
     }
   };
 
   if (!isOpen || !expenseDetail) return null;
-
-  // ... (JSX trả về, không thay đổi) ...
-  // ... (Toàn bộ phần JSX giữ nguyên) ...
 
   return (
     <div className="fixed inset-0 flex items-center justify-center z-50 rounded-lg">

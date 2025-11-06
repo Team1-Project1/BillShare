@@ -115,6 +115,23 @@ export default function CardPayment({
     }
   };
 
+  // Thêm hàm restore
+  const handleRestore = async () => {
+    try {
+      const res = await fetchWithAuth(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/groups/${payment.groupId}/payments/${payment.paymentId}/restore`,
+        { method: "PUT" }
+      );
+      if (res.ok) {
+        toast.success("Đã khôi phục!");
+        onDeletePaymentSuccess();
+      }
+    } catch {
+      toast.error("Không thể khôi phục!");
+    }
+  };
+
+
   const deletePayment = async () => {
     try {
       const response = await fetchWithAuth(
@@ -171,6 +188,7 @@ export default function CardPayment({
 
       {/* Detail expand */}
       <AnimatePresence>
+        
         {isOpen && (
           <motion.div
             className="bg-[#F7FAF9] rounded-xl border border-gray-200 border-t-0 shadow-sm p-4 space-y-3"
