@@ -178,7 +178,6 @@ export const FormForgotPassword = () => {
           sessionStorage.setItem('resetToken', data.data);
 
           // ✅ Xóa sessionStorage khi xác thực thành công
-          sessionStorage.removeItem('resetEmail');
           sessionStorage.removeItem('otpExpireAt');
           router.push(`/login/forgot-password/reset-password?email=${email}`);
           return;

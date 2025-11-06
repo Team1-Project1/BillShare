@@ -29,27 +29,27 @@ export const FormResetPassword = () => {
       router.push('/login/forgot-password');
       return;
     }
+    if (email !== sessionStorage.getItem("resetEmail")) {
+      toast.error('Phiên hoạt động không hợp lệ!', {
+        position: 'top-center',
+      });
+      router.push('/login/forgot-password');
+      return;
+    }
+
   }, [email, router]);
 
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      toast.error('Đã hết phiên hoạt động vui lòng thực hiện lại bước OTP!', {
-        position: 'top-center',
-      });
-      router.push('/login/forgot-password');
-      return;
-    }
-
-    setToken(sessionStorage.getItem('resetToken'));
-
-    if (!token) {
-      toast.error('Đã hết phiên hoạt động vui lòng thực hiện lại bước OTP!', {
-        position: 'top-center',
-      });
-      router.push('/login/forgot-password');
-      return;
-    }
-  }, [])
+  const storedToken = sessionStorage.getItem('resetToken');
+  setToken(storedToken);
+ 
+  if (!storedToken) {
+    toast.error('Đã hết phiên hoạt động vui lòng thực hiện lại bước OTP!', {
+      position: 'top-center',
+    });
+    router.push('/login/forgot-password');
+  }
+}, []);
 
 
 
@@ -86,7 +86,7 @@ export const FormResetPassword = () => {
       setIsLoading(true);
 
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/auth/change-password/${email}/${token}`,
+        `${process.env.NEXT_PUBLIC_API_URL}/auth/change-password/${token}`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
