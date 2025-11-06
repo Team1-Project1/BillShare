@@ -1,3 +1,4 @@
+// src/components/card/CardExpense.tsx
 "use client";
 
 import { useState, useEffect } from "react";
@@ -42,7 +43,6 @@ interface Member {
   name: string;
   email: string;
   avatar?: string;
-  // debt: number;
 }
 
 interface CardExpenseProps {
@@ -60,6 +60,7 @@ interface CardExpenseProps {
   onEditSuccess?: () => void;
   onClose?: () => void;
   members?: Member[];
+  isDeleted?: boolean; // MỚI: từ actionType = "delete"
 }
 
 export default function CardExpense({
@@ -77,6 +78,7 @@ export default function CardExpense({
   onEditSuccess,
   onClose,
   members = [],
+  isDeleted = false, // Mặc định: chưa xóa
 }: CardExpenseProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [expenseDetail, setExpenseDetail] = useState<ExpenseDetail | null>(null);
@@ -220,9 +222,42 @@ export default function CardExpense({
     }
   };
 
-  // Lấy biểu tượng từ categories dựa trên categoryId
+  const handleRestoreClick = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!canDelete) return;
+
+    try {
+      const response = await fetchWithAuth(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/groups/${groupId}/expenses/${expenseId}/restore`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "*/*",
+          },
+        }
+      );
+
+      if (!response.ok) throw new Error("Không thể khôi phục");
+
+      toast.success("Đã khôi phục khoản chi thành công!", {
+        position: "top-center",
+        autoClose: 2000,
+      });
+      if (onDeleteSuccess) onDeleteSuccess();
+      if (onClose) onClose();
+    } catch (err) {
+      console.error("Restore error:", err);
+      toast.error("Không thể khôi phục khoản chi!", {
+        position: "top-center",
+        autoClose: 2000,
+      });
+    }
+  };
+
+  // Lấy biểu tượng từ categories
   const category = categories.find((cat) => cat.category_id === expenseDetail?.categoryId);
-  const categoryIcon = category ? category.icon : "📝";
+  const categoryIcon = category ? category.icon : "note";
 
   return (
     <div className="mb-2">
@@ -230,7 +265,7 @@ export default function CardExpense({
         onClick={handleDivClick}
         className={`cursor-pointer bg-white rounded-lg p-3 shadow-md border border-gray-200 flex items-center justify-between hover:bg-gray-50 transition-colors ${
           isSelected ? "bg-[#5BC5A7]/10 border-[#5BC5A7]" : ""
-        }`}
+        } ${isDeleted ? "opacity-70" : ""}`}
       >
         <div className="flex items-center space-x-3">
           {showDeleteOptions && (
@@ -258,7 +293,7 @@ export default function CardExpense({
           <span className="text-sm font-semibold text-[#5BC5A7]">
             {amount.toLocaleString()} {currency}
           </span>
-          {showDeleteOptions && canDelete && (
+          {showDeleteOptions && canDelete && !isDeleted && (
             <button
               onClick={handleDeleteClick}
               className="p-1.5 rounded-md hover:bg-red-100 transition-colors"
@@ -285,58 +320,57 @@ export default function CardExpense({
               </p>
             ) : expenseDetail ? (
               <div className="space-y-3 relative">
-                {canDelete && (
+                {/* Nút Sửa - chỉ hiện nếu chưa xóa */}
+                {canDelete && !isDeleted && (
                   <button
                     onClick={() => setIsEditModalOpen(true)}
-                    className="absolute top-0 right-0 p-2 bg-[#5BC5A7] text-white rounded-md hover:bg-[#4AA88C] flex items-center"
+                    className="absolute top-0 right-0 p-2 bg-[#5BC5A7] text-white rounded-md hover:bg-[#4AA88C] text-xs flex items-center gap-1"
                   >
-                    Sửa khoản chi
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                    </svg>
+                    Sửa
                   </button>
                 )}
+
+                {/* Nút Khôi phục - chỉ hiện nếu đã xóa */}
+                {canDelete && isDeleted && (
+                  <button
+                    onClick={handleRestoreClick}
+                    className="absolute top-0 right-0 p-2 bg-green-500 text-white rounded-md hover:bg-green-600 text-xs flex items-center gap-1"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h5M20 20v-5h-5" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12h18" />
+                    </svg>
+                    Khôi phục
+                  </button>
+                )}
+
                 <div>
-                  <h5 className="text-sm font-semibold text-[#5BC5A7]">
-                    Tên khoản chi
-                  </h5>
-                  <p className="text-sm text-gray-700">
-                    {expenseDetail.expenseName}
-                  </p>
+                  <h5 className="text-sm font-semibold text-[#5BC5A7]">Tên khoản chi</h5>
+                  <p className="text-sm text-gray-700">{expenseDetail.expenseName}</p>
                 </div>
                 <div>
-                  <h5 className="text-sm font-semibold text-[#5BC5A7]">
-                    Nhóm
-                  </h5>
-                  <p className="text-sm text-gray-700">
-                    {expenseDetail.groupName}
-                  </p>
+                  <h5 className="text-sm font-semibold text-[#5BC5A7]">Nhóm</h5>
+                  <p className="text-sm text-gray-700">{expenseDetail.groupName}</p>
                 </div>
                 <div>
-                  <h5 className="text-sm font-semibold text-[#5BC5A7]">
-                    Danh mục
-                  </h5>
-                  <p className="text-sm text-gray-700">
-                    {expenseDetail.categoryName}
-                  </p>
+                  <h5 className="text-sm font-semibold text-[#5BC5A7]">Danh mục</h5>
+                  <p className="text-sm text-gray-700">{expenseDetail.categoryName}</p>
                 </div>
                 <div>
-                  <h5 className="text-sm font-semibold text-[#5BC5A7]">
-                    Mô tả
-                  </h5>
+                  <h5 className="text-sm font-semibold text-[#5BC5A7]">Mô tả</h5>
                   <p className="text-sm text-gray-700">
                     {expenseDetail.description || "Không có mô tả"}
                   </p>
                 </div>
                 <div>
-                  <h5 className="text-sm font-semibold text-[#5BC5A7]">
-                    Người thanh toán
-                  </h5>
-                  <p className="text-sm text-gray-700">
-                    {expenseDetail.payerUserName}
-                  </p>
+                  <h5 className="text-sm font-semibold text-[#5BC5A7]">Người thanh toán</h5>
+                  <p className="text-sm text-gray-700">{expenseDetail.payerUserName}</p>
                 </div>
                 <div>
-                  <h5 className="text-sm font-semibold text-[#5BC5A7]">
-                    Phương thức chia
-                  </h5>
+                  <h5 className="text-sm font-semibold text-[#5BC5A7]">Phương thức chia</h5>
                   <p className="text-sm text-gray-700">
                     {expenseDetail.splitMethod === "equal"
                       ? "Chia đều"
@@ -346,9 +380,7 @@ export default function CardExpense({
                   </p>
                 </div>
                 <div>
-                  <h5 className="text-sm font-semibold text-[#5BC5A7]">
-                    Thành viên tham gia
-                  </h5>
+                  <h5 className="text-sm font-semibold text-[#5BC5A7]">Thành viên tham gia</h5>
                   <ul className="list-disc pl-5 text-sm text-gray-700">
                     {expenseDetail.participants.map((participant) => (
                       <li key={participant.participantId}>
@@ -359,22 +391,14 @@ export default function CardExpense({
                   </ul>
                 </div>
                 <div>
-                  <h5 className="text-sm font-semibold text-[#5BC5A7]">
-                    Ngày chi
-                  </h5>
+                  <h5 className="text-sm font-semibold text-[#5BC5A7]">Ngày chi</h5>
                   <p className="text-sm text-gray-700">
-                    {new Date(expenseDetail.expenseDate).toLocaleDateString(
-                      "vi-VN"
-                    )}
+                    {new Date(expenseDetail.expenseDate).toLocaleDateString("vi-VN")}
                   </p>
                 </div>
                 <div>
-                  <h5 className="text-sm font-semibold text-[#5BC5A7]">
-                    Tổng số thành viên
-                  </h5>
-                  <p className="text-sm text-gray-700">
-                    {expenseDetail.totalParticipants}
-                  </p>
+                  <h5 className="text-sm font-semibold text-[#5BC5A7]">Tổng số thành viên</h5>
+                  <p className="text-sm text-gray-700">{expenseDetail.totalParticipants}</p>
                 </div>
               </div>
             ) : (
@@ -386,12 +410,13 @@ export default function CardExpense({
         )}
       </AnimatePresence>
 
+      {/* Modal Sửa */}
       {isEditModalOpen && expenseDetail && (
         <ModalEditExpense
           isOpen={isEditModalOpen}
           onClose={() => setIsEditModalOpen(false)}
           onSuccess={() => {
-            setHasFetched(false); // Đặt lại để làm mới dữ liệu sau khi chỉnh sửa
+            setHasFetched(false);
             fetchExpenseDetail();
             if (onEditSuccess) onEditSuccess();
           }}

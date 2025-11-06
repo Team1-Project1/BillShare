@@ -1,3 +1,4 @@
+// src/app/(pages)/activities/ActivitiesList.tsx
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
@@ -5,6 +6,7 @@ import InfiniteScroll from "react-infinite-scroll-component";
 import { fetchWithAuth } from "@/lib/fetchWithAuth";
 import CardActivity from "@/components/card/CardActivity";
 import { FiActivity } from "react-icons/fi";
+import { useRouter } from "next/navigation";
 
 interface Transaction {
   transactionId: number;
@@ -23,6 +25,7 @@ export default function ActivitiesList() {
   const [page, setPage] = useState(0);
   const [hasMore, setHasMore] = useState(true);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
+  const router = useRouter();
 
   const fetchTransactions = useCallback(async (pageNum: number, isLoadMore = false) => {
     try {
@@ -49,11 +52,10 @@ export default function ActivitiesList() {
         const totalPages = data.data.totalPages || 0;
         const currentPage = data.data.number || 0;
 
-        // Loại bỏ trùng transactionId
         const seenIds = new Set<number>();
         const uniqueTransactions = newTransactions.filter((t: Transaction) => {
           if (seenIds.has(t.transactionId)) {
-            console.warn(`Trùng transactionId: ${t.transactionId} - Bỏ qua bản ghi này`);
+            console.warn(`Trùng transactionId: ${t.transactionId}`);
             return false;
           }
           seenIds.add(t.transactionId);
@@ -61,19 +63,15 @@ export default function ActivitiesList() {
         });
 
         setTransactions((prev) => {
-          // Khi load more: loại bỏ trùng với dữ liệu cũ
           if (pageNum === 0) return uniqueTransactions;
-
-          const existingIds = new Set(prev.map(t => t.transactionId));
-          const filteredNew = uniqueTransactions.filter((t: { transactionId: number; }) => !existingIds.has(t.transactionId));
+          const existingIds = new Set(prev.map((t: Transaction) => t.transactionId));
+          const filteredNew = uniqueTransactions.filter((t: Transaction) => !existingIds.has(t.transactionId));
           return [...prev, ...filteredNew];
         });
 
         const nextPage = currentPage + 1;
         const shouldLoadMore = nextPage < totalPages && uniqueTransactions.length > 0;
         setHasMore(shouldLoadMore);
-
-        console.log(`Page ${pageNum} -> totalPages: ${totalPages}, hasMore: ${shouldLoadMore}`);
       } else {
         setHasMore(false);
       }
@@ -95,6 +93,14 @@ export default function ActivitiesList() {
     const nextPage = page + 1;
     setPage(nextPage);
     fetchTransactions(nextPage, true);
+  };
+
+  const handleActivityClick = (transaction: Transaction) => {
+    if (transaction.entityType === "expense") {
+      router.push(
+        `/activities/expense-detail?groupId=${transaction.groupId}&expenseId=${transaction.entityId}&actionType=${transaction.actionType}`
+      );
+    }
   };
 
   if (isInitialLoading) {
@@ -131,7 +137,8 @@ export default function ActivitiesList() {
           {transactions.map((transaction) => (
             <div
               key={transaction.transactionId}
-              className="cursor-default"
+              onClick={() => handleActivityClick(transaction)}
+              className="cursor-pointer"
             >
               <CardActivity activity={transaction} />
             </div>
