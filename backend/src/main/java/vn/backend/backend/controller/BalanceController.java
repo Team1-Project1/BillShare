@@ -15,7 +15,7 @@ import java.util.Map;
 public class BalanceController {
     private final BalanceService balanceService;
 
-    @GetMapping("/{groupId}/users/{userId}/balances")
+    @GetMapping("/{groupId}/balances")
     public ResponseEntity<BalanceResponse> getUserBalances(
             @PathVariable Long groupId,
             HttpServletRequest request) {
