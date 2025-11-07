@@ -90,8 +90,8 @@ export default function ModalEditExpense({
         sharePercentage:
           expenseDetail.splitMethod === "percentage"
             ? Math.round(
-                (p.shareAmount / expenseDetail.totalAmount) * 100 * 100
-              ) / 100
+              (p.shareAmount / expenseDetail.totalAmount) * 100 * 100
+            ) / 100
             : undefined,
       }));
       setFormData({
@@ -139,10 +139,12 @@ export default function ModalEditExpense({
 
     let newParticipants = [...formData.participants];
 
+    const total = Math.round(formData.totalAmount);
+
     if (formData.splitMethod === "equal") {
       const participantCount = formData.participants.length;
-      const floorShare = Math.floor(formData.totalAmount / participantCount);
-      const remainder = formData.totalAmount - floorShare * participantCount;
+      const floorShare = Math.floor(total / participantCount);
+      const remainder = total - floorShare * participantCount;
       newParticipants = newParticipants.map((p, index) => ({
         ...p,
         shareAmount: floorShare + (index < remainder ? 1 : 0),
@@ -182,11 +184,11 @@ export default function ModalEditExpense({
     }
 
     updateFormData({ participants: newParticipants });
-  }, [formData.totalAmount, formData.participants, formData.splitMethod, updateFormData]); // SỬA: Thêm dependencies
+  }, [formData.totalAmount, formData.participants, formData.splitMethod]); // SỬA: Thêm dependencies
 
   useEffect(() => {
     recalculateShares();
-  }, [recalculateShares]); // SỬA: Thêm dependency
+  }, [formData.totalAmount, formData.splitMethod]); // SỬA: Thêm dependency
 
   const handleInputChange = (
     e: React.ChangeEvent<
@@ -244,12 +246,12 @@ export default function ModalEditExpense({
     const newParticipants = formData.participants.map((p) =>
       p.userId === userId
         ? {
-            ...p,
-            [field === "amount" ? "shareAmount" : "sharePercentage"]: value,
-            ...(field === "percentage" && {
-              shareAmount: (value / 100) * formData.totalAmount,
-            }),
-          }
+          ...p,
+          [field === "amount" ? "shareAmount" : "sharePercentage"]: value,
+          ...(field === "percentage" && {
+            shareAmount: (value / 100) * formData.totalAmount,
+          }),
+        }
         : p
     );
     updateFormData({ participants: newParticipants });
@@ -263,34 +265,38 @@ export default function ModalEditExpense({
     setIsLoading(true);
 
     try {
-      const payload = {
-        expenseName: formData.expenseName,
-        totalAmount: Number(formData.totalAmount),
-        categoryId: Number(formData.categoryId),
-        expenseDate: formData.expenseDate,
-        description: formData.description || null, // ← Quan trọng: null nếu rỗng
-        payerId: Number(formData.payerId),
-        splitMethod: formData.splitMethod,
-        participants: formData.participants.map(p => ({
-          userId: p.userId,
-          shareAmount: Math.round(p.shareAmount),
-        })),
-      };
+      const participants = formData.participants.map(p => ({
+        userId: p.userId,
+        shareAmount: Math.round(p.shareAmount),
+      }));
 
+      console.log(expenseDetail.expenseId, groupId, formData, participants);
       const response = await fetchWithAuth(
         `${process.env.NEXT_PUBLIC_API_URL}/api/groups/${groupId}/expenses/${expenseDetail.expenseId}`,
         {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
-            userId: userId.toString(),
+            Accept: "*/*",
           },
-          body: JSON.stringify(payload),
+          body: JSON.stringify({
+            expenseName: formData.expenseName,
+            totalAmount: Number(formData.totalAmount),
+            categoryId: Number(formData.categoryId),
+            expenseDate: formData.expenseDate,
+            description: formData.description,
+            payerId: Number(formData.payerId),
+            splitMethod: formData.splitMethod,
+            participants: participants,
+          }),
         }
       );
 
       if (!response.ok) {
         const err = await response.json();
+        if( err.details === "Only the creator can update this expense") {
+          throw new Error("Chỉ người tạo khoản chi mới có thể cập nhật");
+        }
         throw new Error(err.message || "Cập nhật thất bại");
       }
 
@@ -520,9 +526,8 @@ export default function ModalEditExpense({
           <button
             type="submit"
             disabled={isLoading}
-            className={`w-full h-12 bg-[#5BC5A7] text-white rounded-md text-base font-semibold hover:bg-[#4AA88C] transition-colors duration-300 flex items-center justify-center mt-4 ${
-              isLoading ? "opacity-50 cursor-not-allowed" : ""
-            }`}
+            className={`w-full h-12 bg-[#5BC5A7] text-white rounded-md text-base font-semibold hover:bg-[#4AA88C] transition-colors duration-300 flex items-center justify-center mt-4 ${isLoading ? "opacity-50 cursor-not-allowed" : ""
+              }`}
           >
             <FiEdit className="mr-2" />{" "}
             {isLoading ? "Đang cập nhật..." : "Cập nhật khoản chi"}

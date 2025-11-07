@@ -300,7 +300,7 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
 
     try {
       const response = await fetchWithAuth(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/groups/${slug}/users/${userId}/balances`,
+        `${process.env.NEXT_PUBLIC_API_URL}/api/groups/${slug}/balances`,
         {
           method: "GET",
           headers: {
