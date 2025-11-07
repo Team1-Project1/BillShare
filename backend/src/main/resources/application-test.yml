@@ -8,6 +8,7 @@ spring:
     url: jdbc:postgresql://${DATABASE_URL:localhost:5432/postgres}
     username: ${DATABASE_USERNAME:dev}
     password: ${DATABASE_PASSWORD:password}
+    driver-class-name: org.postgresql.Driver
     hikari: # Connection poll
       max-lifetime: 300000      # 5 phút
       idle-timeout: 60000       # 1 phút
@@ -18,15 +19,60 @@ spring:
     show-sql: false
     hibernate:
       ddl-auto: none
-# application-test.yml
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+  mail:
+    from: test@example.com
+    name: BillShare App Test
+    baseUrlGroupMember: http://localhost:3000/group-member/
+    baseUrlFriendShip: http://localhost:3000/friends/
+
 springdoc:
   api-docs:
     enabled: true
   swagger-ui:
     enabled: true
+
 openapi:
   service:
     api-docs: backend-service
     server: ${BACKEND_SERVICE:http://localhost:${server.port}}
     title: Backend service
     version: 1.0.0
+
+# JWT Configuration
+jwt:
+  timeOutAccessToken: ${JWT_TIMEOUT_ACCESS:5}
+  timeOutRefreshToken: ${JWT_TIMEOUT_REFRESH:1440}
+  secretKeyAccessToken: ${JWT_SECRET_ACCESS:test-secret-key-access-token-for-testing-purpose-only}
+  secretKeyRefreshToken: ${JWT_SECRET_REFRESH:test-secret-key-refresh-token-for-testing-purpose-only}
+  secretKeyFriendship: ${JWT_SECRET_FRIENDSHIP:test-secret-key-friendship-token-for-testing-purpose-only}
+  secretKeyOtp: ${JWT_SECRET_OTP:test-secret-key-otp-token-for-testing-purpose-only}
+
+# Cloudinary Configuration (for test - use dummy values)
+CLOUD_NAME: ${CLOUD_NAME:test-cloud}
+CLOUD_API_KEY: ${CLOUD_API_KEY:123456789}
+CLOUD_API_SECRET: ${CLOUD_API_SECRET:test-api-secret}
+
+# App Configuration
+app:
+  otp:
+    expiration:
+      minutes: 5
+    cooldown:
+      seconds: 60
+    max-retries: 5
+  gmail:
+    credentials: >
+      {
+        "installed": {
+          "client_id": "${GOOGLE_CLIENT_ID:test-client-id}",
+          "project_id": "${GOOGLE_PROJECT_ID:test-project}",
+          "auth_uri": "${GOOGLE_AUTH_URI:https://accounts.google.com/o/oauth2/auth}",
+          "token_uri": "${GOOGLE_TOKEN_URI:https://oauth2.googleapis.com/token}",
+          "auth_provider_x509_cert_url": "${GOOGLE_CERT_URL:https://www.googleapis.com/oauth2/v1/certs}",
+          "client_secret": "${GOOGLE_CLIENT_SECRET:test-secret}",
+          "redirect_uris": ["${GOOGLE_REDIRECT_URI:http://localhost}"]
+        }
+      }

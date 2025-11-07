@@ -30,3 +30,15 @@
 ## 4.swagger
 -http://localhost:8080/swagger-ui/index.html#
 
+## 5.test
+-Run test bởi mvnw tại folder backend
+```
+ mvn test   
+ ./mvnw test
+
+
+```
+-mở web hiển thị độ bao phủ
+```
+   start target\site\jacoco\index.html
+```
