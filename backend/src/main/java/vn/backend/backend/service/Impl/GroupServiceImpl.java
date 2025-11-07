@@ -19,6 +19,7 @@ import vn.backend.backend.controller.request.GroupEditRequest;
 import vn.backend.backend.controller.response.*;
 import vn.backend.backend.model.*;
 import vn.backend.backend.repository.*;
+import vn.backend.backend.service.BalanceService;
 import vn.backend.backend.service.GroupService;
 import vn.backend.backend.service.JwtService;
 import vn.backend.backend.service.TransactionService;
@@ -45,6 +46,7 @@ public class GroupServiceImpl implements GroupService {
     private final UserRepository userRepository;
     private final TransactionService transactionService;
     private final UploadImageService uploadImageService;
+    private final BalanceService balanceService;
     private final ExpenseRepository expenseRepository;
     private final ExpenseParticipantRepository expenseParticipantRepository;
     private final JwtService jwtService;
@@ -212,9 +214,8 @@ public class GroupServiceImpl implements GroupService {
             throw new RuntimeException("User is not admin of group");
         }
         //TODO: kiểm tra người dùng trong nhóm có khoản chi nào không, nếu có thì phải thông báo trưcớc khi xóa
-        List<ExpenseEntity> hasExpenses = expenseRepository.findAllByGroupGroupIdAndDeletedAtIsNull(groupId);
-        if (!hasExpenses.isEmpty() && !confirmDeleteWithExpenses) {
-            throw new RuntimeException("Group id "+groupId+" has "+hasExpenses.size()+" expenses, confirmation required before deletion");
+        if (balanceService.checkGroupNetDebt(groupId) && !confirmDeleteWithExpenses) {
+            throw new RuntimeException("Group id "+groupId+" has expenses, confirmation required before deletion");
         }
         balanceRepository.deleteByGroup_GroupId(groupId);
         expenseRepository.deleteByGroup_GroupId(groupId);
@@ -256,10 +257,9 @@ public class GroupServiceImpl implements GroupService {
             throw new RuntimeException("Admin cannot delete themselves from the group");
         }
         // TODO: Kiểm tra thành viên có khoản chi trong group không nếu có thì không được xóa
-        List<ExpenseParticipantEntity> hasExpenses =expenseParticipantRepository.findAllByExpense_Group_GroupIdAndUser_UserId(groupId, memberId);
 
-        if (!hasExpenses.isEmpty()) {
-            throw new RuntimeException("Cannot remove member id " +memberId+ " because they have "+hasExpenses.size() +" related expenses in the group");
+        if (balanceService.checkUserNetDebtInGroup(groupId, memberId)) {
+            throw new RuntimeException("Cannot remove member id " +memberId+ " because they have related expenses in the group");
         }
         balanceRepository.deleteByGroup_GroupIdAndUser1_UserIdOrGroup_GroupIdAndUser2_UserId(groupId, memberId, groupId, memberId);
         memberToDelete.setIsActive(false);
@@ -286,9 +286,8 @@ public class GroupServiceImpl implements GroupService {
         if(groupMember.getRole()==MemberRole.admin){
             throw new RuntimeException("Admin cannot leave the group. Please assign another admin before leaving.");
         }
-        List<ExpenseParticipantEntity> hasExpenses =expenseParticipantRepository.findAllByExpense_Group_GroupIdAndUser_UserId(groupId, userId);
-        if (!hasExpenses.isEmpty()) {
-            throw new RuntimeException("user id "+userId+" cannot leave group because you have "+hasExpenses.size() +" related expenses in the group");
+        if (balanceService.checkUserNetDebtInGroup(groupId, userId)) {
+            throw new RuntimeException("user id "+userId+" cannot leave group because you have related expenses in the group");
         }
         balanceRepository.deleteByGroup_GroupIdAndUser1_UserIdOrGroup_GroupIdAndUser2_UserId(groupId, userId, groupId, userId);
         groupMember.setIsActive(false);

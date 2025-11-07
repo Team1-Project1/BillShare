@@ -21,4 +21,6 @@ public interface BalanceService {
     void updateBalancesForPayment(PaymentEntity payment);
     void updateBalancesAfterPaymentDeletion(PaymentEntity payment);
     void settleGroupDebts(Long groupId);
+    boolean checkGroupNetDebt(Long groupId);
+    boolean checkUserNetDebtInGroup(Long groupId, Long userId);
 }

@@ -178,6 +178,10 @@ public class BalanceServiceImpl implements BalanceService {
                 .orElseThrow(() -> new RuntimeException("Group not found"));
         var user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
+        if (!groupMembersRepository.existsById_GroupIdAndId_UserIdAndIsActiveTrue(groupId, userId))
+        {
+            throw new RuntimeException("User is not a member of the group");
+        }
         // Kiểm tra xem nhóm có bật tính năng tối ưu hóa nợ không
         if (Boolean.TRUE.equals(group.getSimplifyDebtOn())) {
             // Nếu bật simplify, gọi phương thức tối ưu hóa
@@ -229,7 +233,7 @@ public class BalanceServiceImpl implements BalanceService {
                 .build();
     }
 
-
+    @Override
     public boolean checkGroupNetDebt(Long groupId) {
         // === Bước 1: Lấy tất cả các quan hệ nợ của nhóm ===
         List<BalanceEntity> balances = balanceRepository.findAllByGroupGroupId(groupId);
@@ -291,6 +295,36 @@ public class BalanceServiceImpl implements BalanceService {
         // (Bạn cũng có thể thêm logic khác ở đây,
         //  ví dụ: đánh dấu nhóm là "archived" (đã lưu trữ))
     }
+
+    @Override
+    public boolean checkUserNetDebtInGroup(Long groupId, Long userId) {
+        // Lấy tất cả các quan hệ nợ của nhóm liên quan đến user
+        List<BalanceEntity> balances = balanceRepository.findAllByGroupGroupId(groupId)
+                .stream()
+                .filter(b -> b.getUser1().getUserId().equals(userId) ||
+                        b.getUser2().getUserId().equals(userId))
+                .toList();
+
+        // Nếu không có quan hệ nợ nào, user không nợ ai
+        if (balances.isEmpty()) {
+            return false; // Không còn nợ
+        }
+
+        // Kiểm tra từng quan hệ nợ có bằng 0 hay không
+        final BigDecimal TOLERANCE = new BigDecimal("0.01");
+
+        for (BalanceEntity balance : balances) {
+            // Nếu có bất kỳ balance nào khác 0, return true (còn nợ)
+            if (balance.getBalance().abs().compareTo(TOLERANCE) > 0) {
+                return true; // Còn nợ với ít nhất 1 người
+            }
+        }
+
+        // Tất cả balance đều = 0
+        return false; // Không còn nợ
+    }
+
+
 
 
     // =========================================================================
