@@ -340,7 +340,7 @@ public class ExpenseServiceImpl implements ExpenseService {
         ExpenseEntity updatedExpense = expenseRepository.save(expense);
 
 
-//        expenseParticipantRepository.deleteAllByExpenseExpenseId(expenseId);
+        expenseParticipantRepository.deleteAllByExpenseExpenseId(expenseId);
 //        expenseParticipantRepository.flush();
 //        boolean deleted = expenseParticipantRepository
 //                .findAllByExpenseExpenseIdAndExpenseDeletedAtIsNull(expenseId)
