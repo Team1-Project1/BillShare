@@ -83,7 +83,7 @@ export const FormRegister = () => {
       .onSuccess((event: Event) => {
         const form = event.target as HTMLFormElement;
         const fullName = form.fullName.value;
-        const phone = form.phone.value;
+        const phone = "0123456789"; // form.phone.value;
         const email = form.email.value;
         const password = form.password.value;
 
@@ -172,7 +172,7 @@ export const FormRegister = () => {
             className="h-12 w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-[#5BC5A7] transition-all duration-300"
           />
         </div>
-        <div className="space-y-2">
+        {/* <div className="space-y-2">
           <label htmlFor="phone" className="text-sm font-medium text-gray-700">
             Số điện thoại
           </label>
@@ -183,7 +183,7 @@ export const FormRegister = () => {
             placeholder="Nhập số điện thoại"
             className="h-12 w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-[#5BC5A7] transition-all duration-300"
           />
-        </div>
+        </div> */}
         <div className="space-y-2">
           <label htmlFor="email" className="text-sm font-medium text-gray-700">
             Địa chỉ email
