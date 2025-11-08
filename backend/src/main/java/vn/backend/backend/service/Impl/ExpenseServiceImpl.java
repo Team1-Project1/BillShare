@@ -45,7 +45,6 @@ public class ExpenseServiceImpl implements ExpenseService {
     private final CategoryRepository categoryRepository;
     private final ExpenseParticipantService expenseParticipantService;
     private final BalanceService balanceService;
-    private final GroupMembersRepository groupMemberRepository;
     private final TransactionService transactionService;
     private final GroupMembersRepository groupMembersRepository;
     private final ExpenseParticipantRepository expenseParticipantRepository;
@@ -159,7 +158,7 @@ public class ExpenseServiceImpl implements ExpenseService {
 
     // Phương thức helper để kiểm tra xem một người dùng có trong nhóm hay không
     private boolean isUserInGroup(Long userId, Long groupId) {
-        return groupMemberRepository.existsById_GroupIdAndId_UserIdAndIsActiveTrue(groupId, userId);
+        return groupMembersRepository.existsById_GroupIdAndId_UserIdAndIsActiveTrue(groupId, userId);
     }
 
     @Override
@@ -314,7 +313,7 @@ public class ExpenseServiceImpl implements ExpenseService {
             throw new RuntimeException("The payer is not a member of the group");
         }
         for(var participant:request.getParticipants()){
-            Boolean isMember=groupMemberRepository.existsById_GroupIdAndId_UserIdAndIsActiveTrue(expense.getGroup().getGroupId(),participant.getUserId());
+            Boolean isMember=groupMembersRepository.existsById_GroupIdAndId_UserIdAndIsActiveTrue(expense.getGroup().getGroupId(),participant.getUserId());
             if(!isMember){
                 throw new RuntimeException("Participant with ID " + participant.getUserId() +
                         " is not a member of the group");
@@ -409,7 +408,7 @@ public class ExpenseServiceImpl implements ExpenseService {
 
     @Override
     public List<ExpenseSimpleResponse> getExpensesByConditions(Long categoryId, String expenseName, Date expenseDateFrom, Date expenseDateTo, Long userId, Long groupId) {
-        Boolean groupMember=groupMemberRepository.existsById_GroupIdAndId_UserIdAndIsActiveTrue(groupId,userId);
+        Boolean groupMember=groupMembersRepository.existsById_GroupIdAndId_UserIdAndIsActiveTrue(groupId,userId);
         if(!groupMember){
             throw new RuntimeException("User is not a member of the group");
         }
@@ -428,7 +427,7 @@ public class ExpenseServiceImpl implements ExpenseService {
     public void restoreExpense(Long expenseId, Long requestingUserId, Long groupId) {
         // Tìm expense đã bị xóa mềm
         ExpenseEntity expense = expenseRepository.findByExpenseIdAndDeletedAtIsNotNull(expenseId)
-                .orElseThrow(() -> new RuntimeException("annot find deleted or undeleted app expenses"));
+                .orElseThrow(() -> new RuntimeException("Cannot find deleted or undeleted app expenses"));
 
         // Kiểm tra nhóm
         if (!expense.getGroup().getGroupId().equals(groupId)) {

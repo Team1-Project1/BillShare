@@ -42,3 +42,7 @@
 ```
    start target\site\jacoco\index.html
 ```
+-mở web hiển thị trên linux
+```
+    xdg-open target/site/jacoco/index.html
+```

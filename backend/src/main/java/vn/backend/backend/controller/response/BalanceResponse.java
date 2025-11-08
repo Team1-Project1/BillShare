@@ -25,6 +25,6 @@ public class BalanceResponse {
         private Long userId; // ID of the other user
         private String userName; // Name of the other user
         private BigDecimal amount; // Amount of the balance
-        private Boolean isOwed; // true if the calling user is owed money by this user, false if they owe
+        private boolean isOwed;// true if the calling user is owed money by this user, false if they owe
     }
 }
