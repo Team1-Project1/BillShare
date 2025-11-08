@@ -10,10 +10,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import vn.backend.backend.controller.request.UpdateExpenseRequest;
 import vn.backend.backend.controller.response.ExpenseSimpleResponse;
-import vn.backend.backend.model.ExpenseEntity;
-import vn.backend.backend.model.ExpenseParticipantEntity;
-import vn.backend.backend.model.GroupMembersEntity;
-import vn.backend.backend.model.UserEntity;
+import vn.backend.backend.model.*;
 import vn.backend.backend.repository.*;
 import vn.backend.backend.service.ExpenseService;
 import vn.backend.backend.service.ExpenseParticipantService;
@@ -219,7 +216,7 @@ public class ExpenseServiceImpl implements ExpenseService {
     public Page<ExpenseResponse> getExpensesByGroupId(Long groupId, Long userId, int page, int size) {
         //Verify user is in group
         if (!isUserInGroup(userId, groupId)) {
-            throw new RuntimeException("Không phải là thành viên của nhóm");
+            throw new RuntimeException("Not a member of group");
         }
         // Verify group exists
         groupRepository.findByGroupId(groupId)
@@ -247,6 +244,54 @@ public class ExpenseServiceImpl implements ExpenseService {
                 .updatedAt(expense.getUpdatedAt())
                 .build());
     }
+
+    @Override
+    public Page<ExpenseDetailResponse> getExpensesDeletedByGroupId(Long groupId, Long userId, int page, int size) {
+        GroupEntity group = groupRepository.findByGroupId(groupId)
+                .orElseThrow(() -> new RuntimeException("Group not found with ID: " + groupId));
+        if (!isUserInGroup(userId, groupId)) {
+            throw new RuntimeException("Not a member of group");
+        }
+        Pageable pageable = PageRequest.of(page, size, Sort.by("deletedAt").descending());
+        Page<ExpenseEntity> expensesPage = expenseRepository.findAllByGroupGroupIdAndCreatedByUserIdAndDeletedAtIsNotNull(groupId, userId,pageable);
+        return expensesPage.map((expense) -> {
+            List<ExpenseParticipantResponse> participantResponses = expenseParticipantRepository.findAllByExpenseExpenseId(expense.getExpenseId()).stream()
+                    .map(participant -> ExpenseParticipantResponse.builder()
+                            .participantId(participant.getParticipantId())
+                            .expenseId(participant.getExpense().getExpenseId())
+                            .expenseName(participant.getExpense().getExpenseName())
+                            .userId(participant.getUser().getUserId())
+                            .userName(participant.getUser().getFullName())
+                            .userEmail(participant.getUser().getEmail())
+                            .shareAmount(participant.getShareAmount())
+                            .currency(participant.getExpense().getCurrency())
+                            .build())
+                    .toList();
+            return ExpenseDetailResponse.builder()
+            .expenseId(expense.getExpenseId())
+            .groupId(expense.getGroup().getGroupId())
+            .groupName(expense.getGroup().getGroupName())
+            .expenseName(expense.getExpenseName())
+            .totalAmount(expense.getTotalAmount())
+            .currency(expense.getCurrency())
+            .categoryId(expense.getCategory().getCategoryId())
+            .categoryName(expense.getCategory().getCategoryName())
+            .expenseDate(expense.getExpenseDate())
+            .description(expense.getDescription())
+            .createdByUserId(expense.getCreatedBy().getUserId())
+            .createdByUserName(expense.getCreatedBy().getFullName())
+            .payerUserId(expense.getPayer().getUserId())
+            .payerUserName(expense.getPayer().getFullName())
+            .splitMethod(expense.getSplitMethod())
+            .createdAt(expense.getCreatedAt())
+            .updatedAt(expense.getUpdatedAt())
+            .deletedAt(expense.getDeletedAt())
+            .participants(participantResponses)
+            .totalParticipants(participantResponses.size())
+            .build();
+        });
+    }
+
     @Override
     public ExpenseDetailResponse getExpenseDetail(Long expenseId, Long userId, Long groupId) {
         //Verify user is in group

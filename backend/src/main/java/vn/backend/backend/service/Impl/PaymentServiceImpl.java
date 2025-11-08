@@ -2,6 +2,10 @@ package vn.backend.backend.service.Impl;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import vn.backend.backend.common.ActionType;
@@ -9,6 +13,7 @@ import vn.backend.backend.common.EntityType;
 import vn.backend.backend.controller.request.PaymentRequest;
 import vn.backend.backend.controller.response.PaymentResponse;
 import vn.backend.backend.model.GroupEntity;
+import vn.backend.backend.model.GroupMembersEntity;
 import vn.backend.backend.model.PaymentEntity;
 import vn.backend.backend.model.UserEntity;
 import vn.backend.backend.repository.GroupMembersRepository;
@@ -267,6 +272,31 @@ public class PaymentServiceImpl implements PaymentService {
                 .currency(payment.getCurrency())
                 .paymentDate(payment.getPaymentDate())
                 .build();
+    }
+
+    @Override
+    public Page<PaymentResponse> getPaymentDeleted(Long groupId, Long userId, int page, int size) {
+        GroupEntity group = groupRepository.findByGroupId(groupId)
+                .orElseThrow(() -> new RuntimeException("Group not found with ID: " + groupId));
+        GroupMembersEntity member = groupMembersRepository.findById_GroupIdAndId_UserIdAndIsActiveTrue(groupId, userId);
+        if(member == null){
+            throw new RuntimeException("User is not a member of the group with ID: " + groupId);
+        }
+        Pageable pageable = PageRequest.of(page, size, Sort.by("deletedAt").descending());
+        Page<PaymentEntity> paymentPage = paymentRepository.findAllPaymentsByGroupAndPayerOrPayee(groupId, userId, pageable);
+        return paymentPage.map(payment -> PaymentResponse.builder()
+                .paymentId(payment.getPaymentId())
+                .groupId(payment.getGroup().getGroupId())
+                .groupName(payment.getGroup().getGroupName())
+                .payerId(payment.getPayer().getUserId())
+                .payerName(payment.getPayer().getFullName())
+                .payeeId(payment.getPayee().getUserId())
+                .payeeName(payment.getPayee().getFullName())
+                .amount(payment.getAmount())
+                .currency(payment.getCurrency())
+                .paymentDate(payment.getPaymentDate())
+                .deletedAt(payment.getDeletedAt())
+                .build());
     }
 
     @Override

@@ -19,6 +19,7 @@ public interface ExpenseService {
                                 String description, SplitMethod splitMethod);
     void deleteExpense(Long expenseId, Long requestingUserId, Long groupId);
     Page<ExpenseResponse> getExpensesByGroupId(Long groupId, Long userId, int page, int size);
+    Page<ExpenseDetailResponse> getExpensesDeletedByGroupId(Long groupId, Long userId, int page, int size);
     ExpenseDetailResponse getExpenseDetail(Long expenseId, Long userId, Long groupId);
     List<ExpenseEntity> getExpensesByPayerId(Long payerId);
     ExpenseDetailResponse updateExpenseByExpenseId(Long expenseId,Long userId, Long groupId,UpdateExpenseRequest request);

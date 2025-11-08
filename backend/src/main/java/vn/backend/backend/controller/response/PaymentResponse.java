@@ -22,4 +22,5 @@ public class PaymentResponse {
     private BigDecimal amount;
     private String currency;
     private Date paymentDate;
+    private Date deletedAt;
 }
