@@ -247,7 +247,7 @@ public class BalanceServiceImpl implements BalanceService {
         Map<Long, BigDecimal> netBalances = groupMembersRepository.findAllById_GroupId(groupId)
                 .stream()
                 .collect(Collectors.toMap(
-                        gm -> gm.getId().getUserId(),
+                        gm -> gm.getMember().getUserId(),
                         gm -> BigDecimal.ZERO
                 ));
 
