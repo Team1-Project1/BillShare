@@ -142,6 +142,28 @@ public class ExpenseController {
         );
     }
 
+    @Operation(
+            summary = "get all expense deleted in group",
+            description = "API to get all expense deleted in group"
+    )
+    @GetMapping("/expenses-deleted")
+    public ResponseEntity<ApiResponse<Page<ExpenseDetailResponse>>> getAllExpenseDeleted(
+            @PathVariable Long groupId,
+            @RequestParam (defaultValue = "0") int page,
+            @RequestParam (defaultValue = "10") int size,
+            HttpServletRequest req) {
 
+        Long userId = (Long) req.getAttribute("userId");
+
+        Page<ExpenseDetailResponse>result=expenseService.getExpensesDeletedByGroupId(groupId, userId,page,size);
+
+        return ResponseEntity.ok(
+                new ApiResponse<>(
+                        "success",
+                        String.format("get all expense of user id %d in group id %d", userId, groupId),
+                        result
+                )
+        );
+    }
 
 }

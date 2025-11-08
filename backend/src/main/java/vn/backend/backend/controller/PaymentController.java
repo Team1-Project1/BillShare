@@ -6,6 +6,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -113,6 +114,25 @@ public class PaymentController {
                         "success",
                         "Payment ID %d has been successfully restored!".formatted(paymentId),
                         null
+                )
+        );
+    }
+
+    @Operation(summary = "get all payment deleted", description = "API to get all payment  deleted in group")
+    @GetMapping("/payement-deleted")
+    public ResponseEntity<ApiResponse<Page<PaymentResponse>>> getAllPaymentDeleted(
+            @PathVariable Long groupId,
+            @RequestParam (defaultValue = "0") int page,
+            @RequestParam (defaultValue = "10") int size,
+            HttpServletRequest req) {
+
+        Long userId = (Long) req.getAttribute("userId");
+        var result= paymentService.getPaymentDeleted(groupId, userId, page,size);
+        return ResponseEntity.ok(
+                new ApiResponse<>(
+                        "success",
+                        String.format("get all payment deleted of userId %d in group %d successfully",userId,groupId),
+                        result
                 )
         );
     }

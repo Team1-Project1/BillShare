@@ -32,4 +32,5 @@ public class ExpenseDetailResponse {
     private Date updatedAt;
     private List<ExpenseParticipantResponse> participants;
     private int totalParticipants;
+    private Date deletedAt;
 }

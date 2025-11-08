@@ -14,6 +14,7 @@ import java.util.Optional;
 public interface ExpenseRepository extends JpaRepository<ExpenseEntity, Long>, ExpenseCriteriaRepository {
     List<ExpenseEntity> findAllByGroupGroupIdAndDeletedAtIsNull(Long groupId);
     Page<ExpenseEntity> findAllByGroupGroupIdAndDeletedAtIsNull(Long groupId, Pageable pageable);
+    Page<ExpenseEntity> findAllByGroupGroupIdAndCreatedByUserIdAndDeletedAtIsNotNull(Long groupId,Long userId, Pageable pageable);
     Optional<ExpenseEntity> findByExpenseIdAndDeletedAtIsNull(Long expenseId);
     List<ExpenseEntity> findAllByPayerUserIdAndDeletedAtIsNull(Long payerId);
     void deleteByGroup_GroupId(Long groupId);
