@@ -89,7 +89,7 @@ export default function CardActivity({ activity }: CardActivityProps) {
               {getActionText()}
             </span>{" "}
             <span className="font-medium">{getEntityText()}</span>
-            {activity.entityType === "expense" && (
+            {["expense", "payment"].includes(activity.entityType) && (
               <span className="text-gray-500"> #{activity.entityId}</span>
             )}
           </p>
