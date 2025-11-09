@@ -11,12 +11,12 @@ interface RestoreOnlyPageProps {
   groupId: number;
   entityId: number;
   entityType: "expense" | "payment";
+  children?: React.ReactNode; // Chi tiết đã xóa
 }
 
-export default function RestoreOnlyPage({ groupId, entityId, entityType }: RestoreOnlyPageProps) {
+export default function RestoreOnlyPage({ groupId, entityId, entityType, children }: RestoreOnlyPageProps) {
   const [userId, setUserId] = useState<number | null>(null);
   const [canRestore, setCanRestore] = useState(false);
-  const [loading, setLoading] = useState(true);
   const router = useRouter();
 
   useEffect(() => {
@@ -24,14 +24,8 @@ export default function RestoreOnlyPage({ groupId, entityId, entityType }: Resto
     setUserId(id ? Number(id) : null);
   }, []);
 
-  // **KHÔNG GỌI API GET** – vì expense đã xóa → 404
-  // → Giả định: nếu bạn vào được trang này → bạn có quyền khôi phục
-  // → Chỉ cần userId tồn tại → cho restore
   useEffect(() => {
-    if (userId) {
-      setCanRestore(true);
-      setLoading(false);
-    }
+    if (userId) setCanRestore(true);
   }, [userId]);
 
   const handleRestore = async () => {
@@ -40,48 +34,37 @@ export default function RestoreOnlyPage({ groupId, entityId, entityType }: Resto
         `${process.env.NEXT_PUBLIC_API_URL}/api/groups/${groupId}/${entityType}s/${entityId}/restore`,
         { method: "PUT" }
       );
-
       if (res.ok) {
-        toast.success(
-          entityType === "expense" ? "Đã khôi phục khoản chi!" : "Đã khôi phục thanh toán!",
-          { position: "top-center", autoClose: 2000 }
-        );
-        router.push(`/activities`);
+        toast.success("Đã khôi phục!", { position: "top-center" });
+        router.push("/activities");
       } else {
-        const err = await res.json();
-        toast.error(err.message || "Không thể khôi phục!", { position: "top-center" });
+        toast.error("Không thể khôi phục!", { position: "top-center" });
       }
-    } catch (err) {
-      toast.error("Lỗi khi khôi phục!", { position: "top-center" });
+    } catch {
+      toast.error("Lỗi!", { position: "top-center" });
     }
   };
 
-  if (loading || !userId) {
-    return (
-      <div className="flex justify-center items-center min-h-screen">
-        <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-[#5BC5A7]"></div>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_right_center,rgba(91,197,167,0.8),rgba(0,0,0,0)_70%)] flex flex-col items-center justify-start p-4 pb-20">
-      <div className="w-full max-w-[576px] mx-auto">
-        <div className="bg-white rounded-lg p-6 shadow-md border border-gray-200 text-center">
-          <h2 className="text-xl font-bold text-red-600 mb-4">
+      <div className="w-full max-w-[576px] mx-auto space-y-4">
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-center">
+          <h2 className="text-xl font-bold text-red-600 mb-2">
             {entityType === "expense" ? "Khoản chi" : "Khoản thanh toán"} đã bị xóa
           </h2>
-          <p className="text-gray-600 mb-6">
-            Bạn có thể khôi phục ngay bây giờ.
-          </p>
-
-          <button
-            onClick={handleRestore}
-            className="px-6 py-3 bg-green-500 text-white rounded-lg font-medium hover:bg-green-600 transition-all"
-          >
-            Khôi phục ngay
-          </button>
+          <p className="text-sm text-gray-600">Bạn có thể khôi phục nếu là người tạo.</p>
         </div>
+
+        <div className="bg-white rounded-lg p-4 shadow-md border border-gray-200 opacity-80">
+          {children || <p className="text-center text-gray-500">Không có dữ liệu</p>}
+        </div>
+
+        <button
+          onClick={handleRestore}
+          className="w-full py-3 bg-green-500 text-white rounded-lg font-medium hover:bg-green-600"
+        >
+          Khôi phục ngay
+        </button>
       </div>
       <BottomNav />
     </div>

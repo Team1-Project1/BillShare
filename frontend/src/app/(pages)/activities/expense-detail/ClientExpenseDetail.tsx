@@ -2,32 +2,85 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import CardExpenseActivity from "@/components/card/CardExpenseActivity";
+import CardDeletedExpense from "@/components/card/CardDeletedExpense";
 import RestoreOnlyPage from "@/components/common/RestoreOnlyPage";
+import { fetchWithAuth } from "@/lib/fetchWithAuth";
+import { toast } from "react-toastify";
+import CardExpenseActivity from "@/components/card/CardExpenseActivity";
 
-interface ClientExpenseDetailProps {
+export default function ClientExpenseDetail({
+  groupId,
+  expenseId,
+  actionType,
+}: {
   groupId: number;
   expenseId: number;
   actionType: string;
-}
-
-export default function ClientExpenseDetail({ groupId, expenseId, actionType }: ClientExpenseDetailProps) {
+}) {
   const [userId, setUserId] = useState<number | null>(null);
-  const isDeleted = actionType.toLowerCase() === "delete";
+  const [deletedExpense, setDeletedExpense] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+  const isDeleted = actionType === "delete";
 
   useEffect(() => {
     const id = localStorage.getItem("userId");
     setUserId(id ? Number(id) : null);
   }, []);
 
+  useEffect(() => {
+    if (!isDeleted || !userId) return;
+
+    const fetchDeleted = async () => {
+      try {
+        setLoading(true);
+        const res = await fetchWithAuth(
+          `${process.env.NEXT_PUBLIC_API_URL}/api/groups/${groupId}/expenses/expenses-deleted?size=50`
+        );
+        if (!res.ok) throw new Error();
+        const data = await res.json();
+        if (data.code === "success") {
+          const found = data.data.content.find((e: any) => e.expenseId === expenseId);
+          setDeletedExpense(found || null);
+        }
+      } catch (err) {
+        console.error(err);
+        toast.error("Không thể tải chi tiết!", { position: "top-center" });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDeleted();
+  }, [isDeleted, groupId, expenseId, userId]);
+
   if (!userId) {
-    return <div className="flex justify-center items-center min-h-screen">
-      <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-[#5BC5A7]"></div>
-    </div>;
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-[#5BC5A7]"></div>
+      </div>
+    );
   }
 
   if (isDeleted) {
-    return <RestoreOnlyPage groupId={groupId} entityId={expenseId} entityType="expense" />;
+    if (loading) {
+      return (
+        <div className="flex justify-center items-center min-h-screen">
+          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-[#5BC5A7]"></div>
+        </div>
+      );
+    }
+
+    return (
+      <RestoreOnlyPage groupId={groupId} entityId={expenseId} entityType="expense">
+        {deletedExpense ? (
+          <CardDeletedExpense expense={deletedExpense} />
+        ) : (
+          <div className="bg-white rounded-lg p-6 shadow-md border border-gray-200 text-center">
+            <p className="text-gray-500">Không tìm thấy khoản chi đã xóa. Có thể bạn đã khôi phục rồi chăng?</p>
+          </div>
+        )}
+      </RestoreOnlyPage>
+    );
   }
 
   return (
