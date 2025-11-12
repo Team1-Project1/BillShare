@@ -45,7 +45,7 @@ public class UploadImageServiceImpl implements UploadImageService {
         }
         return convFile;
     }
-    private void cleanDisk(File file    ){
+    public void cleanDisk(File file){
         try{
             Path filePath=file.toPath();
             Files.delete(filePath);

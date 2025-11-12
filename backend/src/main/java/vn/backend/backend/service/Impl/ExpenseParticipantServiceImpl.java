@@ -33,27 +33,27 @@
                     .build());
         }
 
-        @Override
-        public void removeAllParticipantsByExpenseId(Long expenseId) {
-            participantRepository.deleteAllByExpenseExpenseId(expenseId);
-        }
+//        @Override
+//        public void removeAllParticipantsByExpenseId(Long expenseId) {
+//            participantRepository.deleteAllByExpenseExpenseId(expenseId);
+//        }
 
         @Override
         public List<ExpenseParticipantEntity> getParticipantsByExpenseId(Long expenseId) {
             return participantRepository.findAllByExpenseExpenseIdAndExpenseDeletedAtIsNull(expenseId);
         }
 
-        @Override
-        public List<ExpenseParticipantEntity> getParticipantsByUserId(Long userId) {
-            return participantRepository.findAllByUserUserIdAndExpenseDeletedAtIsNull(userId);
-        }
+//        @Override
+//        public List<ExpenseParticipantEntity> getParticipantsByUserId(Long userId) {
+//            return participantRepository.findAllByUserUserIdAndExpenseDeletedAtIsNull(userId);
+//        }
 
-        @Override
-        public void updateParticipantShare(Long participantId, BigDecimal newShareAmount) {
-            var participant = participantRepository.findByParticipantIdAndExpenseDeletedAtIsNull(participantId)
-                    .orElseThrow(() -> new RuntimeException("Participant not found"));
-
-            participant.setShareAmount(newShareAmount);
-            participantRepository.save(participant);
-        }
+//        @Override
+//        public void updateParticipantShare(Long participantId, BigDecimal newShareAmount) {
+//            var participant = participantRepository.findByParticipantIdAndExpenseDeletedAtIsNull(participantId)
+//                    .orElseThrow(() -> new RuntimeException("Participant not found"));
+//
+//            participant.setShareAmount(newShareAmount);
+//            participantRepository.save(participant);
+//        }
     }
