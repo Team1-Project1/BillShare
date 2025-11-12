@@ -6,8 +6,8 @@ import java.util.List;
 
 public interface ExpenseParticipantService {
     ExpenseParticipantEntity addParticipant(Long expenseId, Long userId, BigDecimal shareAmount);
-    void updateParticipantShare(Long participantId, BigDecimal newShareAmount);
-    void removeAllParticipantsByExpenseId(Long expenseId);
+//    void updateParticipantShare(Long participantId, BigDecimal newShareAmount);
+//    void removeAllParticipantsByExpenseId(Long expenseId);
     List<ExpenseParticipantEntity> getParticipantsByExpenseId(Long expenseId);
-    List<ExpenseParticipantEntity> getParticipantsByUserId(Long userId);
+//    List<ExpenseParticipantEntity> getParticipantsByUserId(Long userId);
 }

@@ -326,7 +326,7 @@ class ExpenseServiceImplTest {
         RuntimeException exception = assertThrows(RuntimeException.class, () ->
                 expenseService.getExpensesByGroupId(1L, 1L, 0, 10));
 
-        assertTrue(exception.getMessage().contains("Không phải là thành viên"));
+        assertTrue(exception.getMessage().contains("Not a member of group"));
     }
 
     @Test
