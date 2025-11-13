@@ -63,7 +63,7 @@ export default function CardPaymentActivity({ paymentId, groupId }: CardPaymentA
 
       <div className="space-y-4 text-lg">
         <div className="flex justify-evenly items-center">
-          <span className="font-medium text-[#5BC5A7]">Từ:</span>
+          <span className="mr-2 font-medium text-[#5BC5A7]">Từ:</span>
           <span className="ml-[-190px] font-bold text-green-600">{detail.payerName}</span>
         </div>
         <div className="flex justify-center text-3xl font-bold text-[#5BC5A7]">
