@@ -1,17 +1,26 @@
-// src/app/(pages)/activities/payment-detail/page.tsx
 import ClientPaymentDetail from "./ClientPaymentDetail";
 import { notFound } from "next/navigation";
 
-export default function PaymentDetailPage({
+// Next.js 15: searchParams là Promise → phải await
+export default async function PaymentDetailPage({
   searchParams,
 }: {
-  searchParams: { groupId?: string; paymentId?: string; actionType?: string };
+  searchParams: Promise<{
+    groupId?: string;
+    paymentId?: string;
+    actionType?: string;
+  }>;
 }) {
-  const groupId = Number(searchParams.groupId);
-  const paymentId = Number(searchParams.paymentId);
-  const actionType = searchParams.actionType || "view";
+  // Await để lấy giá trị thực
+  const params = await searchParams;
 
-  if (isNaN(groupId) || isNaN(paymentId)) notFound();
+  const groupId = Number(params.groupId);
+  const paymentId = Number(params.paymentId);
+  const actionType = params.actionType || "view";
+
+  if (isNaN(groupId) || isNaN(paymentId)) {
+    notFound();
+  }
 
   return (
     <ClientPaymentDetail
