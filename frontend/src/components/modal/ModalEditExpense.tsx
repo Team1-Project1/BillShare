@@ -303,8 +303,10 @@ export default function ModalEditExpense({
       toast.success("Cập nhật thành công!");
       onSuccess();
       onClose();
-    } catch (err: any) {
-      toast.error(err.message || "Lỗi cập nhật");
+    } catch (err: unknown) {
+      const errorMessage =
+        err instanceof Error ? err.message : typeof err === "string" ? err : "Lỗi cập nhật";
+      toast.error(errorMessage);
     } finally {
       setIsLoading(false);
     }

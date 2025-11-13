@@ -11,10 +11,19 @@ import { BottomNav } from "@/components/Footer/BottomNav";
 import ModalCreateGroup from "@/components/modal/ModalCreateGroup";
 import ModalAddFriend from "@/components/modal/ModalAddFriend";
 
+interface Friend {
+  id: number;
+  fullName: string;
+  email: string;
+  phone: string;
+  avatarUrl: string;
+  createdAt: string;
+}
+
 export default function Home() {
   const [isGroupModalOpen, setIsGroupModalOpen] = useState(false);
   const [isFriendModalOpen, setIsFriendModalOpen] = useState(false);
-  const [friends, setFriends] = useState<any>([]);
+  const [friends, setFriends] = useState<Friend[]>([]);
 
   const handleOpenGroupModal = () => {
     setIsGroupModalOpen(true);
