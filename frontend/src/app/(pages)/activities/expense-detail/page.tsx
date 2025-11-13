@@ -1,16 +1,26 @@
 import ClientExpenseDetail from "./ClientExpenseDetail";
 import { notFound } from "next/navigation";
 
-export default function ExpenseDetailPage({
+// Next.js 15: searchParams là Promise → phải await
+export default async function ExpenseDetailPage({
   searchParams,
 }: {
-  searchParams: { groupId?: string; expenseId?: string; actionType?: string };
+  searchParams: Promise<{
+    groupId?: string;
+    expenseId?: string;
+    actionType?: string;
+  }>;
 }) {
-  const groupId = Number(searchParams.groupId);
-  const expenseId = Number(searchParams.expenseId);
-  const actionType = searchParams.actionType || "view";
+  // Await để lấy giá trị thực
+  const params = await searchParams;
 
-  if (isNaN(groupId) || isNaN(expenseId)) notFound();
+  const groupId = Number(params.groupId);
+  const expenseId = Number(params.expenseId);
+  const actionType = params.actionType || "view";
+
+  if (isNaN(groupId) || isNaN(expenseId)) {
+    notFound();
+  }
 
   return (
     <ClientExpenseDetail
