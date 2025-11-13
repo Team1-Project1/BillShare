@@ -1,8 +1,0 @@
-[build]
-builder = "RAILPACK"
-
-[deploy]
-startCommand = "java -jar target/*.jar"
-numReplicas = 1
-sleepApplication = true
-restartPolicyType = "ON_FAILURE"

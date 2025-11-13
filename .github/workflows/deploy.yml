@@ -1,10 +1,10 @@
 on:
   push:
-    branches: [deploy]
+    branches: [main]
     paths:
       - 'frontend/**'
   pull_request:
-    branches: [deploy]
+    branches: [main]
     paths:
       - 'frontend/**'
 
