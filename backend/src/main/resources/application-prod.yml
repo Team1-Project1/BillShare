@@ -2,25 +2,61 @@ spring:
   config:
     activate:
       on-profile: prod
-  devtools:
-    add-properties: true
   datasource:
-    url: jdbc:postgresql://${DATABASE_URL:localhost:5432/postgres}
-    username: ${DATABASE_USERNAME:dev}
-    password: ${DATABASE_PASSWORD:password}
-    hikari: # Connection poll
-      max-lifetime: 300000      # 5 phút
-      idle-timeout: 60000       # 1 phút
-      validation-timeout: 5000  # 5 giây
-      minimum-idle: 5
-      maximum-pool-size: 20
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      minimum-idle: 1
+      maximum-pool-size: 5 # Tăng pool size cho prod
+      idle-timeout: 600000
+      max-lifetime: 1800000
+      connection-timeout: 30000
   jpa:
-    show-sql: false
+    show-sql: false # Tắt show-sql cho prod
     hibernate:
       ddl-auto: none
-# application-prod.yml
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+
+  # Cấu hình Spring Mail (dự phòng, vẫn nên có)
+  mail:
+    from: ${MAIL_USERNAME}
+    name: BillShare App
+    baseUrlGroupMember: ${APP_FRONTEND_URL}/group-member/
+    baseUrlFriendShip: ${APP_FRONTEND_URL}/friends/
+
 springdoc:
   api-docs:
-    enabled: false
+    enabled: true
   swagger-ui:
-    enabled: false
+    enabled: true
+
+openapi:
+  service:
+    api-docs: backend-service
+    server: https://billshare-49116087295.asia-southeast1.run.app # URL thật của Cloud Run
+    title: Backend service
+    version: 1.0.0
+
+jwt:
+  timeOutAccessToken: 5
+  timeOutRefreshToken: 1440
+  secretKeyAccessToken: ${JWT_SECRET_ACCESS}
+  secretKeyRefreshToken: ${JWT_SECRET_REFRESH}
+  secretKeyFriendship: ${JWT_SECRET_FRIENDSHIP}
+  secretKeyOtp: ${JWT_SECRET_OTP}
+
+app:
+  otp:
+    expiration:
+      minutes: 5
+    cooldown:
+      seconds: 60
+    max-retries: 5
+  gmail:
+    client-id: ${GOOGLE_CLIENT_ID}
+    client-secret: ${GOOGLE_CLIENT_SECRET}
+    refresh-token: ${GOOGLE_REFRESH_TOKEN}

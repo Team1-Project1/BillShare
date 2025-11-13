@@ -1,64 +1,53 @@
 package vn.backend.backend.config;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.api.client.auth.oauth2.Credential;
-import com.google.api.client.extensions.jetty.auth.oauth2.LocalServerReceiver;
-import com.google.api.client.googleapis.auth.oauth2.GoogleAuthorizationCodeFlow;
-import com.google.api.client.googleapis.auth.oauth2.GoogleClientSecrets;
+// Import các thư viện cần thiết
+import com.google.api.client.googleapis.auth.oauth2.GoogleCredential;
 import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;
 import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.api.client.json.JsonFactory;
 import com.google.api.client.json.gson.GsonFactory;
-import com.google.api.client.util.store.FileDataStoreFactory;
 import com.google.api.services.gmail.Gmail;
-import com.google.api.services.gmail.GmailScopes;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-import java.io.*;
+import java.io.IOException;
 import java.security.GeneralSecurityException;
-import java.util.Collections;
-import java.util.List;
 
 @Configuration
 public class GmailConfig {
 
-    private static final String APPLICATION_NAME = "Gmail API Java";
+    private static final String APPLICATION_NAME = "BillShare App";
     private static final JsonFactory JSON_FACTORY = GsonFactory.getDefaultInstance();
-    private static final String TOKENS_DIRECTORY_PATH = "tokens";
-    private static final List<String> SCOPES = Collections.singletonList(GmailScopes.GMAIL_SEND);
 
+    /**
+     * Phương thức này tạo ra một Bean Gmail service đã được xác thực.
+     * Nó đọc 3 biến từ file application.yml (đã được nạp từ Secret Manager)
+     * và sử dụng Refresh Token để tự động lấy Access Token.
+     * Không cần trình duyệt, không bị treo.
+     */
+    @Bean
+    public Gmail gmailService(
+            @Value("${app.gmail.client-id}") String clientId,
+            @Value("${app.gmail.client-secret}") String clientSecret,
+            @Value("${app.gmail.refresh-token}") String refreshToken
+    ) throws GeneralSecurityException, IOException {
 
-    @Value("${app.gmail.credentials}")
-    private String gmailCredentialsJson;
+        final NetHttpTransport HTTP_TRANSPORT = GoogleNetHttpTransport.newTrustedTransport();
 
-
-    private GoogleClientSecrets loadClientSecrets() throws IOException {
-        // Dùng Jackson để parse chuỗi JSON thành GoogleClientSecrets
-        try (Reader reader = new StringReader(gmailCredentialsJson)) {
-            return GoogleClientSecrets.load(JSON_FACTORY, reader);
-        }
-    }
-
-
-    private Credential getCredentials(final NetHttpTransport HTTP_TRANSPORT) throws IOException {
-        GoogleClientSecrets clientSecrets = loadClientSecrets();
-
-        GoogleAuthorizationCodeFlow flow = new GoogleAuthorizationCodeFlow.Builder(
-                HTTP_TRANSPORT, JSON_FACTORY, clientSecrets, SCOPES)
-                .setDataStoreFactory(new FileDataStoreFactory(new java.io.File(TOKENS_DIRECTORY_PATH)))
-                .setAccessType("offline")
+        // 1. Tạo Credential bằng Client ID và Client Secret
+        GoogleCredential credential = new GoogleCredential.Builder()
+                .setTransport(HTTP_TRANSPORT)
+                .setJsonFactory(JSON_FACTORY)
+                .setClientSecrets(clientId, clientSecret)
                 .build();
 
-        LocalServerReceiver receiver = new LocalServerReceiver.Builder().setPort(8888).build();
-        return new com.google.api.client.extensions.java6.auth.oauth2.AuthorizationCodeInstalledApp(flow, receiver)
-                .authorize("user");
-    }
+        // 2. Đặt Refresh Token (đây là chìa khóa)
+        credential.setRefreshToken(refreshToken);
 
-
-    public Gmail getGmailService() throws IOException, GeneralSecurityException {
-        final NetHttpTransport HTTP_TRANSPORT = GoogleNetHttpTransport.newTrustedTransport();
-        return new Gmail.Builder(HTTP_TRANSPORT, JSON_FACTORY, getCredentials(HTTP_TRANSPORT))
+        // 3. Tạo Gmail service
+        // Credential sẽ tự động dùng Refresh Token để lấy Access Token mới khi cần
+        return new Gmail.Builder(HTTP_TRANSPORT, JSON_FACTORY, credential)
                 .setApplicationName(APPLICATION_NAME)
                 .build();
     }

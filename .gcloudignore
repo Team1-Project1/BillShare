@@ -1,0 +1,16 @@
+# Bỏ qua Git và các file cấu hình IDE
+.git
+.gitignore
+.idea
+*.iml
+
+# Bỏ qua các file không cần thiết của frontend
+frontend/node_modules
+frontend/build
+frontend/.next
+
+# Bỏ qua thư mục build của backend
+backend/target
+
+# Bỏ qua các file .env (vì cấu hình biến môi trường trên Cloud Run)
+.env
