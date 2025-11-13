@@ -14,13 +14,29 @@ interface ClientPaymentDetailProps {
   actionType: string;
 }
 
+interface DeletedPayment {
+  paymentId: number;
+  groupId: number;
+  groupName: string;
+  payerId: number;
+  payerName: string;
+  payeeId: number;
+  payeeName: string;
+  amount: number;
+  currency: string;
+  paymentDate: string;
+  deletedAt: string;
+}
+
 export default function ClientPaymentDetail({
   groupId,
   paymentId,
   actionType,
 }: ClientPaymentDetailProps) {
   const [userId, setUserId] = useState<number | null>(null);
-  const [deletedPayment, setDeletedPayment] = useState<any>(null);
+  const [deletedPayment, setDeletedPayment] = useState<DeletedPayment | null>(
+    null
+  );
   const [loading, setLoading] = useState(false);
   const isDeleted = actionType.toLowerCase() === "delete";
 
@@ -43,7 +59,9 @@ export default function ClientPaymentDetail({
 
         const data = await res.json();
         if (data.code === "success") {
-          const found = data.data.content.find((p: any) => p.paymentId === paymentId);
+          const found = data.data.content.find(
+            (p: DeletedPayment) => p.paymentId === paymentId
+          );
           setDeletedPayment(found || null);
         }
       } catch (err) {

@@ -9,29 +9,16 @@ import { toast } from "react-toastify";
 import { fetchWithAuth } from "@/lib/fetchWithAuth";
 import { motion, AnimatePresence } from "framer-motion";
 
+// Fix: Import interface chung, xóa định nghĩa trùng
+import { DeletedExpense } from "@/types/deletedExpense";
+
 interface Participant {
   userName: string;
   shareAmount: number;
   currency: string;
 }
 
-interface DeletedExpense {
-  expenseId: number;
-  groupId: number;
-  groupName: string;
-  expenseName: string;
-  totalAmount: number;
-  currency: string;
-  categoryName: string;
-  expenseDate: string;
-  description: string;
-  payerUserName: string;
-  splitMethod: "equal" | "custom";
-  participants: Participant[];
-  totalParticipants: number;
-  deletedAt: string;
-}
-
+// Fix: Dùng interface chung, không cần định nghĩa lại
 interface Props {
   expense: DeletedExpense;
 }
@@ -142,7 +129,6 @@ export default function CardDeletedExpense({ expense }: Props) {
                 <p className="text-xs text-gray-500 flex items-center gap-1">
                   <FiClock size={12} /> Xóa: {new Date(expense.deletedAt).toLocaleString("vi-VN")}
                 </p>
-                
               </div>
             </div>
           </motion.div>

@@ -8,6 +8,9 @@ import { fetchWithAuth } from "@/lib/fetchWithAuth";
 import { toast } from "react-toastify";
 import CardExpenseActivity from "@/components/card/CardExpenseActivity";
 
+// Fix: Import interface chung thay vì tự định nghĩa
+import { DeletedExpense } from "@/types/deletedExpense";
+
 export default function ClientExpenseDetail({
   groupId,
   expenseId,
@@ -18,7 +21,8 @@ export default function ClientExpenseDetail({
   actionType: string;
 }) {
   const [userId, setUserId] = useState<number | null>(null);
-  const [deletedExpense, setDeletedExpense] = useState<any>(null);
+  // Fix: Dùng interface chung
+  const [deletedExpense, setDeletedExpense] = useState<DeletedExpense | null>(null);
   const [loading, setLoading] = useState(false);
   const isDeleted = actionType === "delete";
 
@@ -39,7 +43,10 @@ export default function ClientExpenseDetail({
         if (!res.ok) throw new Error();
         const data = await res.json();
         if (data.code === "success") {
-          const found = data.data.content.find((e: any) => e.expenseId === expenseId);
+          const found = data.data.content.find(
+            // Fix: Dùng kiểu DeletedExpense từ file chung
+            (e: DeletedExpense) => e.expenseId === expenseId
+          );
           setDeletedExpense(found || null);
         }
       } catch (err) {
@@ -73,6 +80,7 @@ export default function ClientExpenseDetail({
     return (
       <RestoreOnlyPage groupId={groupId} entityId={expenseId} entityType="expense">
         {deletedExpense ? (
+          // Fix: Truyền đúng kiểu DeletedExpense (giờ đã đồng nhất)
           <CardDeletedExpense expense={deletedExpense} />
         ) : (
           <div className="bg-white rounded-lg p-6 shadow-md border border-gray-200 text-center">
