@@ -103,7 +103,7 @@ interface ApiBalanceItem {
   userId: number;
   userName: string;
   amount: number;
-  isOwed: boolean;
+  owed: boolean;
 }
 
 interface ApiPaymentItem {
@@ -319,7 +319,7 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
             userId: item.userId,
             userName: item.userName,
             amount: item.amount,
-            isOwed: item.isOwed,
+            isOwed: item.owed,
           })
         );
 
