@@ -60,10 +60,10 @@ export default function ModalEditGroupInfo({
     setDefaultCurrency(group.defaultCurrency);
     setInitialFiles(
       group.avatar
-        ? [{ source: group.avatar, options: { type: "local" } }]
+        ? [{ source: group.avatar, options: { type: "input" } }]
         : []
     );
-  }, [group]);
+  }, [isOpen]);
 
   // Click outside
   useEffect(() => {
@@ -174,6 +174,7 @@ export default function ModalEditGroupInfo({
 
       if (data.code === "success") {
         toast.success("Cập nhật thành công!", { position: "top-center", autoClose: 3000 });
+        console.log("Display File:", displayFile);
 
         if (data.data.avatarUrl) {
           // Cập nhật lại initialFiles để hiển thị ảnh mới
@@ -193,8 +194,13 @@ export default function ModalEditGroupInfo({
 
   if (!isOpen) return null;
 
-  // Hợp nhất: ưu tiên file mới > file cũ
-  const displayFile = fileItems[0] || (initialFiles[0] ? { ...initialFiles[0], file: undefined } : null);
+  const displayFile =
+    fileItems.length > 0
+      ? fileItems[0]
+      : initialFiles.length > 0
+        ? initialFiles[0]
+        : null;
+  
 
   return (
     <div className="fixed inset-0 flex items-center justify-center z-50 bg-black/10">
@@ -215,7 +221,7 @@ export default function ModalEditGroupInfo({
         </div>
 
         <div className="flex-1 overflow-y-auto min-h-0 overscroll-contain pr-1">
-          <div className="mb-4 text-center">
+          {!isLoading && (          <div className="mb-4 text-center">
             <label className="block font-medium text-black mb-2">Avatar</label>
 
             {/* CHỈ truyền FilePondInitialFile[] vào files */}
@@ -228,7 +234,6 @@ export default function ModalEditGroupInfo({
               files={initialFiles}
               onupdatefiles={(items: FilePondFile[]) => {
                 setFileItems(items);
-                // Cập nhật initialFiles để đồng bộ (nếu cần)
                 if (items.length === 0) {
                   setInitialFiles([]);
                 }
@@ -239,7 +244,7 @@ export default function ModalEditGroupInfo({
 
             {/* Preview */}
             {displayFile ? (
-              displayFile.file ? (
+              displayFile.file instanceof File ? (
                 <img
                   src={URL.createObjectURL(displayFile.file)}
                   alt="Preview"
@@ -254,8 +259,8 @@ export default function ModalEditGroupInfo({
               )
             ) : (
               <p className="mt-2 text-gray-500">Chưa có ảnh</p>
-            )}
-          </div>
+            )  }
+          </div>)}
 
           <div className="mb-4">
             <label className="block text-sm font-medium text-gray-700 mb-1">Tên nhóm *</label>
@@ -295,9 +300,8 @@ export default function ModalEditGroupInfo({
         <button
           onClick={handleEdit}
           disabled={isLoading}
-          className={`w-full h-10 text-white rounded-md text-base font-semibold mt-4 shrink-0 ${
-            isLoading ? "bg-gray-400 cursor-not-allowed" : "bg-[#5BC5A7] hover:bg-[#4AA88C]"
-          }`}
+          className={`w-full h-10 text-white rounded-md text-base font-semibold mt-4 shrink-0 ${isLoading ? "bg-gray-400 cursor-not-allowed" : "bg-[#5BC5A7] hover:bg-[#4AA88C]"
+            }`}
         >
           {isLoading ? "Đang xử lý..." : "Xác nhận"}
         </button>

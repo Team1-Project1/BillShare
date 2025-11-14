@@ -127,6 +127,7 @@ export default function UserInfo({
         method: "PATCH",
         body: formData,
         headers: {
+          "Content-Type": "multipart/form-data",
           Authorization: accessToken ? `Bearer ${accessToken}` : "",
           Accept: "*/*",
         },
@@ -242,7 +243,7 @@ export default function UserInfo({
           </label>
 
           {/* CHỈ DÙNG FilePondInitialFile[] cho files prop */}
-          <FilePond
+          {isEditing && (<FilePond
             name="avatar"
             allowMultiple={false}
             allowRemove={true}
@@ -257,7 +258,8 @@ export default function UserInfo({
             }}
             imagePreviewMaxHeight={200}
             className="w-full"
-          />
+          />)}
+          
 
           {/* Preview ảnh */}
           {displayFile ? (
