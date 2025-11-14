@@ -35,7 +35,10 @@ public class UploadImageServiceImpl implements UploadImageService {
         cloudinary.uploader().upload(fileUpload, ObjectUtils.asMap("public_id",publicValue));
         cleanDisk(fileUpload);
 
-        return cloudinary.url().generate(StringUtils.join(publicValue,".",extension));
+        // BẮT BUỘC DÙNG HTTPS
+        return cloudinary.url()
+                .secure(true)
+                .generate(publicValue + "." + extension);
     }
     public File convert(MultipartFile file) throws Exception{
         assert file.getOriginalFilename() != null;
