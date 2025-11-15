@@ -8,10 +8,9 @@ import FilePondPluginFileValidateType from "filepond-plugin-file-validate-type";
 import FilePondPluginImagePreview from "filepond-plugin-image-preview";
 import "filepond-plugin-image-preview/dist/filepond-plugin-image-preview.css";
 import { FiX } from "react-icons/fi";
+// Import type đúng
 import type { FilePondFile, FilePondInitialFile } from "filepond";
-
 registerPlugin(FilePondPluginFileValidateType, FilePondPluginImagePreview);
-
 interface Group {
   groupId: number;
   name: string;
@@ -19,14 +18,12 @@ interface Group {
   defaultCurrency: string;
   avatar: string;
 }
-
 interface ModalEditGroupInfoProps {
   isOpen: boolean;
   onClose: () => void;
   group: Group;
   onUpdateSuccess: () => void;
 }
-
 export default function ModalEditGroupInfo({
   isOpen,
   onClose,
@@ -36,47 +33,27 @@ export default function ModalEditGroupInfo({
   const [groupName, setGroupName] = useState<string>(group.name);
   const [description, setDescription] = useState<string>(group.description);
   const [defaultCurrency, setDefaultCurrency] = useState<string>(group.defaultCurrency);
-  const [initialFiles, setInitialFiles] = useState<FilePondInitialFile[]>([]);
+  // CHỈ DÙNG FilePondInitialFile CHO files prop
+  const [initialFiles, setInitialFiles] = useState<FilePondInitialFile[]>(
+    group.avatar
+      ? [{ source: group.avatar, options: { type: "local" } }]
+      : []
+  );
+  // DÙNG FilePondFile CHO state khi người dùng thêm/xóa file
   const [fileItems, setFileItems] = useState<FilePondFile[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const modalRef = useRef<HTMLDivElement>(null);
-
-  // Cấu hình server để FilePond fetch ảnh có token
-  const pondServer = {
-    fetch: (
-      url: string,
-      load: (file: Blob | File) => void,
-      error: (err: string) => void
-    ) => {
-      const token = localStorage.getItem("accessToken");
-
-      fetch(url, {
-        method: "GET",
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      })
-        .then((res) => {
-          if (!res.ok) throw new Error(`HTTP ${res.status}`);
-          return res.blob();
-        })
-        .then((blob) => load(blob))
-        .catch((err) => error(err.message || "Không thể tải ảnh"));
-    },
-  };
-
-  // Đồng bộ khi group hoặc isOpen thay đổi
+  // Đồng bộ khi group thay đổi
   useEffect(() => {
-    if (isOpen) {
-      setGroupName(group.name);
-      setDescription(group.description);
-      setDefaultCurrency(group.defaultCurrency);
-      setInitialFiles(
-        group.avatar
-          ? [{ source: group.avatar, options: { type: "local" } }]
-          : []
-      );
-      setFileItems([]);
-    }
-  }, [isOpen, group]);
+    setGroupName(group.name);
+    setDescription(group.description);
+    setDefaultCurrency(group.defaultCurrency);
+    setInitialFiles(
+      group.avatar
+        ? [{ source: group.avatar, options: { type: "input" } }]
+        : []
+    );
+  }, [isOpen]);
 
   // Click outside
   useEffect(() => {
@@ -90,7 +67,6 @@ export default function ModalEditGroupInfo({
     }
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [isOpen, onClose]);
-
   const handleEdit = async () => {
     try {
       setIsLoading(true);
@@ -103,14 +79,13 @@ export default function ModalEditGroupInfo({
         toast.error("Vui lòng nhập tên nhóm!", { position: "top-center", autoClose: 3000 });
         return;
       }
-
       const groupData = { groupName, description, defaultCurrency };
       const formData = new FormData();
       formData.append("group", JSON.stringify(groupData));
+      // Chỉ upload nếu có file mới (fileItems[0] tồn tại và có .file)
       if (fileItems.length > 0 && fileItems[0].file instanceof File) {
         formData.append("file", fileItems[0].file);
       }
-
       let accessToken = localStorage.getItem("accessToken");
       let response = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/group/edit/${group.groupId}`,
@@ -123,7 +98,6 @@ export default function ModalEditGroupInfo({
           },
         }
       );
-
       // Refresh token
       if (response.status === 401 || response.status === 403) {
         const refreshToken = localStorage.getItem("refreshToken");
@@ -164,7 +138,6 @@ export default function ModalEditGroupInfo({
           return;
         }
       }
-
       if (!response.ok) {
         const errorData = await response.json();
         if (response.status === 409) {
@@ -173,7 +146,6 @@ export default function ModalEditGroupInfo({
         }
         throw new Error("Cập nhật thất bại");
       }
-
       const data = await response.json();
       if (data.code === "error") {
         toast.error(data.message || "Cập nhật thất bại!", { position: "top-center", autoClose: 3000 });
@@ -182,9 +154,12 @@ export default function ModalEditGroupInfo({
 
       if (data.code === "success") {
         toast.success("Cập nhật thành công!", { position: "top-center", autoClose: 3000 });
+        console.log("Display File:", displayFile);
+
         if (data.data.avatarUrl) {
+          // Cập nhật lại initialFiles để hiển thị ảnh mới
           setInitialFiles([{ source: data.data.avatarUrl, options: { type: "local" } }]);
-          setFileItems([]);
+          setFileItems([]); // Xóa file tạm
         }
         onUpdateSuccess();
         onClose();
@@ -206,6 +181,7 @@ export default function ModalEditGroupInfo({
         ? initialFiles[0]
         : null;
 
+
   return (
     <div className="fixed inset-0 flex items-center justify-center z-50 bg-black/10">
       <div
@@ -225,50 +201,46 @@ export default function ModalEditGroupInfo({
         </div>
 
         <div className="flex-1 overflow-y-auto min-h-0 overscroll-contain pr-1">
-          {!isLoading && (
-            <div className="mb-4 text-center">
-              <label className="block font-medium text-black mb-2">Avatar</label>
+          {!isLoading && (          <div className="mb-4 text-center">
+            <label className="block font-medium text-black mb-2">Avatar</label>
 
-              <FilePond
-                name="avatar"
-                allowMultiple={false}
-                allowRemove={true}
-                labelIdle="+"
-                acceptedFileTypes={["image/*"]}
-                files={initialFiles}
-                server={pondServer} // THÊM DÒNG NÀY
-                onupdatefiles={(items: FilePondFile[]) => {
-                  setFileItems(items);
-                  if (items.length === 0) {
-                    setInitialFiles([]);
-                  }
-                }}
-                imagePreviewMaxHeight={200}
-                className="w-full"
-              />
+            {/* CHỈ truyền FilePondInitialFile[] vào files */}
+            <FilePond
+              name="avatar"
+              allowMultiple={false}
+              allowRemove={true}
+              labelIdle="+"
+              acceptedFileTypes={["image/*"]}
+              files={initialFiles}
+              onupdatefiles={(items: FilePondFile[]) => {
+                setFileItems(items);
+                if (items.length === 0) {
+                  setInitialFiles([]);
+                }
+              }}
+              imagePreviewMaxHeight={200}
+              className="w-full"
+            />
 
-              {/* Preview */}
-              {displayFile ? (
-                "file" in displayFile && displayFile.file instanceof File ? (
-                  <img
-                    src={URL.createObjectURL(displayFile.file)}
-                    alt="Preview"
-                    className="w-24 h-24 rounded-full mx-auto mt-2 object-cover"
-                  />
-                ) : (displayFile as FilePondInitialFile).source ? (
-                  <img
-                    src={(displayFile as FilePondInitialFile).source}
-                    alt="Current"
-                    className="w-24 h-24 rounded-full mx-auto mt-2 object-cover"
-                  />
-                ) : (
-                  <p className="mt-2 text-gray-500">Chưa có ảnh</p>
-                )
+            {/* Preview */}
+            {displayFile ? (
+              displayFile.file instanceof File ? (
+                <img
+                  src={URL.createObjectURL(displayFile.file)}
+                  alt="Preview"
+                  className="w-24 h-24 rounded-full mx-auto mt-2 object-cover"
+                />
               ) : (
-                <p className="mt-2 text-gray-500">Chưa có ảnh</p>
-              )}
-            </div>
-          )}
+                <img
+                  src={displayFile.source}
+                  alt="Current"
+                  className="w-24 h-24 rounded-full mx-auto mt-2 object-cover"
+                />
+              )
+            ) : (
+              <p className="mt-2 text-gray-500">Chưa có ảnh</p>
+            )  }
+          </div>)}
 
           <div className="mb-4">
             <label className="block text-sm font-medium text-gray-700 mb-1">Tên nhóm *</label>
@@ -305,9 +277,8 @@ export default function ModalEditGroupInfo({
         <button
           onClick={handleEdit}
           disabled={isLoading}
-          className={`w-full h-10 text-white rounded-md text-base font-semibold mt-4 shrink-0 ${
-            isLoading ? "bg-gray-400 cursor-not-allowed" : "bg-[#5BC5A7] hover:bg-[#4AA88C]"
-          }`}
+          className={`w-full h-10 text-white rounded-md text-base font-semibold mt-4 shrink-0 ${isLoading ? "bg-gray-400 cursor-not-allowed" : "bg-[#5BC5A7] hover:bg-[#4AA88C]"
+            }`}
         >
           {isLoading ? "Đang xử lý..." : "Xác nhận"}
         </button>

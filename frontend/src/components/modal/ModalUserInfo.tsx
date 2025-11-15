@@ -7,24 +7,21 @@ import "filepond/dist/filepond.min.css";
 import FilePondPluginFileValidateType from "filepond-plugin-file-validate-type";
 import FilePondPluginImagePreview from "filepond-plugin-image-preview";
 import "filepond-plugin-image-preview/dist/filepond-plugin-image-preview.css";
+// Import đúng type mới
 import type { FilePondFile, FilePondInitialFile } from "filepond";
-
 registerPlugin(FilePondPluginFileValidateType, FilePondPluginImagePreview);
-
 interface User {
   fullName: string;
   email: string;
   phone: string;
   avatarUrl: string;
 }
-
 interface UserInfoProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
   user: User;
 }
-
 export default function UserInfo({
   isOpen,
   onClose,
@@ -35,49 +32,33 @@ export default function UserInfo({
   const [fullName, setFullName] = useState(user?.fullName || "");
   const [email, setEmail] = useState(user?.email || "");
   const [phone, setPhone] = useState(user?.phone || "");
-  const [initialFiles, setInitialFiles] = useState<FilePondInitialFile[]>([]);
+  // CHỈ DÙNG FilePondInitialFile CHO files prop
+  const [initialFiles, setInitialFiles] = useState<FilePondInitialFile[]>(
+    user?.avatarUrl
+      ? [{ source: user.avatarUrl, options: { type: "local" } }]
+      : []
+  );
+  // DÙNG FilePondFile CHO file người dùng chọn
   const [fileItems, setFileItems] = useState<FilePondFile[]>([]);
   const [isEmailChanged, setIsEmailChanged] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const modalRef = useRef<HTMLDivElement>(null);
-
-  // Cấu hình server cho FilePond
-  const pondServer = {
-    fetch: (
-      url: string,
-      load: (file: Blob | File) => void,
-      error: (err: string) => void
-    ) => {
-      const token = localStorage.getItem("accessToken");
-
-      fetch(url, {
-        method: "GET",
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      })
-        .then((res) => {
-          if (!res.ok) throw new Error(`HTTP ${res.status}`);
-          return res.blob();
-        })
-        .then((blob) => load(blob))
-        .catch((err) => error(err.message || "Không thể tải ảnh"));
-    },
-  };
-
+  // Đồng bộ khi user hoặc isOpen thay đổi
   useEffect(() => {
-    if (!user || !isOpen) return;
+    if (!user) return;
     setFullName(user.fullName || "");
     setEmail(user.email || "");
     setPhone(user.phone || "");
     setInitialFiles(
       user.avatarUrl
-        ? [{ source: user.avatarUrl, options: { type: "local" } }]
+        ? [{ source: user.avatarUrl, options: { type : "input"} }]
         : []
     );
     setFileItems([]);
     setIsEditing(false);
     setIsEmailChanged(false);
   }, [user, isOpen]);
-
+  // Click outside để đóng
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (modalRef.current && !modalRef.current.contains(event.target as Node)) {
@@ -89,7 +70,6 @@ export default function UserInfo({
     }
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [isOpen, onClose]);
-
   const handleSetEditing = async () => {
     if (isEditing) {
       const success = await handleSaveChanges();
@@ -98,7 +78,6 @@ export default function UserInfo({
       setIsEditing(true);
     }
   };
-
   const handleSaveChanges = async (): Promise<boolean> => {
     try {
       setIsLoading(true);
@@ -117,24 +96,24 @@ export default function UserInfo({
       if (email !== user.email) {
         setIsEmailChanged(true);
       }
-
       const userData = { fullName, email, phone };
       const formData = new FormData();
       formData.append("user", JSON.stringify(userData));
+      // Upload file mới
       if (fileItems.length > 0 && fileItems[0].file instanceof File) {
         formData.append("file", fileItems[0].file);
       }
-
       let accessToken = localStorage.getItem("accessToken");
       let response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/edit`, {
         method: "PATCH",
         body: formData,
         headers: {
+          "Content-Type": "multipart/form-data",
           Authorization: accessToken ? `Bearer ${accessToken}` : "",
           Accept: "*/*",
         },
       });
-
+      // Refresh token
       if (response.status === 401 || response.status === 403) {
         const refreshToken = localStorage.getItem("refreshToken");
         const refreshRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/refresh-token`, {
@@ -171,7 +150,6 @@ export default function UserInfo({
           return false;
         }
       }
-
       if (!response.ok) {
         const errorData = await response.json();
         if (response.status === 409) {
@@ -180,13 +158,11 @@ export default function UserInfo({
         }
         throw new Error("Cập nhật thất bại");
       }
-
       const data = await response.json();
       if (data.code === "error") {
         toast.error(data.message || "Cập nhật thất bại!", { position: "top-center", autoClose: 3000 });
         return false;
       }
-
       if (data.code === "success") {
         if (isEmailChanged) {
           toast.success("Cập nhật thành công! Vui lòng đăng nhập lại.", { position: "top-center", autoClose: 3000 });
@@ -214,16 +190,9 @@ export default function UserInfo({
       setIsLoading(false);
     }
   };
-
   if (!user || !isOpen) return null;
-
-  const displayFile =
-    fileItems.length > 0
-      ? fileItems[0]
-      : initialFiles.length > 0
-        ? initialFiles[0]
-        : null;
-
+  // Ưu tiên ảnh mới > ảnh cũ
+  const displayFile = fileItems[0] || (initialFiles[0] ? { ...initialFiles[0], file: undefined } : null);
   return (
     <div className="fixed inset-0 flex items-center justify-center z-50">
       <div
@@ -244,36 +213,36 @@ export default function UserInfo({
             Ảnh đại diện
           </label>
 
-          {isEditing && (
-            <FilePond
-              name="avatar"
-              allowMultiple={false}
-              allowRemove={true}
-              labelIdle="+"
-              acceptedFileTypes={["image/*"]}
-              files={initialFiles}
-              server={pondServer}
-              onupdatefiles={(items: FilePondFile[]) => {
-                setFileItems(items);
-                if (items.length === 0) {
-                  setInitialFiles([]);
-                }
-              }}
-              imagePreviewMaxHeight={200}
-              className="w-full"
-            />
-          )}
+          {/* CHỈ DÙNG FilePondInitialFile[] cho files prop */}
+          {isEditing && (<FilePond
+            name="avatar"
+            allowMultiple={false}
+            allowRemove={true}
+            labelIdle="+"
+            acceptedFileTypes={["image/*"]}
+            files={initialFiles}
+            onupdatefiles={(items: FilePondFile[]) => {
+              setFileItems(items);
+              if (items.length === 0) {
+                setInitialFiles([]);
+              }
+            }}
+            imagePreviewMaxHeight={200}
+            className="w-full"
+          />)}
 
+
+          {/* Preview ảnh */}
           {displayFile ? (
-            "file" in displayFile && displayFile.file instanceof File ? (
+            displayFile.file instanceof Blob ? (
               <img
                 src={URL.createObjectURL(displayFile.file)}
                 alt="Preview"
                 className="w-24 h-24 rounded-full mx-auto mt-2 object-cover"
               />
-            ) : (displayFile as FilePondInitialFile).source ? (
+            ) : displayFile.source ? (
               <img
-                src={(displayFile as FilePondInitialFile).source}
+                src={displayFile.source}
                 alt="Current"
                 className="w-24 h-24 rounded-full mx-auto mt-2 object-cover"
               />
@@ -284,7 +253,6 @@ export default function UserInfo({
             <p className="mt-2 text-gray-500">Chưa có ảnh</p>
           )}
         </div>
-
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Họ và tên</label>
@@ -295,7 +263,8 @@ export default function UserInfo({
                 value={fullName}
                 disabled={!isEditing}
                 onChange={(e) => setFullName(e.target.value)}
-                className={`flex-1 bg-transparent outline-none ${isEditing ? "text-gray-900" : "text-gray-600"}`}
+                className={`flex-1 bg-transparent outline-none ${isEditing ? "text-gray-900" : "text-gray-600"
+                  }`}
               />
             </div>
           </div>
@@ -308,7 +277,8 @@ export default function UserInfo({
                 value={email}
                 disabled={!isEditing}
                 onChange={(e) => setEmail(e.target.value)}
-                className={`flex-1 bg-transparent outline-none ${isEditing ? "text-gray-900" : "text-gray-600"}`}
+                className={`flex-1 bg-transparent outline-none ${isEditing ? "text-gray-900" : "text-gray-600"
+                  }`}
               />
             </div>
           </div>
@@ -321,23 +291,22 @@ export default function UserInfo({
                 value={phone}
                 disabled={!isEditing}
                 onChange={(e) => setPhone(e.target.value)}
-                className={`flex-1 bg-transparent outline-none ${isEditing ? "text-gray-900" : "text-gray-600"}`}
+                className={`flex-1 bg-transparent outline-none ${isEditing ? "text-gray-900" : "text-gray-600"
+                  }`}
               />
             </div>
           </div>
         </div>
-
         <div className="flex justify-center mt-8">
           <button
             onClick={handleSetEditing}
             disabled={isLoading}
-            className={`flex items-center justify-center gap-2 w-[200px] h-12 rounded-md text-base font-semibold transition-all duration-300 ${
-              isLoading
+            className={`flex items-center justify-center gap-2 w-[200px] h-12 rounded-md text-base font-semibold transition-all duration-300 ${isLoading
                 ? "bg-gray-400 cursor-not-allowed text-gray-800"
                 : isEditing
                   ? "bg-[#5BC5A7] text-white hover:bg-[#4AA88C]"
                   : "bg-gray-300 text-gray-800 hover:bg-gray-400"
-            }`}
+              }`}
           >
             {isLoading ? (
               <span>Đang xử lý...</span>
