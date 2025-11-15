@@ -83,7 +83,7 @@ export default function ModalEditGroupInfo({
       const formData = new FormData();
       formData.append("group", JSON.stringify(groupData));
       // Chỉ upload nếu có file mới (fileItems[0] tồn tại và có .file)
-      if (fileItems.length > 0 && fileItems[0].file instanceof File) {
+      if (fileItems.length > 0 && "file" in fileItems[0]) {
         formData.append("file", fileItems[0].file);
       }
       let accessToken = localStorage.getItem("accessToken");
@@ -224,7 +224,7 @@ export default function ModalEditGroupInfo({
 
             {/* Preview */}
             {displayFile ? (
-              displayFile.file instanceof File ? (
+              "file" in displayFile && displayFile.file instanceof File ? (
                 <img
                   src={URL.createObjectURL(displayFile.file)}
                   alt="Preview"
@@ -239,7 +239,7 @@ export default function ModalEditGroupInfo({
               )
             ) : (
               <p className="mt-2 text-gray-500">Chưa có ảnh</p>
-            )  }
+            )}
           </div>)}
 
           <div className="mb-4">
