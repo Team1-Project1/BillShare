@@ -50,7 +50,7 @@ export default function ModalEditGroupInfo({
     setDefaultCurrency(group.defaultCurrency);
     setInitialFiles(
       group.avatar
-        ? [{ source: group.avatar, options: { type: "input" } }]
+        ? [{ source: group.avatar, options: { type: "local" } }]
         : []
     );
   }, [isOpen]);

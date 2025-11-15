@@ -51,7 +51,7 @@ export default function UserInfo({
     setPhone(user.phone || "");
     setInitialFiles(
       user.avatarUrl
-        ? [{ source: user.avatarUrl, options: { type : "input"} }]
+        ? [{ source: user.avatarUrl, options: { type : "local"} }]
         : []
     );
     setFileItems([]);
@@ -108,7 +108,7 @@ export default function UserInfo({
         method: "PATCH",
         body: formData,
         headers: {
-          "Content-Type": "multipart/form-data",
+          // "Content-Type": "multipart/form-data",
           Authorization: accessToken ? `Bearer ${accessToken}` : "",
           Accept: "*/*",
         },

@@ -287,9 +287,6 @@ export default function ModalCreateGroup({
             ))}
           </select>
         </div>
-        <h3 className="text-base font-medium text-gray-700 mb-2">
-          Thêm thành viên
-        </h3>
         
       </div>
     </div>
