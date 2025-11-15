@@ -320,30 +320,7 @@ export default function ModalAddMember({
         </div>
 
         {/* Thanh tìm kiếm */}
-        <div className="mb-4">
-          <button
-            onClick={() => setSearchOpen(!searchOpen)}
-            className="w-full flex items-center justify-between p-2 border border-gray-300 rounded-md hover:border-[#5BC5A7] transition-colors"
-          >
-            <span className="flex items-center text-gray-600">
-              <FiSearch className="mr-2" /> Tìm kiếm bạn bè...
-            </span>
-            <FiChevronDown
-              className={`transition-transform ${searchOpen ? "rotate-180" : ""
-                }`}
-            />
-          </button>
-          {searchOpen && (
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Nhập tên hoặc email..."
-              className="w-full mt-2 p-2 border border-gray-300 rounded-md focus:border-[#5BC5A7] focus:outline-none"
-              autoFocus
-            />
-          )}
-        </div>
+        
 
         {/* Mời qua email */}
         <button
