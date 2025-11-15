@@ -43,12 +43,8 @@ public class UploadImageServiceImpl implements UploadImageService {
     public File convert(MultipartFile file) throws Exception{
         assert file.getOriginalFilename() != null;
         // Tên file và phần mở rộng
-        String[] parts = getFileName(file.getOriginalFilename());
-        String extension = parts.length > 1 ? parts[1] : "";
-        String uniqueName = generatePublicValue(file.getOriginalFilename());
+        File convFile = new File(generatePublicValue(file.getOriginalFilename()) + "." + getFileName(file.getOriginalFilename())[1]);
 
-        // Thêm "/tmp/" vào trước tên file để đảm bảo nó được ghi vào thư mục tạm
-        File convFile = new File("/tmp/" + uniqueName + "." + extension);
 
         try(InputStream is=file.getInputStream()){
             Files.copy(is,convFile.toPath());
