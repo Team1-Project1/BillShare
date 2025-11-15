@@ -108,7 +108,7 @@ export default function UserInfo({
         method: "PATCH",
         body: formData,
         headers: {
-          "Content-Type": "multipart/form-data",
+          // "Content-Type": "multipart/form-data",
           Authorization: accessToken ? `Bearer ${accessToken}` : "",
           Accept: "*/*",
         },
