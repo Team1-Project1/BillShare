@@ -14,6 +14,7 @@ import java.io.File;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Map;
 import java.util.UUID;
 
 @Service
@@ -29,16 +30,20 @@ public class UploadImageServiceImpl implements UploadImageService {
             return null;
         }
         String publicValue=generatePublicValue(file.getOriginalFilename());
-        String extension=getFileName(file.getOriginalFilename())[1];
         File fileUpload=convert(file);
 
-        cloudinary.uploader().upload(fileUpload, ObjectUtils.asMap("public_id",publicValue));
+        Map uploadResult = cloudinary.uploader().upload(
+                fileUpload,
+                ObjectUtils.asMap(
+                        "public_id", publicValue,
+                        "resource_type", "image"
+                )
+        );
+
         cleanDisk(fileUpload);
 
-        // BẮT BUỘC DÙNG HTTPS
-        return cloudinary.url()
-                .secure(true)
-                .generate(publicValue + "." + extension);
+        // LUÔN dùng secure_url (HTTPS) — không tự generate nữa
+        return uploadResult.get("secure_url").toString();
     }
     public File convert(MultipartFile file) throws Exception{
         assert file.getOriginalFilename() != null;
