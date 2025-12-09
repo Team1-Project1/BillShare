@@ -151,6 +151,7 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
   const [paymentsLoading, setPaymentsLoading] = useState(false);
   const [showActivities, setShowActivities] = useState(false);
   const [hasExported, setHasExported] = useState(false);
+  const [canEditGroup, setCanEditGroup] = useState(false);
 
   // Phân trang chi tiêu
   const [expensePage, setExpensePage] = useState(0);
@@ -584,6 +585,10 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
     }
   };
 
+  useEffect(() => {
+    setCanEditGroup(userId === group.createdBy);
+  }, [userId, group.createdBy]);
+
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
@@ -612,11 +617,11 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
         style={{
           filter:
             isModalOpen ||
-            isViewAllModalOpen ||
-            isConfirmDeleteOpen ||
-            isEditGroupInfoOpen ||
-            isAddExpenseModalOpen ||
-            isViewAllExpensesOpen
+              isViewAllModalOpen ||
+              isConfirmDeleteOpen ||
+              isEditGroupInfoOpen ||
+              isAddExpenseModalOpen ||
+              isViewAllExpensesOpen
               ? "blur(5px) brightness(0.8)"
               : "none",
           transition: "filter 0.3s",
@@ -642,9 +647,8 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
                     viên
                   </p>
                   <p
-                    className={`text-md text-gray-600 mt-2 line-clamp-2 ${
-                      group.description === "Không có mô tả" ? "italic" : ""
-                    }`}
+                    className={`text-md text-gray-600 mt-2 line-clamp-2 ${group.description === "Không có mô tả" ? "italic" : ""
+                      }`}
                   >
                     Mô tả: {group.description}
                   </p>
@@ -669,25 +673,26 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
                         <FiTrash2 className="mr-2" /> Xóa
                       </button>
                     )}
-                    <button
-                      onClick={() => {
-                        setIsEditGroupInfoOpen(true);
-                        setIsMenuOpen(false);
-                      }}
-                      className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-green-50 w-full text-left"
-                    >
-                      <FiEdit className="mr-2" /> Đổi thông tin
-                    </button>
+                    {canEditGroup && (
+                      <button
+                        onClick={() => {
+                          setIsEditGroupInfoOpen(true);
+                          setIsMenuOpen(false);
+                        }}
+                        className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-green-50 w-full text-left"
+                      >
+                        <FiEdit className="mr-2" /> Đổi thông tin
+                      </button>
+                    )}
                     <button
                       onClick={() => {
                         handleExportCSV();
                         setIsMenuOpen(false);
                       }}
-                      className={`flex items-center px-4 py-2 text-sm text-gray-700 w-full text-left ${
-                        hasExported
+                      className={`flex items-center px-4 py-2 text-sm text-gray-700 w-full text-left ${hasExported
                           ? "opacity-50 cursor-not-allowed"
                           : "hover:bg-green-50"
-                      }`}
+                        }`}
                     >
                       <FiDownload className="mr-2" /> Xuất CSV
                     </button>
@@ -705,9 +710,8 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
                 <p className="text-2xl font-bold text-gray-700">
                   {expensesLoading
                     ? "Đang tải..."
-                    : `${group.totalCost.toLocaleString()} ${
-                        group.defaultCurrency
-                      }`}
+                    : `${group.totalCost.toLocaleString()} ${group.defaultCurrency
+                    }`}
                 </p>
               </div>
               <div>
@@ -715,19 +719,17 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
                   Trạng thái của bạn
                 </h2>
                 <p
-                  className={`text-2xl font-bold ${
-                    group.netAmount >= 0
+                  className={`text-2xl font-bold ${group.netAmount >= 0
                       ? "text-green-700"
                       : "text-red-700"
-                  }`}
+                    }`}
                 >
                   {group.netAmount === 0
                     ? "Bạn không nợ ai"
                     : group.netAmount > 0
-                    ? `Bạn được nhận: ${group.netAmount.toLocaleString()} ${
-                        group.defaultCurrency
+                      ? `Bạn được nhận: ${group.netAmount.toLocaleString()} ${group.defaultCurrency
                       }`
-                    : `Bạn đang nợ: ${Math.abs(
+                      : `Bạn đang nợ: ${Math.abs(
                         group.netAmount
                       ).toLocaleString()} ${group.defaultCurrency}`}
                 </p>
@@ -759,9 +761,8 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
                   </div>
 
                   <div
-                    className={`relative w-14 h-7 rounded-full cursor-pointer transition-colors duration-300 ${
-                      isSimplified ? "bg-[#5BC5A7]" : "bg-gray-300"
-                    }`}
+                    className={`relative w-14 h-7 rounded-full cursor-pointer transition-colors duration-300 ${isSimplified ? "bg-[#5BC5A7]" : "bg-gray-300"
+                      }`}
                     onClick={handleSimplifyToggle}
                   >
                     <motion.div
@@ -821,7 +822,7 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
                     </motion.p>
                   )}
                 </AnimatePresence>
-                
+
               </div>
 
               <button
