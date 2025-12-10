@@ -103,7 +103,7 @@ interface ApiBalanceItem {
   userId: number;
   userName: string;
   amount: number;
-  owed: boolean;
+  isOwed: boolean;
 }
 
 interface ApiPaymentItem {
@@ -320,7 +320,7 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
             userId: item.userId,
             userName: item.userName,
             amount: item.amount,
-            isOwed: item.owed,
+            isOwed: item.isOwed,
           })
         );
 
@@ -648,7 +648,8 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
                   </p>
                   <p
                     className={`text-md text-gray-600 mt-2 line-clamp-2 ${group.description === "Không có mô tả" ? "italic" : ""
-                    }`}
+                      }`}
+
                   >
                     Mô tả: {group.description}
                   </p>
@@ -690,9 +691,10 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
                         setIsMenuOpen(false);
                       }}
                       className={`flex items-center px-4 py-2 text-sm text-gray-700 w-full text-left ${hasExported
+
                           ? "opacity-50 cursor-not-allowed"
                           : "hover:bg-green-50"
-                      }`}
+                        }`}
                     >
                       <FiDownload className="mr-2" /> Xuất CSV
                     </button>
@@ -712,6 +714,7 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
                     ? "Đang tải..."
                     : `${group.totalCost.toLocaleString()} ${group.defaultCurrency
                     }`}
+
                 </p>
               </div>
               <div>
@@ -720,14 +723,16 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
                 </h2>
                 <p
                   className={`text-2xl font-bold ${group.netAmount >= 0
+
                       ? "text-green-700"
                       : "text-red-700"
-                  }`}
+                    }`}
                 >
                   {group.netAmount === 0
                     ? "Bạn không nợ ai"
                     : group.netAmount > 0
                       ? `Bạn được nhận: ${group.netAmount.toLocaleString()} ${group.defaultCurrency
+
                       }`
                       : `Bạn đang nợ: ${Math.abs(
                         group.netAmount
@@ -763,6 +768,7 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
                   <div
                     className={`relative w-14 h-7 rounded-full cursor-pointer transition-colors duration-300 ${isSimplified ? "bg-[#5BC5A7]" : "bg-gray-300"
                       }`}
+
                     onClick={handleSimplifyToggle}
                   >
                     <motion.div
@@ -822,7 +828,7 @@ export default function GroupDetailClient({ slug }: { slug: string }) {
                     </motion.p>
                   )}
                 </AnimatePresence>
-                
+
               </div>
 
               <button
