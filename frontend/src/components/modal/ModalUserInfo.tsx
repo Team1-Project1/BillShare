@@ -127,7 +127,6 @@ export default function UserInfo({
         method: "PATCH",
         body: formData,
         headers: {
-          "Content-Type": "multipart/form-data",
           Authorization: accessToken ? `Bearer ${accessToken}` : "",
           Accept: "*/*",
         },
@@ -139,7 +138,6 @@ export default function UserInfo({
         const refreshRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/refresh-token`, {
           method: "POST",
           headers: {
-            "Content-Type": "application/json",
             "refresh-token": refreshToken ?? "",
           },
         });
